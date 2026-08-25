@@ -127,7 +127,8 @@ const seed = async (): Promise<void> => {
   });
 
   const mismatched = seeded.filter(
-    (u) => SEED_USERS.find((s) => s.email === u.email)?.role !== u.role
+    (u: { email: string; role: string }) =>
+      SEED_USERS.find((s: SeedUser) => s.email === u.email)?.role !== u.role
   );
 
   if (mismatched.length > 0) {

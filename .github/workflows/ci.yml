@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: apps/api/node_modules/.bin/prisma generate --schema=apps/api/prisma/schema.prisma
+
       - name: Lint (Biome via Ultracite)
         run: bun x ultracite check
 
