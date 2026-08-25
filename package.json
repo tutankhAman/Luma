@@ -1,0 +1,33 @@
+{
+  "name": "Luma",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "check": "ultracite check",
+    "check-types": "turbo run check-types",
+    "dev": "turbo run dev",
+    "fix": "ultracite fix",
+    "lint": "turbo run lint",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.9",
+    "lefthook": "^2.1.10",
+    "turbo": "^2.10.11",
+    "typescript": "7.0.2",
+    "ultracite": "7.10.6"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.0"
+    }
+  }
+}
