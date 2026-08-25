@@ -74,7 +74,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### A — Frontend Lead
 
 **Hour 0–1:**
-- [ ] Create `apps/web/` — Next.js 14 App Router:
+- [ ] Create `apps/web/` — Next.js 16 App Router:
   ```bash
   bunx create-next-app web --typescript --tailwind --app --src-dir=false
   ```

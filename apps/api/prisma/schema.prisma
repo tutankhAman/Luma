@@ -25,6 +25,7 @@ model User {
   accounts      Account[]
 
   uploadBatches UploadBatch[]
+  verifiedLoans VerifiedLoan[]
   auditLogs     AuditLog[]
 }
 
@@ -85,16 +86,22 @@ model UploadBatch {
   processedCount Int      @default(0)
   failedCount    Int      @default(0)
   status         String   @default("pending")
+  metadata       Json?
   uploadedById   String
   uploadedBy     User     @relation(fields: [uploadedById], references: [id])
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   loans     Loan[]
   auditLogs AuditLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([uploadedById])
 }
 
 model Loan {
-  id            String      @id @default(cuid())
+  id            String  @id @default(cuid())
   loanId        String?
   borrowerId    String?
 
@@ -105,9 +112,9 @@ model Loan {
   loanType          String?
   originationDate   DateTime?
   maturityDate      DateTime?
-  originalPrincipal Decimal?
-  currentBalance    Decimal?
-  interestRate      Decimal?
+  originalPrincipal Decimal?  @db.Decimal(15, 2)
+  currentBalance    Decimal?  @db.Decimal(15, 2)
+  interestRate      Decimal?  @db.Decimal(5, 4)
   termMonths        Int?
   borrowerState     String?
   loanPurpose       String?
@@ -132,18 +139,23 @@ model Loan {
   auditLogs      AuditLog[]
 
   @@unique([sourceBatchId, sourceRowNumber])
+  @@index([loanId])
+  @@index([borrowerId])
+  @@index([validationStatus])
+  @@index([sourceBatchId])
+  @@index([createdAt])
 }
 
 model Exception {
-  id               String    @id @default(cuid())
+  id               String @id @default(cuid())
   loanId           String
-  loan             Loan      @relation(fields: [loanId], references: [id])
+  loan             Loan   @relation(fields: [loanId], references: [id])
 
   exceptionType    String
   severity         String
   field            String?
   message          String
-  status           String    @default("open")
+  status           String @default("open")
 
   reviewerId       String?
   reviewedAt       DateTime?
@@ -151,32 +163,43 @@ model Exception {
   correctedValue   String?
   aiRecommendation Json?
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   auditLogs AuditLog[]
+
+  @@index([loanId])
+  @@index([status])
+  @@index([severity])
+  @@index([exceptionType])
+  @@index([createdAt])
 }
 
 model VerifiedLoan {
-  id                   String   @id @default(cuid())
-  loanId               String   @unique
-  loan                 Loan     @relation(fields: [loanId], references: [id])
+  id                   String @id @default(cuid())
+  loanId               String @unique
+  loan                 Loan   @relation(fields: [loanId], references: [id])
 
   canonicalData        Json
   sourceBatchRef       String
   validationResult     String
   reviewerDecision     String?
-  aiRecommendationUsed Boolean  @default(false)
+  aiRecommendationUsed Boolean @default(false)
 
-  verifiedById         String
-  verifiedAt           DateTime @default(now())
-  recordHash           String
+  verifiedById String
+  verifiedBy   User   @relation(fields: [verifiedById], references: [id])
+  verifiedAt   DateTime @default(now())
+  recordHash   String
 
   auditLogs AuditLog[]
+
+  @@index([validationResult])
+  @@index([verifiedById])
+  @@index([verifiedAt])
 }
 
 model AuditLog {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   eventType      String
 
   actorId        String?

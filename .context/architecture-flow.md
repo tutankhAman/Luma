@@ -6,7 +6,7 @@
 ## 1. System Overview
 
 Luma is a **monorepo** with a clear separation between:
-- **Frontend** – Next.js 14 App Router (client-facing UI, role-based views)
+- **Frontend** – Next.js 16 App Router (client-facing UI, role-based views)
 - **Backend** – Express + TypeScript REST API (business logic, validation, AI)
 - **Database** – PostgreSQL via Prisma ORM
 - **Auth** – Better Auth (Prisma adapter, RBAC plugin, shared session cookies)
@@ -17,7 +17,7 @@ Luma is a **monorepo** with a clear separation between:
 │                                                             │
 │  ┌──────────────────┐        ┌───────────────────────────┐  │
 │  │   apps/web        │        │   apps/api                │  │
-│  │   Next.js 14      │◄──────►│   Express + TypeScript    │  │
+│  │   Next.js 16      │◄──────►│   Express + TypeScript    │  │
 │  │   TypeScript      │  HTTP  │   Zod · Prisma · AI SDK   │  │
 │  │   Tailwind CSS    │  REST  │                           │  │
 │  │   shadcn/ui       │        │   Better Auth (server)    │  │
@@ -39,7 +39,7 @@ Luma is a **monorepo** with a clear separation between:
 ```
 luma/
 ├── apps/
-│   ├── web/                    # Next.js 14 frontend
+│   ├── web/                    # Next.js 16 frontend
 │   │   ├── app/                # App Router pages
 │   │   │   ├── (auth)/         # Login, register pages
 │   │   │   ├── (operator)/     # Data Operator views
@@ -82,7 +82,7 @@ luma/
 | Layer | Choice | Why |
 |---|---|---|
 | **Monorepo** | Turborepo | Zero-config caching, shared `packages/types` |
-| **Frontend** | Next.js 14 App Router | SSR for auth-protected pages, route groups for roles |
+| **Frontend** | Next.js 16 App Router | SSR for auth-protected pages, route groups for roles |
 | **State / Fetching** | TanStack Query v5 | Optimistic updates, background refetch for live queues |
 | **Auth** | Better Auth + RBAC plugin | Prisma adapter, built-in roles, works across Express + Next.js |
 | **Backend** | Express + TypeScript | Lightweight, explicit, well-understood in FinTech contexts |

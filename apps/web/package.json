@@ -30,7 +30,7 @@
     "@repo/typescript-config": "*",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query-devtools": "^5.102.3",
-    "@types/node": "^22.15.0",
+    "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "postcss": "^8.5.26",
