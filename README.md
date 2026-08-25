@@ -111,9 +111,24 @@ Luma/
 
 `.github/workflows/ci.yml` runs on `push`/`pull_request` to `main`:
 
-1. `bun install --frozen-lockfile`
-2. `bun x ultracite check`
-3. `bun run check-types`
-4. `bun run build`
+1. Install dependencies
+2. Lint
+3. Typecheck
+4. Build
 
-Same steps run locally on pre-commit via `lefthook` (`bun x lefthook install`).
+Same steps run locally on pre-commit via lefthook.
+
+Branch protection is enabled on `main`:
+
+- Direct pushes to `main` are blocked — all changes must go through a pull request
+- The `lint · typecheck · build` check is required and must be green before a PR can be merged
+- The PR branch must be up to date with `main` before merging
+
+Workflow:
+
+1. Create a feature branch from `main`
+2. Make changes and push the branch
+3. Open a pull request against `main`
+4. Wait for the CI checks to run on the PR
+5. If checks fail, fix and push again — merge stays blocked until green
+6. Merge only when all required checks pass
