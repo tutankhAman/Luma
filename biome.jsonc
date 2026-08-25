@@ -15,6 +15,35 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off"
+          },
+          "style": {
+            "useDestructuring": "off"
+          },
+          "suspicious": {
+            "noLeakedRender": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/protected-route.tsx", "**/ProtectedRoute.tsx"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noJsxPropsBind": "off"
+          },
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
     }
   ]
 }

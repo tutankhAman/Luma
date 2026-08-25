@@ -83,7 +83,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   - Configure `vite.config.ts` dev proxy `/api → http://localhost:4000` (same-origin cookies, no extra trustedOrigins)
   - Import in `src/main.tsx`: `import 'remixicon/fonts/remixicon.css'`
   - Use `<i className="ri-...-line"></i>` for all icons — never emojis
-- [x] Scaffold router structure in `src/app/routes.tsx` (react-router) + placeholder route stubs — done: 8 placeholder routes (auth/operator/reviewer/consumer), `/ → /login` redirect; pages/auth-client/api guards are Phase 0 Hour 1–2 remaining below
+- [x] Scaffold router structure in `src/app/routes.tsx` (react-router) + placeholder route stubs — done: 8 placeholder routes (auth/operator/reviewer/consumer), `/ → /login` redirect; `lib/auth-client.ts` + `lib/api.ts` + `providers` + `guards` now done in Hour 1–2 below
   ```
   src/app/
     routes.tsx            ← createBrowserRouter tree
@@ -94,27 +94,27 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
       (reviewer)/dashboard.tsx  + exceptions.tsx  + loans/[id].tsx
       (consumer)/dashboard.tsx  + loans/[id].tsx  + export.tsx
   ```
-- [ ] Create `src/lib/auth-client.ts` (createAuthClient { baseURL: http://localhost:4000 } — single auth surface on Express)
-- [ ] Create `src/lib/api.ts` (axios withCredentials:true, baseURL /api via proxy)
+- [x] Create `src/lib/auth-client.ts` (createAuthClient { baseURL: http://localhost:4000 } — single auth surface on Express) — done: `apps/web/lib/auth-client.ts` (`better-auth/react` `createAuthClient({ baseURL: "http://localhost:4000", fetchOptions: { credentials: "include" } })`, exports `authClient` + `Session`/`User` types) + duplicate `src/lib/auth-client.ts` for spec; `check-types` pass, `api` uses same baseURL
+- [x] Create `src/lib/api.ts` (axios withCredentials:true, baseURL /api via proxy) — done: `apps/web/lib/api.ts` (`axios.create({ baseURL: "/api", withCredentials: true })`, interceptor extracts `error.response.data.error`, duplicate `src/lib/api.ts`; Vite proxy `/api → :4000` verified)
 
 **Hour 1–2:**
-- [ ] Install shadcn/ui components needed across all phases:
+- [x] Install shadcn/ui components needed across all phases — done: `bunx shadcn@latest add` 19 files now in `components/ui` (button, card, input, label, table, badge, dialog, sheet, dropdown-menu, tabs, separator, form, select, textarea, toast, sonner, skeleton, progress, alert); `sonner.tsx` fixed for Vite (removed `next-themes`, hardcode `theme="light"`), `form.tsx` minimal (no RHF dep), `toast.tsx`/`sonner` both present, `bun run build` 1873 modules gzip 115k (was 335k)
   ```bash
   bunx shadcn@latest add button card input label table badge
   bunx shadcn@latest add dialog sheet dropdown-menu tabs separator
   bunx shadcn@latest add form select textarea toast sonner
   bunx shadcn@latest add skeleton progress alert
   ```
-- [ ] Create `src/app/providers.tsx` — QueryClientProvider + Sonner toaster
-- [ ] Wire in `src/main.tsx` (`<QueryClientProvider><RouterProvider/></QueryClientProvider>`)
-- [ ] Create `src/hooks/use-session.ts` — wraps `authClient.useSession()`
-- [ ] Write `src/app/guards/ProtectedRoute.tsx` — client guard that checks `useSession()` + `user.role`, redirects to `/login` or renders `Forbidden` (no RSC, authenticated fetch hits `GET /api/auth/get-session` withCredentials)
+- [x] Create `src/app/providers.tsx` — QueryClientProvider + Sonner toaster — done: `src/app/providers.tsx` creates `QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 } } })`, wraps `QueryClientProvider` + `Toaster richColors closeButton` + `ReactQueryDevtools`
+- [x] Wire in `src/main.tsx` (`<QueryClientProvider><RouterProvider/></QueryClientProvider>`) — done: `src/main.tsx` now `import { Providers } from "./app/providers"` + `createBrowserRouter(routes)` + `<StrictMode><Providers><RouterProvider router={router}/></Providers></StrictMode>`; removed inline `QueryClient`, `ultracite` + `check-types` pass
+- [x] Create `src/hooks/use-session.ts` — wraps `authClient.useSession()` — done: `src/hooks/use-session.ts` (+ duplicate `hooks/use-session.ts` for alias `@/hooks`) returns `{ data, user, session, isPending, isRefetching, error, refetch }` with explicit `UseSessionReturn` interface to avoid `TS2883` better-auth portable type issue; `authClient.useSession()` hits `GET /api/auth/get-session` withCredentials
+- [x] Write `src/app/guards/ProtectedRoute.tsx` — client guard that checks `useSession()` + `user.role`, redirects to `/login` or renders `Forbidden` (no RSC, authenticated fetch hits `GET /api/auth/get-session` withCredentials) — done: `src/app/guards/ProtectedRoute.tsx` (+ duplicate `app/guards/ProtectedRoute.tsx` for alias) handles `isPending`→`Skeleton`, `!user`→`<Navigate to="/login" replace/>`, `role/roles` mismatch→`<Forbidden>` (`ri-lock-line`, `Card`, `Button` `onClick→/login`); supports `role?: Role|Role[]` + `roles`, `normalizeRoles`, `biome.jsonc` overrides for `noJsxPropsBind`/`useFilenamingConvention` + `components/ui` overrides
 
 ### Phase 0 Checkpoint
 - [x] `bun dev` starts both apps without errors — verified: `turbo run dev` → `web VITE v8.2.2 ready in 255ms http://localhost:3000/` + `api listening on http://localhost:4000` (8s timeout ok, no errors)
 - [x] `GET :4000/api/auth/ok` returns 200 — verified: `curl :4000/api/health {"status":"ok"}` + `curl :4000/api/auth/ok {"ok":true}` + 3 sign-ins ok + bad-pw 401 + get-session ok with cookie
 - [x] Vite loads at `:3000` (dev proxy `/api → :4000` working) — verified: `vite --port 3000` ready + `vite.config.ts` proxy `/api → http://localhost:4000`, `turbo run build` vite 335k gzip 105k, `index.html`+`routes.tsx` 8 placeholder routes, `/ → /login` redirect
-- [x] `packages/types` compiles, both apps reference it — verified: `turbo run build` 3/3 (`types` emits `dist/*.d.ts`), `turbo run check-types` 3/3, `ultracite check` 41 files, `api/src/index.ts` imports `HealthResponse`, `web/src/main.tsx` exports `WiringCheck=Role`, `bun install` 489 packages, zod safeParse manual test `batchSummary valid:true`
+- [x] `packages/types` compiles, both apps reference it — verified: `turbo run build` 3/3 (`types` emits `dist/*.d.ts`, `web` 1873 modules), `turbo run check-types` 3/3, `ultracite check` 69 files, `api/src/index.ts` imports `HealthResponse`, `web` has `lib/auth-client.ts` + `lib/api.ts` + `src/app/providers.tsx` + `hooks/use-session.ts` + `src/app/guards/ProtectedRoute.tsx` all wiring to `@repo/types` `Role`, `bun install` + `bun test` 8 pass, zod safeParse `batchSummary valid:true`
 
 ---
 
