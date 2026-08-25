@@ -10,9 +10,6 @@
       "includes": ["apps/api/src/seed.ts"],
       "linter": {
         "rules": {
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
-          },
           "performance": {
             "noAwaitInLoops": "off"
           }

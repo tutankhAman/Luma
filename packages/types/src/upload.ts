@@ -50,9 +50,7 @@ export const listUploadsQuerySchema = z.object({
 });
 export type ListUploadsQuery = z.infer<typeof listUploadsQuerySchema>;
 
-export const getBatchResponseSchema = uploadBatchSchema.extend({
-  processedCount: z.number().int().nonnegative().optional(),
-});
+export const getBatchResponseSchema = uploadBatchSchema;
 export type GetBatchResponse = z.infer<typeof getBatchResponseSchema>;
 
 export const batchSummarySchema = z.object({

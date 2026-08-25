@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validationResultSchema } from "./common.js";
+import { reviewerDecisionSchema, validationResultSchema } from "./common.js";
 
 export const canonicalDataSchema = z.object({
   borrowerId: z.string().nullable(),
@@ -34,7 +34,7 @@ export const verifiedLoanListItemSchema = z.object({
   }),
   loanId: z.string(),
   recordHash: z.string(),
-  reviewerDecision: z.string().nullable().optional(),
+  reviewerDecision: reviewerDecisionSchema.nullable().optional(),
   sourceBatchRef: z.string(),
   validationResult: validationResultSchema,
   verifiedAt: z.string(),
@@ -48,7 +48,7 @@ export const verifiedLoanDetailSchema = z.object({
   id: z.string(),
   loanId: z.string(),
   recordHash: z.string(),
-  reviewerDecision: z.string().nullable().optional(),
+  reviewerDecision: reviewerDecisionSchema.nullable().optional(),
   sourceBatchRef: z.string(),
   validationResult: validationResultSchema,
   verifiedAt: z.string(),

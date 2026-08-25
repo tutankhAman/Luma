@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { importStatusSchema, validationStatusSchema } from "./common.js";
+import {
+  exceptionStatusSchema,
+  exceptionTypeSchema,
+  importStatusSchema,
+  severitySchema,
+  validationResultSchema,
+  validationStatusSchema,
+} from "./common.js";
 
 export const loanEditableFieldSchema = z.enum([
   "currentBalance",
@@ -38,12 +45,12 @@ export type LoanListItem = z.infer<typeof loanListItemSchema>;
 export const loanExceptionItemSchema = z.object({
   aiRecommendation: z.unknown().nullable(),
   createdAt: z.string(),
-  exceptionType: z.string(),
+  exceptionType: exceptionTypeSchema,
   field: z.string().nullable(),
   id: z.string(),
   message: z.string(),
-  severity: z.string(),
-  status: z.string(),
+  severity: severitySchema,
+  status: exceptionStatusSchema,
 });
 export type LoanExceptionItem = z.infer<typeof loanExceptionItemSchema>;
 
@@ -75,7 +82,16 @@ export const loanDetailSchema = z.object({
   sourceSystem: z.string().nullable(),
   termMonths: z.number().int().nullable(),
   validationStatus: validationStatusSchema,
-  verifiedRecord: z.unknown().nullable(),
+  verifiedRecord: z
+    .object({
+      id: z.string(),
+      recordHash: z.string(),
+      validationResult: validationResultSchema,
+      verifiedAt: z.string(),
+      verifiedById: z.string(),
+    })
+    .passthrough()
+    .nullable(),
 });
 export type LoanDetail = z.infer<typeof loanDetailSchema>;
 
@@ -103,7 +119,7 @@ export const loanVerifyResponseSchema = z.object({
     id: z.string(),
     loanId: z.string(),
     recordHash: z.string(),
-    validationResult: z.string(),
+    validationResult: validationResultSchema,
     verifiedAt: z.string(),
     verifiedById: z.string(),
   }),

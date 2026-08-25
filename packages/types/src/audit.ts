@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { auditEventTypeSchema, roleSchema } from "./common.js";
+import {
+  auditEventTypeSchema,
+  exceptionTypeSchema,
+  roleSchema,
+  severitySchema,
+} from "./common.js";
 
 export const auditActorSchema = z.object({
   id: z.string(),
@@ -46,8 +51,14 @@ export const summaryOverviewSchema = z.object({
 export type SummaryOverview = z.infer<typeof summaryOverviewSchema>;
 
 export const summaryResponseSchema = z.object({
-  exceptionsBySeverity: z.record(z.string(), z.number().int().nonnegative()),
-  exceptionsByType: z.record(z.string(), z.number().int().nonnegative()),
+  exceptionsBySeverity: z.record(
+    severitySchema,
+    z.number().int().nonnegative()
+  ),
+  exceptionsByType: z.record(
+    exceptionTypeSchema,
+    z.number().int().nonnegative()
+  ),
   overview: summaryOverviewSchema,
   recentActivity: z.array(
     z.object({
