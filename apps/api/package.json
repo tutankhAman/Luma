@@ -8,13 +8,16 @@
     "check-types": "tsc --noEmit",
     "dev": "bun --watch src/index.ts",
     "lint": "biome check .",
+    "seed": "bun src/seed.ts",
     "start": "bun src/index.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.0",
+    "@repo/types": "workspace:*",
     "better-auth": "^1.7.1",
     "cors": "^2.8.5",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",

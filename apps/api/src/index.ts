@@ -1,3 +1,4 @@
+import type { HealthResponse } from "@repo/types";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
@@ -20,7 +21,11 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  const body: HealthResponse = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  };
+  res.json(body);
 });
 
 app.listen(port, () => {

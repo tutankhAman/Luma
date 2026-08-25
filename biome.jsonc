@@ -4,5 +4,20 @@
     "ultracite/biome/react",
     "ultracite/biome/tanstack"
   ],
-  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json"
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "overrides": [
+    {
+      "includes": ["apps/api/src/seed.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "check-types": "tsc --noEmit",
     "lint": "biome check ."
   },

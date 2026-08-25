@@ -17,9 +17,11 @@
       "version": "0.1.0",
       "dependencies": {
         "@prisma/client": "^6.16.0",
+        "@repo/types": "workspace:*",
         "better-auth": "^1.7.1",
         "cors": "^2.8.5",
         "express": "^5.2.1",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@repo/typescript-config": "*",
@@ -35,6 +37,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@base-ui/react": "^1.7.0",
+        "@repo/types": "workspace:*",
         "@tanstack/react-query": "^5.102.3",
         "axios": "^1.19.0",
         "better-auth": "^1.7.1",

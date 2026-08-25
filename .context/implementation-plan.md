@@ -55,7 +55,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 - [x] Verify: `GET http://localhost:4000/api/auth/ok` → `{ ok: true }` — 200 verified; also `/api/health` 200; sign-up/sign-in/get-session cookie flow verified
 
 **Hour 1–2:**
-- [ ] Create `packages/types/` shared package:
+- [x] Create `packages/types/` shared package — done: 6 modules + `common.ts` enums, zod 4.4.3, `src/index.ts` barrel with `biome-ignore`, `tsconfig.json` emits `dist/` declarations, `turbo build` 74 vite modules, `check-types` 3/3 pass, both apps `workspace:*` wired (`api/src/index.ts` `HealthResponse`, `web/src/main.tsx` `WiringCheck`)
   ```typescript
   // packages/types/src/index.ts
   export * from './loan'
@@ -65,10 +65,10 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   export * from './verified-loan'
   export * from './api-responses'
   ```
-  - Write all Zod schemas matching the API contract response shapes
-  - Export inferred TypeScript types alongside each schema
-- [ ] Write base seed script skeleton (`apps/api/src/seed.ts`): 3 users (operator, reviewer, consumer)
-- [ ] Verify Prisma types compile: `bunx tsc --noEmit`
+  - Write all Zod schemas matching the API contract response shapes — done: `loan.ts` (list/detail/patch/verify), `exception.ts` (9 types, AI 4 endpoints), `upload.ts` (batch/summary), `audit.ts` (trail/summary), `verified-loan.ts` (canonicalData), `api-responses.ts` (pagination/error/health) — all with `z.infer` types, zod safeParse verified (valid batchSummary passes, bad loan fails)
+  - Export inferred TypeScript types alongside each schema — done: `export type X = z.infer<typeof XSchema>` per schema
+- [x] Write base seed script skeleton (`apps/api/src/seed.ts`): 3 users (operator, reviewer, consumer) — done: `auth.api.signUpEmail` + prisma role update, idempotent `findUnique` before create, `raceUser` fallback, `seed done: 4 user(s)` (3 required + 1 pre-existing `verify@luma.dev`), second run `exists ...` verified, `bun run seed` script added to `apps/api/package.json`, `@repo/types` + `zod` added, `biome.jsonc` overrides for `noAwaitInLoops`/`noExcessiveCognitiveComplexity` on seed
+- [x] Verify Prisma types compile: `bunx tsc --noEmit` — done: `turbo run check-types` 3/3 (`@repo/types`, `api`, `web`) pass, `ultracite check` 41 files pass, `turbo run build` 3/3 (`types` emits `dist/*.d.ts`, `api` tsc, `web` vite 335k gzip 105k) pass, `bun install` 489 packages
 
 ### A — Frontend Lead
 
@@ -111,10 +111,10 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 - [ ] Write `src/app/guards/ProtectedRoute.tsx` — client guard that checks `useSession()` + `user.role`, redirects to `/login` or renders `Forbidden` (no RSC, authenticated fetch hits `GET /api/auth/get-session` withCredentials)
 
 ### Phase 0 Checkpoint
-- [ ] `bun dev` starts both apps without errors
-- [ ] `GET :4000/api/auth/ok` returns 200
-- [ ] Vite loads at `:3000` (dev proxy `/api → :4000` working)
-- [ ] `packages/types` compiles, both apps reference it
+- [x] `bun dev` starts both apps without errors — verified: `turbo run dev` → `web VITE v8.2.2 ready in 255ms http://localhost:3000/` + `api listening on http://localhost:4000` (8s timeout ok, no errors)
+- [x] `GET :4000/api/auth/ok` returns 200 — verified: `curl :4000/api/health {"status":"ok"}` + `curl :4000/api/auth/ok {"ok":true}` + 3 sign-ins ok + bad-pw 401 + get-session ok with cookie
+- [x] Vite loads at `:3000` (dev proxy `/api → :4000` working) — verified: `vite --port 3000` ready + `vite.config.ts` proxy `/api → http://localhost:4000`, `turbo run build` vite 335k gzip 105k, `index.html`+`routes.tsx` 8 placeholder routes, `/ → /login` redirect
+- [x] `packages/types` compiles, both apps reference it — verified: `turbo run build` 3/3 (`types` emits `dist/*.d.ts`), `turbo run check-types` 3/3, `ultracite check` 41 files, `api/src/index.ts` imports `HealthResponse`, `web/src/main.tsx` exports `WiringCheck=Role`, `bun install` 489 packages, zod safeParse manual test `batchSummary valid:true`
 
 ---
 
