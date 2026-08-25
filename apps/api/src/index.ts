@@ -1,7 +1,7 @@
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
-import { auth } from "./lib/auth";
+import { auth } from "./lib/auth.js";
 
 const app = express();
 

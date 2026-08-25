@@ -1,6 +1,6 @@
 import { fromNodeHeaders } from "better-auth/node";
 import type { NextFunction, Request, Response } from "express";
-import { auth } from "../lib/auth";
+import { auth } from "../lib/auth.js";
 
 export const APP_ROLES = [
   "data_operator",
@@ -22,12 +22,14 @@ export const requireRole =
       return;
     }
 
-    if (!roles.includes(session.user.role as AppRole)) {
+    const userRole = session.user.role;
+
+    if (!(userRole && roles.includes(userRole as AppRole))) {
       res.status(403).json({ code: "FORBIDDEN", error: "Forbidden" });
       return;
     }
 
-    req.user = session.user;
+    req.user = { ...session.user, role: userRole };
     req.session = session.session;
     next();
   };
