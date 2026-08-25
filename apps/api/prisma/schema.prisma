@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Better Auth managed tables
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  role          String    @default("data_consumer")
+  emailVerified Boolean   @default(false)
+  image         String?
+  banned        Boolean?
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  uploadBatches UploadBatch[]
+  auditLogs     AuditLog[]
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  userId         String
+  token          String   @unique
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  issuer                String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// App tables
+
+model UploadBatch {
+  id             String   @id @default(cuid())
+  fileName       String
+  filePath       String
+  fileType       String
+  recordCount    Int
+  processedCount Int      @default(0)
+  failedCount    Int      @default(0)
+  status         String   @default("pending")
+  uploadedById   String
+  uploadedBy     User     @relation(fields: [uploadedById], references: [id])
+  createdAt      DateTime @default(now())
+
+  loans     Loan[]
+  auditLogs AuditLog[]
+}
+
+model Loan {
+  id            String      @id @default(cuid())
+  loanId        String?
+  borrowerId    String?
+
+  sourceBatchId String
+  sourceBatch   UploadBatch @relation(fields: [sourceBatchId], references: [id])
+  sourceRowNumber Int
+
+  loanType          String?
+  originationDate   DateTime?
+  maturityDate      DateTime?
+  originalPrincipal Decimal?
+  currentBalance    Decimal?
+  interestRate      Decimal?
+  termMonths        Int?
+  borrowerState     String?
+  loanPurpose       String?
+  creditGrade       String?
+  employmentLength  String?
+  incomeBand        String?
+  paymentStatus     String?
+  daysPastDue       Int?
+  servicerName      String?
+  lastPaymentDate   DateTime?
+  lastUpdatedAt     DateTime?
+  documentStatus    String?
+  sourceSystem      String?
+
+  validationStatus String   @default("pending")
+  importStatus     String   @default("imported")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  exceptions     Exception[]
+  verifiedRecord VerifiedLoan?
+  auditLogs      AuditLog[]
+
+  @@unique([sourceBatchId, sourceRowNumber])
+}
+
+model Exception {
+  id               String    @id @default(cuid())
+  loanId           String
+  loan             Loan      @relation(fields: [loanId], references: [id])
+
+  exceptionType    String
+  severity         String
+  field            String?
+  message          String
+  status           String    @default("open")
+
+  reviewerId       String?
+  reviewedAt       DateTime?
+  reviewerNote     String?
+  correctedValue   String?
+  aiRecommendation Json?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model VerifiedLoan {
+  id                   String   @id @default(cuid())
+  loanId               String   @unique
+  loan                 Loan     @relation(fields: [loanId], references: [id])
+
+  canonicalData        Json
+  sourceBatchRef       String
+  validationResult     String
+  reviewerDecision     String?
+  aiRecommendationUsed Boolean  @default(false)
+
+  verifiedById         String
+  verifiedAt           DateTime @default(now())
+  recordHash           String
+
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  eventType      String
+
+  actorId        String?
+  actor          User?         @relation(fields: [actorId], references: [id])
+  loanId         String?
+  loan           Loan?         @relation(fields: [loanId], references: [id])
+  batchId        String?
+  batch          UploadBatch?  @relation(fields: [batchId], references: [id])
+  exceptionId    String?
+  exception      Exception?    @relation(fields: [exceptionId], references: [id])
+  verifiedLoanId String?
+  verifiedLoan   VerifiedLoan? @relation(fields: [verifiedLoanId], references: [id])
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([loanId])
+  @@index([actorId])
+  @@index([eventType])
+  @@index([createdAt])
+}
