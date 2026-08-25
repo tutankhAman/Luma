@@ -1,6 +1,8 @@
 pre-commit:
+  parallel: false
   jobs:
-    - run: bun x ultracite fix
+    - name: lint (biome via ultracite)
+      run: bun x ultracite fix
       glob:
         - "**/*.js"
         - "**/*.jsx"
@@ -10,3 +12,9 @@ pre-commit:
         - "**/*.jsonc"
         - "**/*.css"
       stage_fixed: true
+
+    - name: typecheck
+      run: bun run check-types
+
+    - name: build
+      run: bun run build
