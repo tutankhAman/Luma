@@ -32,7 +32,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### B — Infrastructure Lead
 
 **Hour 0–1:**
-- [ ] Init Turborepo: `npx create-turbo@latest luma --package-manager pnpm`
+- [ ] Init Turborepo: `bunx create-turbo@latest luma --package-manager bun`
 - [ ] Create `apps/api/` — bare Express + TypeScript:
   ```
   apps/api/
@@ -51,8 +51,8 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   ```
 - [ ] Write full `schema.prisma` from architecture doc (all tables: User, UploadBatch, Loan, Exception, VerifiedLoan, AuditLog)
 - [ ] `docker compose up -d postgres`
-- [ ] `pnpm prisma migrate dev --name init`
-- [ ] `pnpm prisma generate`
+- [ ] `bunx prisma migrate dev --name init`
+- [ ] `bunx prisma generate`
 - [ ] Verify: `GET http://localhost:4000/api/auth/ok` → `{ ok: true }`
 
 **Hour 1–2:**
@@ -69,21 +69,23 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   - Write all Zod schemas matching the API contract response shapes
   - Export inferred TypeScript types alongside each schema
 - [ ] Write base seed script skeleton (`apps/api/src/seed.ts`): 3 users (operator, reviewer, consumer)
-- [ ] Verify Prisma types compile: `pnpm tsc --noEmit`
+- [ ] Verify Prisma types compile: `bunx tsc --noEmit`
 
 ### A — Frontend Lead
 
 **Hour 0–1:**
 - [ ] Create `apps/web/` — Next.js 14 App Router:
   ```bash
-  pnpm create next-app web --typescript --tailwind --app --src-dir=false
+  bunx create-next-app web --typescript --tailwind --app --src-dir=false
   ```
-- [ ] Install and configure shadcn/ui: `npx shadcn@latest init`
-- [ ] Install TanStack Query v5, Better Auth client, axios:
+- [ ] Install and configure shadcn/ui: `bunx shadcn@latest init`
+- [ ] Install TanStack Query v5, Better Auth client, axios, and Remix Icons:
   ```bash
-  pnpm add @tanstack/react-query better-auth axios
-  pnpm add -D @tanstack/react-query-devtools
+  bun add @tanstack/react-query better-auth axios remixicon
+  bun add -d @tanstack/react-query-devtools
   ```
+  - Import in `app/layout.tsx`: `import 'remixicon/fonts/remixicon.css'`
+  - Use `<i className="ri-...-line"></i>` for all icons — never emojis (consistent cross-OS rendering, single SVG style).
 - [ ] Scaffold route group folders (empty `page.tsx` + `layout.tsx` in each):
   ```
   app/
@@ -103,18 +105,18 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 **Hour 1–2:**
 - [ ] Install shadcn/ui components needed across all phases:
   ```bash
-  npx shadcn@latest add button card input label table badge
-  npx shadcn@latest add dialog sheet dropdown-menu tabs separator
-  npx shadcn@latest add form select textarea toast sonner
-  npx shadcn@latest add skeleton progress alert
+  bunx shadcn@latest add button card input label table badge
+  bunx shadcn@latest add dialog sheet dropdown-menu tabs separator
+  bunx shadcn@latest add form select textarea toast sonner
+  bunx shadcn@latest add skeleton progress alert
   ```
 - [ ] Create `components/providers.tsx` — TanStack Query provider + Sonner toaster
 - [ ] Create `app/layout.tsx` wrapping with `<Providers />`
 - [ ] Create `hooks/use-session.ts` — wraps `authClient.useSession()`
 - [ ] Write `middleware.ts` — Edge-safe, presence-only cookie check (no signature verification); real verification lives in RSC layout guards + API
 
-### ✅ Phase 0 Checkpoint
-- [ ] `pnpm dev` starts both apps without errors
+### Phase 0 Checkpoint
+- [ ] `bun dev` starts both apps without errors
 - [ ] `GET :4000/api/auth/ok` returns 200
 - [ ] Next.js loads at `:3000` without errors
 - [ ] `packages/types` compiles, both apps reference it
@@ -154,13 +156,13 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   - reviewer@luma.dev  / password → role: reviewer
   - consumer@luma.dev  / password → role: data_consumer
   ```
-- [ ] Run seed: `pnpm seed` — verify 3 users in DB
+- [ ] Run seed: `bun run seed` — verify 3 users in DB
 - [ ] Write `GET /api/me` — returns current user (A needs this for role routing)
 
 **→ Deliverable to A (Hour 4):** Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
 
 #### Hour 4–7: Upload Routes + CSV Ingestion Service (Million-Row Scale)
-- [ ] Install: `pnpm add multer csv-parser` (using csv-parser for streams instead of papaparse)
+- [ ] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse)
 - [ ] Create `routes/uploads.ts`:
   - `POST /api/uploads` — Multer (save directly to disk/temp, not memory), create `UploadBatch`, immediately return `202 Accepted`
   - Kick off async ingestion job in the background (runs independently of HTTP request)
@@ -267,7 +269,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 - [ ] Create `components/ui/stat-card.tsx` — reusable metric card
 - [ ] Create `components/ui/severity-badge.tsx` — colored badge for critical/high/medium/low
 
-### ✅ Phase 1 Checkpoint (Hour 10)
+### Phase 1 Checkpoint (Hour 10)
 - [ ] Operator can log in → see dashboard → upload CSV → see processing → see batch summary with real data
 - [ ] Reviewer and Consumer can log in → see their (empty) dashboards
 - [ ] Auth redirects work correctly for all 3 roles
@@ -418,21 +420,21 @@ This is the **most complex page** in the app. Build it methodically.
 - [ ] `components/audit/audit-timeline.tsx`:
   - Vertical timeline, chronological (oldest top)
   - Per entry: icon (based on eventType) + actor name + description + timestamp
-  - Event type → icon map:
-    - `LOAN_IMPORTED` → 📥
-    - `EXCEPTION_CREATED` → ⚠️
-    - `AI_RECOMMENDATION` → 🤖
-    - `FIELD_EDITED` → ✏️
-    - `REVIEWER_COMMENT` → 💬
-    - `LOAN_APPROVED` → ✅
-    - `LOAN_REJECTED` → ❌
-    - `VERIFIED_RECORD_CREATED` → 🔒
-    - `RECORD_EXPORTED` → 📤
+  - Event type → icon map (Remix Icon — `<i className="ri-*-line">`, never emojis):
+    - `LOAN_IMPORTED` → `ri-download-line`
+    - `EXCEPTION_CREATED` → `ri-error-warning-line`
+    - `AI_RECOMMENDATION` → `ri-robot-2-line`
+    - `FIELD_EDITED` → `ri-edit-line`
+    - `REVIEWER_COMMENT` → `ri-chat-3-line`
+    - `LOAN_APPROVED` → `ri-checkbox-circle-line`
+    - `LOAN_REJECTED` → `ri-close-circle-line`
+    - `VERIFIED_RECORD_CREATED` → `ri-shield-check-line`
+    - `RECORD_EXPORTED` → `ri-share-box-line`
   - Load more pagination
 - [ ] `hooks/use-audit.ts` — `GET /api/audit/:loanId`
 - [ ] Wire audit timeline into loan detail page (bottom section)
 
-### ✅ Phase 2 Checkpoint (Hour 22)
+### Phase 2 Checkpoint (Hour 22)
 - [ ] Reviewer can: log in → open exception queue → filter by severity/type → open loan detail → edit fields → add comments → approve/reject exceptions
 - [ ] Operator can: view batch detail → see validation summary with real exception counts
 - [ ] Audit timeline shows real events on loan detail page
@@ -449,7 +451,7 @@ This is the **most complex page** in the app. Build it methodically.
 ### B — Hours 22–28
 
 #### Hour 22–25: AI Service Core
-- [ ] Install: `pnpm add @ai-sdk/google ai`
+- [ ] Install: `bun add @ai-sdk/google ai`
 - [ ] Create `lib/ai.ts`:
   ```typescript
   import { createGoogleGenerativeAI } from '@ai-sdk/google';
@@ -504,7 +506,7 @@ This is the **most complex page** in the app. Build it methodically.
   - **Recommendation card:**
     ```
     ┌─────────────────────────────────────────────┐
-    │  🤖 AI Recommendation                  [x]  │
+    │  <i class="ri-robot-2-line"></i> AI Recommendation                  [x]  │
     │  Model: gemini-2.0-flash                     │
     │  Confidence: 87%  ·  25 Aug 2026 11:30 AM   │
     ├─────────────────────────────────────────────┤
@@ -518,7 +520,7 @@ This is the **most complex page** in the app. Build it methodically.
     │  currentBalance: 400,000 → 340,000          │
     │  (source: servicer_update)                  │
     ├─────────────────────────────────────────────┤
-    │  [✓ Accept]  [✏️ Edit]  [✕ Reject]          │
+    │  [<i class="ri-check-line"></i> Accept]  [<i class="ri-edit-line"></i> Edit]  [<i class="ri-close-line"></i> Reject]          │
     └─────────────────────────────────────────────┘
     ```
   - **Accept:** `POST /api/exceptions/:id/decision { decision: 'accepted' }` → toast
@@ -555,7 +557,7 @@ This is the **most complex page** in the app. Build it methodically.
   - Show verification badge on loan page: lock icon + "Verified" + verifiedAt
 - [ ] `components/loan/verification-status.tsx` — verified badge, hash preview, verified-by, timestamp
 
-### ✅ Phase 3 Checkpoint (Hour 33)
+### Phase 3 Checkpoint (Hour 33)
 - [ ] Complete reviewer flow: queue → loan detail → AI explain → accept/edit/reject AI → approve exception → verify loan
 - [ ] AI panel shows model metadata, is read-only, requires explicit action to apply
 - [ ] AI output appears in audit trail (AI_RECOMMENDATION event visible)
@@ -634,7 +636,7 @@ This is the **most complex page** in the app. Build it methodically.
 - [ ] All tables responsive (horizontal scroll on small screens)
 - [ ] Consistent loading skeletons on every data-fetching page
 
-### ✅ Phase 4 Checkpoint (Hour 41)
+### Phase 4 Checkpoint (Hour 41)
 - [ ] All 3 role dashboards complete and functional
 - [ ] Consumer can: view verified loans, open loan detail with full audit trail, download CSV export
 - [ ] Operator can: upload all 3 file types, see batch processing states, view validation summary with AI summary
@@ -704,7 +706,7 @@ Log every bug found. Triage: fix now vs. skip.
   - [ ] Seed pre-approved/pre-verified loans so consumer dashboard isn't empty on demo start
   - [ ] Confirm all 3 demo credentials work on fresh DB
 
-### ✅ Phase 5 Checkpoint (Hour 45)
+### Phase 5 Checkpoint (Hour 45)
 - [ ] Full 14-step demo runs without a single crash or 500 error
 - [ ] All 3 roles fully functional end-to-end
 - [ ] Edge cases handled gracefully (no white screens, no unhandled rejections in console)
@@ -725,16 +727,16 @@ Log every bug found. Triage: fix now vs. skip.
   ## Luma — Loan Data Verification Copilot
   
   ### Prerequisites
-  Node.js 20+, pnpm 9+, Docker
+  Bun 1.1+, Docker
   
   ### Quick Start
   git clone ...
-  pnpm install
+  bun install
   docker compose up -d
   cp apps/api/.env.example apps/api/.env   # fill in GEMINI_API_KEY
-  pnpm --filter api prisma migrate dev
-  pnpm --filter api run seed
-  pnpm dev
+  bun --filter api prisma migrate dev
+  bun --filter api run seed
+  bun dev
   # web → :3000, api → :4000
   
   ### Test Credentials

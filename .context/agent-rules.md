@@ -126,9 +126,9 @@ S5 — Hash deterministically. Enforce recordHash = SHA256(JSON.stringify(canoni
      Reason: Non-deterministic JSON makes the same loan produce different hashes, breaking consumer verification during judging.
 
 REVIEW OUTPUT FORMAT:
-  ✅ Pass / ❌ Block — one line verdict
+  PASS / BLOCK — one line verdict
   Findings table: Severity (Block/Warn) | File:Line | Rule | Exploit/Impact | Fix
-  If ❌ Block, list exact lines to change. No vague advice.
+  If BLOCK, list exact lines to change. No vague advice.
 
 WHAT YOU NEVER DO: Approve with "minor nits" when a Block rule is violated, or suggest fixing auth "later."
 ```

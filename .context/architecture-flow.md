@@ -92,6 +92,7 @@ luma/
 | **AI** | Google Gemini via Vercel AI SDK | `generateObject` for structured output, streaming support |
 | **File Uploads** | Multer (Express) → stored in DB as metadata | No S3 needed for hackathon; raw CSV stored as text blob |
 | **Hashing** | Node.js `crypto` SHA-256 | Deterministic fingerprint for verified loan records |
+| **Icons** | Remix Icon (`remixicon`) | SVG outline style, no emoji variance across OS; single import `remixicon/fonts/remixicon.css` + `<i class="ri-*-line">` |
 
 ---
 
@@ -489,20 +490,20 @@ Export CSV ───────────────────────
 ## 10. Local Development
 
 ```bash
-# Prerequisites: Node 20+, pnpm, Docker
+# Prerequisites: Bun 1.1+, Docker
 
 # 1. Clone and install
-pnpm install
+bun install
 
 # 2. Start Postgres
 docker compose up -d postgres
 
 # 3. Migrate and seed
-pnpm --filter api prisma migrate dev
-pnpm --filter api run seed
+bun --filter api prisma migrate dev
+bun --filter api run seed
 
 # 4. Dev servers (runs web:3000 + api:4000 in parallel)
-pnpm dev
+bun dev
 ```
 
 ### Seed users
@@ -524,6 +525,6 @@ pnpm dev
 | AI provider | Gemini (free tier) | OpenAI GPT-4o | Cost-free, structured output via `generateObject` |
 | AI output | `generateObject` (Zod schema) | Free-form string | Predictable, parseable, storable, auditable |
 | Session | Cookie (HTTP-only) | JWT in header | More secure; Better Auth default; no token refresh logic |
-| Monorepo | Turborepo | Nx | Lighter config, better pnpm workspace support |
+| Monorepo | Turborepo | Nx | Lighter config, better Bun workspace support — native speed, no store overhead |
 | Hashing | SHA-256 of JSON | Merkle tree | Sufficient tamper-evidence at this scale |
 | DB transactions | Prisma `$transaction` | Manual BEGIN/COMMIT | Cleaner code, automatic rollback on error |
