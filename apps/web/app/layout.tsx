@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "remixicon/fonts/remixicon.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
