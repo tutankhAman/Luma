@@ -6,8 +6,8 @@
 ## 1. System Overview
 
 Luma is a **monorepo** with a clear separation between:
-- **Frontend** – Next.js 16 App Router (client-facing UI, role-based views)
-- **Backend** – Express + TypeScript REST API (business logic, validation, AI)
+- **Frontend** – Vite SPA (React + TypeScript + Tailwind + shadcn/ui + TanStack Query, client-side role routing)
+- **Backend** – Express + TypeScript REST API (business logic, validation, AI, Better Auth, long-lived streaming ingestion)
 - **Database** – PostgreSQL via Prisma ORM
 - **Auth** – Better Auth (Prisma adapter, RBAC plugin, shared session cookies)
 
@@ -17,13 +17,13 @@ Luma is a **monorepo** with a clear separation between:
 │                                                             │
 │  ┌──────────────────┐        ┌───────────────────────────┐  │
 │  │   apps/web        │        │   apps/api                │  │
-│  │   Next.js 16      │◄──────►│   Express + TypeScript    │  │
-│  │   TypeScript      │  HTTP  │   Zod · Prisma · AI SDK   │  │
+ │  │   Vite SPA        │◄──────►│   Express + TypeScript    │  │
+│  │   React 19 + TS   │  HTTP  │   Zod · Prisma · AI SDK   │  │
 │  │   Tailwind CSS    │  REST  │                           │  │
 │  │   shadcn/ui       │        │   Better Auth (server)    │  │
-│  │   TanStack Query  │        │                           │  │
-│  │   Better Auth     │        └───────────┬───────────────┘  │
-│  │   (client)        │                    │ Prisma Client     │
+│  │   TanStack Query  │        │   /api/auth/* (sessions)  │  │
+│  │   react-router    │        └───────────┬───────────────┘  │
+│  │                   │                    │ Prisma Client     │
 │  └──────────────────┘                    ▼                   │
 │                                ┌──────────────────┐          │
 │                                │   PostgreSQL      │          │
@@ -39,17 +39,23 @@ Luma is a **monorepo** with a clear separation between:
 ```
 luma/
 ├── apps/
-│   ├── web/                    # Next.js 16 frontend
-│   │   ├── app/                # App Router pages
-│   │   │   ├── (auth)/         # Login, register pages
-│   │   │   ├── (operator)/     # Data Operator views
-│   │   │   ├── (reviewer)/     # Reviewer views
-│   │   │   └── (consumer)/     # Data Consumer views
-│   │   ├── components/         # shadcn/ui + custom components
+ │   ├── web/                    # Vite SPA frontend
+│   │   ├── index.html            # Vite entry (→ src/main.tsx)
+│   │   ├── vite.config.ts        # Dev server on :3000, /api → :4000 proxy
+│   │   ├── public/               # Static assets (favicon)
+│   │   ├── src/
+│   │   │   ├── main.tsx          # Entry: Router + QueryClient
+│   │   │   ├── app/
+│   │   │   │   ├── layout.tsx    # Shell
+│   │   │   │   ├── routes.tsx    # react-router route tree
+│   │   │   │   ├── pages/        # (auth) login, (operator) dashboard+uploads, (reviewer) exceptions+loans, (consumer) dashboard+export
+│   │   │   │   └── globals.css   # Tailwind v4 + tokens
+│   │   ├── components/           # shadcn/ui components
 │   │   ├── lib/
-│   │   │   ├── auth-client.ts  # Better Auth client
-│   │   │   └── api.ts          # Typed API client (fetch wrapper)
-│   │   └── hooks/              # TanStack Query hooks
+│   │   │   ├── auth-client.ts    # Better Auth client (→ :4000/api/auth)
+│   │   │   ├── api.ts            # Typed axios client (withCredentials)
+│   │   │   └── utils.ts          # cn() helper
+│   │   └── hooks/                # TanStack Query hooks
 │   │
 │   └── api/                    # Express backend
 │       ├── src/
@@ -82,9 +88,9 @@ luma/
 | Layer | Choice | Why |
 |---|---|---|
 | **Monorepo** | Turborepo | Zero-config caching, shared `packages/types` |
-| **Frontend** | Next.js 16 App Router | SSR for auth-protected pages, route groups for roles |
+| **Frontend** | Vite SPA (React 19 + react-router + Tailwind) | SPA — role routing is client-side; no SSR timeout/memory tax on ingestion (Express owns long-lived streaming) |
 | **State / Fetching** | TanStack Query v5 | Optimistic updates, background refetch for live queues |
-| **Auth** | Better Auth + RBAC plugin | Prisma adapter, built-in roles, works across Express + Next.js |
+| **Auth** | Better Auth (Express) + RBAC plugin (`requireRole`) | Prisma adapter; single auth surface on :4000 — web uses fetch client with `withCredentials` + Vite proxy `/api → :4000` |
 | **Backend** | Express + TypeScript | Lightweight, explicit, well-understood in FinTech contexts |
 | **Validation** | Zod | Runtime + compile-time safety, reuse in `packages/types` |
 | **ORM** | Prisma | Type-safe queries, migrations, works natively with Better Auth |
@@ -100,18 +106,19 @@ luma/
 
 ### Better Auth Setup
 
-Better Auth runs **on the Express server** (`apps/api`). The Next.js frontend uses the Better Auth **client** to communicate with the auth endpoints via `/api/auth/*`.
+Better Auth runs **on the Express server** (`apps/api`). The Vite frontend uses the Better Auth **client** (`apps/web/src/lib/auth-client.ts` `createAuthClient({ baseURL: http://localhost:4000 })`) to call `/api/auth/*`. In dev, Vite's `server.proxy` forwards `/api → http://localhost:4000` so the browser hits same-origin and cookies flow without extra `trustedOrigins` gymnastics.
 
 ```
-Next.js client
-  └─ betterAuthClient → fetch POST /api/auth/sign-in
+Vite client (Browser Router)
+  └─ authClient (better-auth/createAuthClient) → fetch POST /api/auth/sign-in (proxied → :4000)
+  └─ lib/api.ts (axios withCredentials: true)    → REST /api/{uploads,loans,exceptions,...}
                               ↓
                         Express app
                           └─ auth.handler (Better Auth server)
                               └─ Prisma → PostgreSQL (user/session tables)
 ```
 
-**Session strategy:** Cookie-based sessions (HTTP-only, SameSite=Lax). The Express API reads session cookies on every protected request via Better Auth's `auth.api.getSession()`.
+**Session strategy:** Cookie-based sessions (HTTP-only, SameSite=Lax, shared on localhost). Express reads cookies via `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })`. Frontend `fetch/axios` always sends `credentials:"include" / withCredentials:true`. No `Next` RSC `await headers()` forwarding — single auth surface on Express.
 
 ### Roles (RBAC Plugin)
 
@@ -412,32 +419,25 @@ Returns: { verifiedLoan, canonicalData, auditTrail }
 
 ---
 
-## 7. Frontend Route Groups
+## 7. Frontend Route Tree (Vite + react-router)
+
+All pages are client components behind `ProtectedRoute` guards that check `authClient.useSession()` and `user.role`.
 
 ```
-app/
-├── (auth)/
-│   └── login/page.tsx
-│
-├── (operator)/
-│   ├── layout.tsx               ← Server Component: redirect if not data_operator
-│   ├── dashboard/page.tsx       ← Upload history, batch stats, quick upload
-│   └── uploads/
-│       └── [batchId]/page.tsx   ← Batch detail: import results, validation summary
-│
-├── (reviewer)/
-│   ├── layout.tsx               ← Server Component: redirect if not reviewer
-│   ├── dashboard/page.tsx       ← Queue stats, pending count
-│   ├── exceptions/page.tsx      ← Filterable exception queue table
-│   └── loans/
-│       └── [id]/page.tsx        ← Loan detail + AI panel + action buttons
-│
-└── (consumer)/
-    ├── layout.tsx               ← Server Component: redirect if not data_consumer
-    ├── dashboard/page.tsx       ← Verified records grid, quality score
-    ├── loans/
-    │   └── [id]/page.tsx        ← Verified loan + full audit timeline
-    └── export/page.tsx          ← Download verified CSV
+src/app/routes.tsx →
+  /                     → redirect "/" → "/login"
+  /login                → Login page (email+password, authClient.signIn → useSession → role)
+  /operator             → ProtectedRoute role=data_operator → <OperatorLayout>
+    /dashboard          ← Upload history, batch stats, quick upload
+    /uploads/:batchId   ← Batch detail: import results, validation summary
+  /reviewer             → ProtectedRoute role=reviewer → <ReviewerLayout>
+    /dashboard          ← Queue stats, pending count
+    /exceptions         ← Filterable exception queue table
+    /loans/:id          ← Loan detail + AI panel + action buttons
+  /consumer             → ProtectedRoute role=data_consumer → <ConsumerLayout>
+    /dashboard          ← Verified records grid, quality score
+    /loans/:id          ← Verified loan + full audit timeline
+    /export             ← Download verified CSV
 ```
 
 ---

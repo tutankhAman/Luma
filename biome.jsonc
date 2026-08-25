@@ -1,7 +1,6 @@
 {
   "extends": [
     "ultracite/biome/core",
-    "ultracite/biome/next",
     "ultracite/biome/react",
     "ultracite/biome/tanstack"
   ],

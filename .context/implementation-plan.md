@@ -1,6 +1,6 @@
 # Luma — 48-Hour Implementation Plan
-### Person A = Frontend (Next.js, UI, TanStack Query)
-### Person B = Backend (Express, Prisma, Validation, AI, Auth, Seed)
+### Person A = Frontend (Vite SPA — React 19, react-router 7, Tailwind, shadcn/ui, TanStack Query, remixicon)
+### Person B = Backend (Express 5, Prisma, Validation, AI, Auth, Seed)
 
 ---
 
@@ -32,8 +32,8 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### B — Infrastructure Lead
 
 **Hour 0–1:**
-- [ ] Init Turborepo: `bunx create-turbo@latest luma --package-manager bun`
-- [ ] Create `apps/api/` — bare Express + TypeScript:
+- [x] Init Turborepo: `bunx create-turbo@latest luma --package-manager bun` — done `8e23744`, pnpm→bun, eslint→biome+lefthook
+- [x] Create `apps/api/` — bare Express + TypeScript: — done `e764b97/ea254ab/3d84486` (`src/index.ts` CORS→auth `/*splat`→express.json, `lib/prisma` singleton, `lib/auth` prisma-adapter+admin, middleware require-auth/require-role with try/catch, `types/express.d.ts`)
   ```
   apps/api/
   ├── src/
@@ -45,15 +45,14 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   │       ├── requireAuth.ts
   │       └── requireRole.ts
   ├── prisma/
-  │   └── schema.prisma   ← Full schema (all 6 models + Better Auth models)
+  │   └── schema.prisma   ← Full schema (all 6 models + Better Auth models incl. `issuer`)
   ├── .env
   └── package.json
   ```
-- [ ] Write full `schema.prisma` from architecture doc (all tables: User, UploadBatch, Loan, Exception, VerifiedLoan, AuditLog)
-- [ ] `docker compose up -d postgres`
-- [ ] `bunx prisma migrate dev --name init`
-- [ ] `bunx prisma generate`
-- [ ] Verify: `GET http://localhost:4000/api/auth/ok` → `{ ok: true }`
+- [x] Write full `schema.prisma` from architecture doc (all tables: User, UploadBatch, Loan, Exception, VerifiedLoan, AuditLog) — done `a14dce4` incl. review fixes: `UploadBatch.metadata`+indexes, `Loan` Decimal(15,2/5,4)+5 indexes, `Exception` 5 indexes, `VerifiedLoan.verifiedBy` FK+3 indexes
+- [x] `docker compose up -d postgres` — healthy on :5432 (`luma-postgres`)
+- [x] `bunx prisma migrate dev --name init` + [x] `bunx prisma generate` — migration `20260825190106_init` applied, client generated
+- [x] Verify: `GET http://localhost:4000/api/auth/ok` → `{ ok: true }` — 200 verified; also `/api/health` 200; sign-up/sign-in/get-session cookie flow verified
 
 **Hour 1–2:**
 - [ ] Create `packages/types/` shared package:
@@ -74,33 +73,29 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### A — Frontend Lead
 
 **Hour 0–1:**
-- [ ] Create `apps/web/` — Next.js 16 App Router:
+- [x] Create `apps/web/` — Vite SPA — done: `index.html`+`vite.config.ts` (proxy `/api → :4000`), `src/main.tsx` (Router+QueryClient), `src/app/layout.tsx`+`globals.css`+`routes.tsx`+`vite-env.d.ts`
   ```bash
-  bunx create-next-app web --typescript --tailwind --app --src-dir=false
+  bun create vite web --template react-ts          # scaffolded
+  bunx shadcn@latest init   # style base-nova, CSS: src/app/globals.css — done fee9fc8
+  bun add @tanstack/react-query better-auth axios remixicon react-router-dom  # done
+  bun add -d @tanstack/react-query-devtools @vitejs/plugin-react
   ```
-- [ ] Install and configure shadcn/ui: `bunx shadcn@latest init`
-- [ ] Install TanStack Query v5, Better Auth client, axios, and Remix Icons:
-  ```bash
-  bun add @tanstack/react-query better-auth axios remixicon
-  bun add -d @tanstack/react-query-devtools
+  - Configure `vite.config.ts` dev proxy `/api → http://localhost:4000` (same-origin cookies, no extra trustedOrigins)
+  - Import in `src/main.tsx`: `import 'remixicon/fonts/remixicon.css'`
+  - Use `<i className="ri-...-line"></i>` for all icons — never emojis
+- [x] Scaffold router structure in `src/app/routes.tsx` (react-router) + placeholder route stubs — done: 8 placeholder routes (auth/operator/reviewer/consumer), `/ → /login` redirect; pages/auth-client/api guards are Phase 0 Hour 1–2 remaining below
   ```
-  - Import in `app/layout.tsx`: `import 'remixicon/fonts/remixicon.css'`
-  - Use `<i className="ri-...-line"></i>` for all icons — never emojis (consistent cross-OS rendering, single SVG style).
-- [ ] Scaffold route group folders (empty `page.tsx` + `layout.tsx` in each):
+  src/app/
+    routes.tsx            ← createBrowserRouter tree
+    layout.tsx            ← shell + <Outlet />
+    pages/                ← TODO: per-role pages (stubs exist as Placeholder)
+      (auth)/login.tsx
+      (operator)/dashboard.tsx  + uploads/[batchId].tsx
+      (reviewer)/dashboard.tsx  + exceptions.tsx  + loans/[id].tsx
+      (consumer)/dashboard.tsx  + loans/[id].tsx  + export.tsx
   ```
-  app/
-  ├── (auth)/login/
-  ├── (operator)/dashboard/
-  ├── (operator)/uploads/[batchId]/
-  ├── (reviewer)/dashboard/
-  ├── (reviewer)/exceptions/
-  ├── (reviewer)/loans/[id]/
-  ├── (consumer)/dashboard/
-  ├── (consumer)/loans/[id]/
-  └── (consumer)/export/
-  ```
-- [ ] Create `lib/auth-client.ts` (Better Auth client pointing at `http://localhost:4000`)
-- [ ] Create `lib/api.ts` (axios instance with `withCredentials: true`, base URL from env)
+- [ ] Create `src/lib/auth-client.ts` (createAuthClient { baseURL: http://localhost:4000 } — single auth surface on Express)
+- [ ] Create `src/lib/api.ts` (axios withCredentials:true, baseURL /api via proxy)
 
 **Hour 1–2:**
 - [ ] Install shadcn/ui components needed across all phases:
@@ -110,15 +105,15 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   bunx shadcn@latest add form select textarea toast sonner
   bunx shadcn@latest add skeleton progress alert
   ```
-- [ ] Create `components/providers.tsx` — TanStack Query provider + Sonner toaster
-- [ ] Create `app/layout.tsx` wrapping with `<Providers />`
-- [ ] Create `hooks/use-session.ts` — wraps `authClient.useSession()`
-- [ ] Write `middleware.ts` — Edge-safe, presence-only cookie check (no signature verification); real verification lives in RSC layout guards + API
+- [ ] Create `src/app/providers.tsx` — QueryClientProvider + Sonner toaster
+- [ ] Wire in `src/main.tsx` (`<QueryClientProvider><RouterProvider/></QueryClientProvider>`)
+- [ ] Create `src/hooks/use-session.ts` — wraps `authClient.useSession()`
+- [ ] Write `src/app/guards/ProtectedRoute.tsx` — client guard that checks `useSession()` + `user.role`, redirects to `/login` or renders `Forbidden` (no RSC, authenticated fetch hits `GET /api/auth/get-session` withCredentials)
 
 ### Phase 0 Checkpoint
 - [ ] `bun dev` starts both apps without errors
 - [ ] `GET :4000/api/auth/ok` returns 200
-- [ ] Next.js loads at `:3000` without errors
+- [ ] Vite loads at `:3000` (dev proxy `/api → :4000` working)
 - [ ] `packages/types` compiles, both apps reference it
 
 ---
@@ -216,24 +211,24 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 
 ### A — Hours 2–10
 
-#### Hour 2–4: Auth UI + Route Guards
-- [ ] Build `app/(auth)/login/page.tsx`:
+#### Hour 2–4: Auth UI + Route Guards (Vite + react-router + ProtectedRoute)
+- [ ] Build `src/app/pages/(auth)/login.tsx`:
   - Email + password form (shadcn/ui `Form`, `Input`, `Button`)
-  - Calls `authClient.signIn.email({ email, password })`
-  - On success → redirects based on `user.role`:
+  - Calls `authClient.signIn.email({ email, password })` (better-auth client → `:4000/api/auth/*`, via Vite `/api` proxy)
+  - On success → `navigate` based on `user.role`:
     - `data_operator` → `/operator/dashboard`
     - `reviewer` → `/reviewer/dashboard`
     - `data_consumer` → `/consumer/dashboard`
   - Error state (invalid credentials toast via Sonner)
   - Loading spinner on submit
-- [ ] Build `app/(operator)/layout.tsx` — Server Component:
-  - Session check server-side: `auth.api.getSession({ headers: await headers() })` — browser `authClient` does NOT carry cookies inside RSC; forward the cookie header explicitly
-  - Redirects to `/login` if no session
-  - Checks `session.user.role === 'data_operator'` — 403 page if wrong role
-  - Renders `<OperatorNav />` sidebar
-- [ ] Repeat layout guards for `(reviewer)/layout.tsx` and `(consumer)/layout.tsx`
-- [ ] Build shared `components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button
-- [ ] Build `app/page.tsx` — root redirect (checks session, routes to role dashboard)
+- [ ] Build `src/app/guards/ProtectedRoute.tsx`:
+  - Reads `authClient.useSession()` (reactive `data` + `isPending`) — `withCredentials` already set on the fetch client
+  - While `isPending` → skeleton
+  - No session → `<Navigate to="/login" />`
+  - Wrong `user.role` → `Forbidden` page (not white screen) — the API will return 403 anyway
+- [ ] Build `src/app/layouts/OperatorLayout.tsx`, `ReviewerLayout.tsx`, `ConsumerLayout.tsx` — each wraps `<ProtectedRoute role="...">` + `<Sidebar />` + `<Outlet />`
+- [ ] Build shared `src/components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button (`authClient.signOut()` → navigate `/login`)
+- [ ] Root `"/"` in `routes.tsx` — while-pending → skeleton, then redirect by role (or to `/login`)
 
 **Uses:** `GET /api/auth/get-session`, `GET /api/me`
 

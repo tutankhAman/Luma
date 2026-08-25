@@ -73,7 +73,7 @@ Sign out and clear session cookie.
 ---
 
 ### `GET /api/auth/get-session`
-Retrieve the current session. Used by Next.js `authClient.getSession()`.
+Retrieve the current session. Used by web `authClient.getSession()` (Vite — `better-auth` `createAuthClient`).
 
 **Response `200`:**
 ```json
