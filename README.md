@@ -109,19 +109,18 @@ Luma/
 
 ## CI
 
-`.github/workflows/ci.yml` runs on `push`/`pull_request` to `main`:
+`.github/workflows/ci.yml` runs on `push`/`pull_request` to `main` as three separate checks:
 
-1. Install dependencies
-2. Lint
-3. Typecheck
-4. Build
+- `lint` — install + `ultracite check`
+- `typecheck` — install + generate Prisma client + `check-types`
+- `build` — install + generate Prisma client + `build`
 
 Same steps run locally on pre-commit via lefthook.
 
 Branch protection is enabled on `main`:
 
 - Direct pushes to `main` are blocked — all changes must go through a pull request
-- The `lint · typecheck · build` check is required and must be green before a PR can be merged
+- All three checks (`lint`, `typecheck`, `build`) are required and must be green before a PR can be merged
 - The PR branch must be up to date with `main` before merging
 
 Workflow:
