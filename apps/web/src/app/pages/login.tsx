@@ -25,7 +25,17 @@ export function RoleRedirect() {
   if (!user) {
     return <Navigate replace to="/login" />;
   }
-  return <Navigate replace to={ROLE_HOME[user.role as Role] ?? "/login"} />;
+  const normalized = (() => {
+    const r = user.role as string;
+    if (r === "data_operator" || r === "reviewer" || r === "data_consumer") {
+      return r as Role;
+    }
+    return null;
+  })();
+  if (!normalized) {
+    return <Navigate replace to="/login" />;
+  }
+  return <Navigate replace to={ROLE_HOME[normalized]} />;
 }
 
 const STEPS = [
@@ -93,9 +103,17 @@ export default function LoginPage() {
   const navigateByRole = async () => {
     const session = await authClient.getSession();
     const role = (session?.data?.user as { role?: string } | undefined)?.role;
-    navigate(ROLE_HOME[(role ?? "data_consumer") as Role] ?? "/login", {
-      replace: true,
-    });
+    const normalized: Role | null =
+      role === "data_operator" ||
+      role === "reviewer" ||
+      role === "data_consumer"
+        ? (role as Role)
+        : null;
+    if (!normalized) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    navigate(ROLE_HOME[normalized], { replace: true });
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
