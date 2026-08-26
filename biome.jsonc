@@ -45,11 +45,20 @@
       }
     },
     {
-      "includes": ["**/*.integration.test.ts"],
+      "includes": ["**/*.integration.test.ts", "**/*.test.ts"],
       "linter": {
         "rules": {
           "performance": {
-            "noAwaitInLoops": "off"
+            "noAwaitInLoops": "off",
+            "useTopLevelRegex": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off",
+            "useConsistentTypeDefinitions": "off"
+          },
+          "suspicious": {
+            "noEmptyBlockStatements": "off",
+            "noUnnecessaryConditions": "off"
           }
         }
       }
