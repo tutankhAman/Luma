@@ -70,11 +70,10 @@ export function ExceptionStatusBadge({ status }: { status: ExceptionStatus }) {
 }
 
 const BATCH_STATUS_STYLES: Record<BatchStatus, string> = {
-  done: "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400",
-  failed: "bg-destructive/10 text-destructive dark:bg-destructive/20",
+  done: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  failed: "bg-rose-50 text-rose-700",
   pending: "bg-muted text-muted-foreground",
-  processing:
-    "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+  processing: "bg-indigo-50 text-indigo-700",
 };
 
 export function BatchStatusBadge({ status }: { status: BatchStatus }) {

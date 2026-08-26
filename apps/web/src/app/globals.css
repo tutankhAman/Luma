@@ -4,6 +4,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@utility bg-auth-gradient {
+  /* Top-centered purple glow blooming over #2E1065 -> black */
+  background-color: #000000;
+  background-image: radial-gradient(
+    110% 85% at 50% -20%,
+    #e9d5ff 0%,
+    #c9a5fc 12%,
+    #a855f7 26%,
+    #8b5cf6 38%,
+    #6d28d9 50%,
+    #5827a8 60%,
+    #3f1a80 70%,
+    #2e1065 78%,
+    rgba(23, 6, 43, 0.6) 88%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans:
@@ -127,5 +145,13 @@
   }
   html {
     @apply font-sans;
+  }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px #18181b inset;
+    transition: background-color 9999s ease-in-out 0s;
   }
 }
