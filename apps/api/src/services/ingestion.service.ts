@@ -8,6 +8,51 @@ export const MAX_FAILED_ROWS_STORED = 1000;
 
 const BOM_REGEX = /^\uFEFF/;
 
+const KNOWN_COLUMNS = new Set([
+  "loan_id",
+  "loanid",
+  "borrower_id",
+  "borrowerid",
+  "loan_type",
+  "loantype",
+  "origination_date",
+  "originationdate",
+  "maturity_date",
+  "maturitydate",
+  "original_principal",
+  "originalprincipal",
+  "current_balance",
+  "currentbalance",
+  "interest_rate",
+  "interestrate",
+  "term_months",
+  "termmonths",
+  "borrower_state",
+  "borrowerstate",
+  "loan_purpose",
+  "loanpurpose",
+  "credit_grade",
+  "creditgrade",
+  "employment_length",
+  "employmentlength",
+  "income_band",
+  "incomeband",
+  "payment_status",
+  "paymentstatus",
+  "days_past_due",
+  "dayspastdue",
+  "servicer_name",
+  "servicername",
+  "last_payment_date",
+  "lastpaymentdate",
+  "last_updated_at",
+  "lastupdatedat",
+  "document_status",
+  "documentstatus",
+  "source_system",
+  "sourcesystem",
+]);
+
 export interface FailedRow {
   rawData: string;
   reason: string;
@@ -222,6 +267,10 @@ export const processStreamAndNormalize = async (
   filePath: string,
   batchId: string
 ): Promise<void> => {
+  process.stdout.write(
+    `[Ingestion] Batch ${batchId}: Starting streaming ingestion from ${filePath}\n`
+  );
+
   try {
     await prisma.uploadBatch.update({
       data: { status: "processing" },
@@ -240,6 +289,7 @@ export const processStreamAndNormalize = async (
   let processedCount = 0;
   let totalValidNormalized = 0;
   let hasFailed = false;
+  let headerValidationError: string | null = null;
 
   const markFailed = async (error: unknown): Promise<void> => {
     if (hasFailed) {
@@ -247,27 +297,46 @@ export const processStreamAndNormalize = async (
     }
     hasFailed = true;
     const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`[Ingestion] Batch ${batchId} FAILED: ${message}\n`);
+
+    const recordCount = totalValidNormalized + totalFailedRows;
+    const truncated = totalFailedRows > MAX_FAILED_ROWS_STORED;
+
+    let existingMeta: Record<string, unknown> = {};
     try {
       const existing = await prisma.uploadBatch.findUnique({
         where: { id: batchId },
       });
-      const existingMeta =
+      existingMeta =
         (existing?.metadata as Record<string, unknown> | null) ?? {};
-      const nextMeta = { ...existingMeta, error: message };
+    } catch {
+      // ignore
+    }
+
+    const nextMeta: Record<string, unknown> = {
+      ...existingMeta,
+      error: message,
+      failedRows: failedRows.slice(0, MAX_FAILED_ROWS_STORED),
+    };
+    if (truncated) {
+      nextMeta.failedRowsTruncated = true;
+      nextMeta.totalFailedRows = totalFailedRows;
+    }
+
+    try {
       await prisma.uploadBatch.update({
-        data: { metadata: nextMeta, status: "failed" },
+        data: {
+          failedCount: totalFailedRows,
+          metadata: nextMeta as never,
+          recordCount,
+          status: "failed",
+        },
         where: { id: batchId },
       });
     } catch {
-      try {
-        await prisma.uploadBatch.update({
-          data: { metadata: { error: message }, status: "failed" },
-          where: { id: batchId },
-        });
-      } catch {
-        // ignore
-      }
+      // ignore
     }
+
     try {
       await fs.promises.unlink(filePath).catch(() => {
         // ignore ENOENT
@@ -310,6 +379,9 @@ export const processStreamAndNormalize = async (
           where: { id: batchId },
         });
       });
+      process.stdout.write(
+        `[Ingestion] Batch ${batchId}: Flushed chunk (rows ${rowStart}..${rowEnd}, inserted: ${toInsert.length}, total: ${processedCount})\n`
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       try {
@@ -451,6 +523,9 @@ export const processStreamAndNormalize = async (
           },
         });
       });
+      process.stdout.write(
+        `[Ingestion] Batch ${batchId} SUCCESS: ${processedCount} valid loans imported (${failedCount} failed rows).\n`
+      );
     } catch (err) {
       await markFailed(err);
       return;
@@ -470,6 +545,10 @@ export const processStreamAndNormalize = async (
       Record<string, string>
     >) {
       if (hasFailed) {
+        break;
+      }
+      if (headerValidationError) {
+        await markFailed(new Error(headerValidationError));
         break;
       }
       currentRowNumber += 1;
@@ -506,6 +585,30 @@ export const processStreamAndNormalize = async (
       })
     );
 
+    (
+      csvStream as unknown as {
+        on: (event: string, handler: (headers: string[]) => void) => void;
+      }
+    ).on("headers", (headers: string[]) => {
+      process.stdout.write(
+        `[Ingestion] Batch ${batchId}: Detected CSV headers: [${headers.join(", ")}]\n`
+      );
+      const normalized = headers.map((h) =>
+        h
+          .replace(BOM_REGEX, "")
+          .trim()
+          .toLowerCase()
+          .replace(/[\s_-]+/g, "")
+      );
+      const hasRecognizedColumn = normalized.some((h) => KNOWN_COLUMNS.has(h));
+      if (!hasRecognizedColumn && headers.length > 0) {
+        headerValidationError = `CSV header mismatch: File does not contain recognized loan columns (found: ${headers.slice(0, 5).join(", ")}). Expected columns such as loan_id, borrower_id, original_principal, etc.`;
+        process.stderr.write(
+          `[Ingestion] Batch ${batchId}: ${headerValidationError}\n`
+        );
+      }
+    });
+
     const streamErrorPromise = new Promise<never>((_resolve, reject) => {
       readStream?.on("error", reject);
       (
@@ -516,6 +619,18 @@ export const processStreamAndNormalize = async (
     });
 
     await Promise.race([processRows(), streamErrorPromise]);
+
+    if (headerValidationError && !hasFailed) {
+      await markFailed(new Error(headerValidationError));
+    }
+
+    if (!hasFailed && totalValidNormalized === 0) {
+      const reason =
+        totalFailedRows > 0
+          ? `All ${totalFailedRows} rows failed normalization. Ensure CSV contains valid loan identifiers (loan_id/borrower_id).`
+          : "The uploaded CSV file is empty or contains no valid data rows.";
+      await markFailed(new Error(`Ingestion failed: ${reason}`));
+    }
 
     if (hasFailed) {
       destroyStreams();

@@ -312,4 +312,62 @@ describe("upload flow (integration)", () => {
     });
     expect(res400.status).toBe(400);
   });
+
+  it("fails batch ingestion when CSV does not contain valid loan schema/rows", async () => {
+    const operatorEmail = `operator3_${RUN_TAG}@luma.dev`;
+    const signUpRes = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
+      body: JSON.stringify({
+        email: operatorEmail,
+        name: "Operator3",
+        password: "password",
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    expect([200, 422].includes(signUpRes.status)).toBe(true);
+    await prisma.user.update({
+      data: { role: "data_operator" },
+      where: { email: operatorEmail },
+    });
+    const cookie = await signIn(operatorEmail, "password");
+
+    const invalidContent =
+      "DB1 Controller - Cohart Selection,Measure Names,Measure Values\n2026,% Non-DUS,0.006489243\n2025,% Non-DUS,0.007187661";
+
+    const form = new FormData();
+    form.append(
+      "file",
+      new File([invalidContent], `invalid_${RUN_TAG}.csv`, {
+        type: "text/csv",
+      })
+    );
+    form.append("fileType", "loan_tape");
+
+    const uploadRes = await fetch(`${baseUrl}/api/uploads`, {
+      body: form,
+      headers: { cookie },
+      method: "POST",
+    });
+    expect(uploadRes.status).toBe(202);
+    const { batchId } = (await uploadRes.json()) as { batchId: string };
+
+    let detail: { metadata?: { error?: string }; status: string } | null = null;
+    for (let index = 0; index < 20; index += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      const detailRes = await fetch(`${baseUrl}/api/uploads/${batchId}`, {
+        headers: { cookie },
+      });
+      const parsedDetail = (await detailRes.json()) as {
+        metadata?: { error?: string };
+        status: string;
+      };
+      detail = parsedDetail;
+      if (detail.status === "done" || detail.status === "failed") {
+        break;
+      }
+    }
+
+    expect(detail?.status).toBe("failed");
+    expect(detail?.metadata?.error).toContain("CSV header mismatch");
+  });
 });

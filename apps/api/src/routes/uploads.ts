@@ -137,10 +137,16 @@ router.post(
       status: "processing",
     };
 
+    process.stdout.write(
+      `[Upload] Received "${file.originalname}" (${(file.size / 1024).toFixed(1)} KB, type: ${parsedType.data}) by ${user.email} -> batchId: ${batch.id}\n`
+    );
+
     res.status(202).json(response);
 
-    processStreamAndNormalize(file.path, batch.id).catch(() => {
-      // ingestion handles its own failure marking
+    processStreamAndNormalize(file.path, batch.id).catch((err) => {
+      process.stderr.write(
+        `[Upload] Ingestion stream uncaught error for batch ${batch.id}: ${err}\n`
+      );
     });
   }
 );

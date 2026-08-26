@@ -569,11 +569,20 @@ const persistValidationChunk = async (
 };
 
 export const validateBatch = async (batchId: string): Promise<void> => {
+  process.stdout.write(
+    `[Validation] Batch ${batchId}: Starting automated validation checks...\n`
+  );
   const existing = await prisma.exception.count({
     where: { loan: { sourceBatchId: batchId } },
   });
   if (existing > 0) {
+    process.stdout.write(
+      `[Validation] Batch ${batchId}: Exceptions already computed (${existing}), skipping.\n`
+    );
     return;
   }
   await runBatch(batchId);
+  process.stdout.write(
+    `[Validation] Batch ${batchId}: Completed validation checks.\n`
+  );
 };
