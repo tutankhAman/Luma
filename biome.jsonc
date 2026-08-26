@@ -5,6 +5,9 @@
     "ultracite/biome/tanstack"
   ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "javascript": {
+    "globals": ["Bun"]
+  },
   "overrides": [
     {
       // React event handlers and fire-and-forget invalidations read better inline;
@@ -33,6 +36,26 @@
     },
     {
       "includes": ["apps/api/src/seed.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.integration.test.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/api/src/services/validation.service.ts"],
       "linter": {
         "rules": {
           "performance": {

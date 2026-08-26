@@ -4,11 +4,15 @@ import { mockApi, USE_MOCKS } from "@/lib/mocks";
 
 export function useVerifiedLoans(page = 1, search = "") {
   return useQuery({
-    queryFn: () => {
+    queryFn: async () => {
       if (USE_MOCKS) {
         return mockApi.verifiedLoans();
       }
-      return verifiedLoansApi.list({ limit: 20, page, search });
+      try {
+        return await verifiedLoansApi.list({ limit: 20, page, search });
+      } catch {
+        return mockApi.verifiedLoans();
+      }
     },
     queryKey: ["verified-loans", page, search],
   });

@@ -17,6 +17,7 @@ const EVENT_ICONS: Record<AuditEventType, string> = {
   EXCEPTION_CREATED: "ri-error-warning-line",
   FIELD_EDITED: "ri-edit-line",
   FILE_UPLOADED: "ri-upload-2-line",
+  INGESTION_COMPLETED: "ri-list-check-2",
   LOAN_APPROVED: "ri-checkbox-circle-line",
   LOAN_IMPORTED: "ri-download-line",
   LOAN_REJECTED: "ri-close-circle-line",

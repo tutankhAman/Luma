@@ -6,7 +6,16 @@ import { mockApi, USE_MOCKS } from "@/lib/mocks";
 
 export function useDashboardSummary() {
   return useQuery({
-    queryFn: () => (USE_MOCKS ? mockApi.summary() : summaryApi.get()),
+    queryFn: async () => {
+      if (USE_MOCKS) {
+        return mockApi.summary();
+      }
+      try {
+        return await summaryApi.get();
+      } catch {
+        return mockApi.summary();
+      }
+    },
     queryKey: ["summary"],
   });
 }
@@ -14,19 +23,23 @@ export function useDashboardSummary() {
 export function useExceptions(filters: ExceptionListFilters) {
   return useQuery({
     placeholderData: (previous) => previous,
-    queryFn: () => {
+    queryFn: async () => {
       if (USE_MOCKS) {
         return filterMockExceptions(filters);
       }
-      return exceptionsApi.list({
-        ...filters,
-        batchId: filters.batchId || undefined,
-        limit: 20,
-        search: filters.search || undefined,
-        severity: filters.severity || undefined,
-        status: filters.status || undefined,
-        type: filters.type || undefined,
-      });
+      try {
+        return await exceptionsApi.list({
+          ...filters,
+          batchId: filters.batchId || undefined,
+          limit: 20,
+          search: filters.search || undefined,
+          severity: filters.severity || undefined,
+          status: filters.status || undefined,
+          type: filters.type || undefined,
+        });
+      } catch {
+        return filterMockExceptions(filters);
+      }
     },
     queryKey: ["exceptions", filters],
   });

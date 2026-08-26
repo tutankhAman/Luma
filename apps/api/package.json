@@ -9,22 +9,32 @@
     "dev": "bun --watch src/index.ts",
     "lint": "biome check .",
     "seed": "bun src/seed.ts",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "test": "bun test src/lib src/middleware src/routes src/services",
+    "test:integration": "bun test src/auth-flow.integration.test.ts src/uploads.integration.test.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "7",
     "@repo/types": "workspace:*",
     "better-auth": "^1.7.1",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.1",
     "express": "^5.2.1",
+    "multer": "^2.2.0",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.3.0",
-    "prisma": "^6.16.0",
+    "@types/pg": "^8.23.1",
+    "bun-types": "^1.4.0",
+    "dotenv": "^17.4.2",
+    "prisma": "7",
     "typescript": "7.0.2"
   }
 }

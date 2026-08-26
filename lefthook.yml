@@ -13,6 +13,9 @@ pre-commit:
         - "**/*.css"
       stage_fixed: true
 
+    - name: prisma generate
+      run: cd apps/api && bun x prisma generate
+
     - name: typecheck
       run: bun run check-types
 
