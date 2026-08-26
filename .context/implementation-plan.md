@@ -246,17 +246,17 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### B — Hours 10–18
 
 #### Hour 10–13: Exception CRUD Routes
-- [ ] Create `routes/exceptions.ts`:
+- [x] Create `routes/exceptions.ts`:
   - `GET /api/exceptions` — paginated, filterable (status, severity, type, search, batchId)
   - `GET /api/exceptions/:id` — single exception with loan data joined
   - `POST /api/exceptions/:id/comment` — add reviewer note
   - `POST /api/exceptions/:id/approve` — set status=approved, reviewerId, reviewedAt
   - `POST /api/exceptions/:id/reject` — set status=rejected
   - `POST /api/exceptions/:id/decision` — record AI recommendation decision
-- [ ] Zod schemas for all exception route bodies
-- [ ] Write `AuditLog` entries for: `REVIEWER_COMMENT`, `LOAN_APPROVED`, `LOAN_REJECTED`
-- [ ] Role guard: all exception write routes require `reviewer`
-- [ ] Create `routes/loans.ts`:
+- [x] Zod schemas for all exception route bodies
+- [x] Write `AuditLog` entries for: `REVIEWER_COMMENT`, `LOAN_APPROVED`, `LOAN_REJECTED`
+- [x] Role guard: all exception write routes require `reviewer`
+- [x] Create `routes/loans.ts`:
   - `GET /api/loans` — paginated list with `batchId`, `validationStatus`, `search`
   - `GET /api/loans/:id` — full detail: loan + exceptions[] + verifiedRecord
   - `PATCH /api/loans/:id/fields` — edit allow-listed fields; write `FIELD_EDITED` audit log
