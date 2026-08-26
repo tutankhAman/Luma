@@ -113,6 +113,11 @@ router.post(
           fileName: file.originalname,
           filePath: file.path,
           fileType: parsedType.data,
+          metadata: {
+            pipelineStage: "staged",
+            pipelineStep: 1,
+            stageMessage: "File received and staged for ingestion.",
+          },
           recordCount: 0,
           status: "processing",
           uploadedById: user.id,
