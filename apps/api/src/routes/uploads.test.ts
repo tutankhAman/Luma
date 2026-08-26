@@ -108,7 +108,7 @@ beforeEach(() => {
   fakePrisma.uploadBatch.create = mock(() =>
     Promise.resolve({
       createdAt: new Date("2026-08-25T10:00:00.000Z"),
-      fileName: "test.csv",
+      fileName: "loan_tape.csv",
       fileType: "loan_tape",
       id: "batch_123",
       recordCount: 0,
@@ -218,7 +218,7 @@ describe("POST /api/uploads", () => {
     expect(res.status).toBe(202);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.batchId).toBe("batch_123");
-    expect(body.fileName).toBe("test.csv");
+    expect(body.fileName).toBe("loan_tape.csv");
     expect(body.fileType).toBe("loan_tape");
     expect(body.status).toBe("processing");
     expect(body.message).toBeDefined();

@@ -142,87 +142,33 @@ export const normalizeRow = (
         reason,
         rowNumber,
       };
-      return {
-        failedRow,
-        success: false,
-        ...failedRow,
-      } as unknown as NormalizeResult;
+      return { failedRow, success: false };
     }
 
-    let originationDate: Date | null = null;
-    let maturityDate: Date | null = null;
-    let lastPaymentDate: Date | null = null;
-    let lastUpdatedAt: Date | null = null;
-
-    try {
-      originationDate = parseDateField(
-        raw.origination_date,
-        "origination_date"
-      );
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      const failedRow: FailedRow = {
-        rawData: JSON.stringify(raw),
-        reason,
-        rowNumber,
-      };
-      return {
-        failedRow,
-        success: false,
-        ...failedRow,
-      } as unknown as NormalizeResult;
+    const dateFields: Array<{ key: string; value: unknown }> = [
+      { key: "origination_date", value: raw.origination_date },
+      { key: "maturity_date", value: raw.maturity_date },
+      { key: "last_payment_date", value: raw.last_payment_date },
+      { key: "last_updated_at", value: raw.last_updated_at },
+    ];
+    const parsedDates: Record<string, Date | null> = {};
+    for (const { key, value } of dateFields) {
+      try {
+        parsedDates[key] = parseDateField(value, key);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        const failedRow: FailedRow = {
+          rawData: JSON.stringify(raw),
+          reason,
+          rowNumber,
+        };
+        return { failedRow, success: false };
+      }
     }
-
-    try {
-      maturityDate = parseDateField(raw.maturity_date, "maturity_date");
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      const failedRow: FailedRow = {
-        rawData: JSON.stringify(raw),
-        reason,
-        rowNumber,
-      };
-      return {
-        failedRow,
-        success: false,
-        ...failedRow,
-      } as unknown as NormalizeResult;
-    }
-
-    try {
-      lastPaymentDate = parseDateField(
-        raw.last_payment_date,
-        "last_payment_date"
-      );
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      const failedRow: FailedRow = {
-        rawData: JSON.stringify(raw),
-        reason,
-        rowNumber,
-      };
-      return {
-        failedRow,
-        success: false,
-        ...failedRow,
-      } as unknown as NormalizeResult;
-    }
-
-    try {
-      lastUpdatedAt = parseDateField(raw.last_updated_at, "last_updated_at");
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      const failedRow: FailedRow = {
-        rawData: JSON.stringify(raw),
-        reason,
-        rowNumber,
-      };
-      return {
-        failedRow,
-        success: false,
-        ...failedRow,
-      } as unknown as NormalizeResult;
-    }
+    const originationDate = parsedDates.origination_date as Date | null;
+    const maturityDate = parsedDates.maturity_date as Date | null;
+    const lastPaymentDate = parsedDates.last_payment_date as Date | null;
+    const lastUpdatedAt = parsedDates.last_updated_at as Date | null;
 
     const data: LoanCreateData = {
       borrowerId,
@@ -250,11 +196,7 @@ export const normalizeRow = (
       termMonths: parseIntSafe(raw.term_months),
     };
 
-    return {
-      data,
-      success: true,
-      ...(data as unknown as Record<string, unknown>),
-    } as unknown as NormalizeResult;
+    return { data, success: true };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     const failedRow: FailedRow = {
@@ -262,11 +204,7 @@ export const normalizeRow = (
       reason,
       rowNumber,
     };
-    return {
-      failedRow,
-      success: false,
-      ...failedRow,
-    } as unknown as NormalizeResult;
+    return { failedRow, success: false };
   }
 };
 
@@ -339,6 +277,8 @@ export const processStreamAndNormalize = async (
     }
   };
 
+  let lastSuccessfulRowEnd: number | null = null;
+
   const flushChunk = async (): Promise<void> => {
     if (chunk.length === 0) {
       return;
@@ -357,6 +297,7 @@ export const processStreamAndNormalize = async (
         });
         const inserted = (result as unknown as { count: number }).count;
         processedCount += inserted;
+        lastSuccessfulRowEnd = rowEnd;
         await tx.auditLog.create({
           data: {
             batchId,
@@ -370,7 +311,29 @@ export const processStreamAndNormalize = async (
         });
       });
     } catch (err) {
-      await markFailed(err);
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        const existing = await prisma.uploadBatch.findUnique({
+          where: { id: batchId },
+        });
+        const existingMeta =
+          (existing?.metadata as Record<string, unknown> | null) ?? {};
+        await prisma.uploadBatch.update({
+          data: {
+            metadata: {
+              ...existingMeta,
+              error: message,
+              lastSuccessfulRowEnd,
+            },
+            status: "failed",
+          },
+          where: { id: batchId },
+        });
+        hasFailed = true;
+        await prisma.loan.deleteMany({ where: { sourceBatchId: batchId } });
+      } catch {
+        await markFailed(err);
+      }
       throw err;
     }
   };
@@ -456,6 +419,13 @@ export const processStreamAndNormalize = async (
         totalFailedRows;
     }
 
+    const skippedDuplicates = Math.max(
+      0,
+      recordCount - processedCount - failedCount
+    );
+    (nextMetadata as Record<string, unknown>).skippedDuplicates =
+      skippedDuplicates;
+
     try {
       await prisma.$transaction(async (tx) => {
         await tx.uploadBatch.update({
@@ -474,14 +444,15 @@ export const processStreamAndNormalize = async (
             eventType: "INGESTION_COMPLETED",
             metadata: {
               failedCount,
+              skippedDuplicates,
               totalRows: recordCount,
               validInserted: processedCount,
             },
           },
         });
       });
-    } catch {
-      await markFailed(new Error("failed to update batch on completion"));
+    } catch (err) {
+      await markFailed(err);
       return;
     }
 
@@ -556,8 +527,26 @@ export const processStreamAndNormalize = async (
     // Auto-trigger validation (Hour 7-10)
     try {
       await validateBatch(batchId);
-    } catch {
-      // validation errors are handled inside validateBatch; swallow here so ingestion still succeeds
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        const existing = await prisma.uploadBatch.findUnique({
+          where: { id: batchId },
+        });
+        const existingMeta =
+          (existing?.metadata as Record<string, unknown> | null) ?? {};
+        await prisma.uploadBatch.update({
+          data: {
+            metadata: {
+              ...existingMeta,
+              validationError: message,
+            },
+          },
+          where: { id: batchId },
+        });
+      } catch {
+        // ignore metadata update failure; ingestion itself remains done
+      }
     }
   } catch (err) {
     await markFailed(err);

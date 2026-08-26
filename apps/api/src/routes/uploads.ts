@@ -287,7 +287,7 @@ router.get(
       where: { sourceBatchId: batchId },
     });
 
-    const [byType, bySeverity, totalExceptions] = await Promise.all([
+    const [byType, bySeverity, failedValidation] = await Promise.all([
       prisma.exception.groupBy({
         _count: { exceptionType: true },
         by: ["exceptionType"],
@@ -298,8 +298,8 @@ router.get(
         by: ["severity"],
         where: { loan: { sourceBatchId: batchId } },
       }),
-      prisma.exception.count({
-        where: { loan: { sourceBatchId: batchId } },
+      prisma.loan.count({
+        where: { sourceBatchId: batchId, exceptions: { some: {} } },
       }),
     ]);
 
@@ -335,7 +335,6 @@ router.get(
       }
     }
 
-    const failedValidation = totalExceptions;
     const passedValidation = Math.max(0, totalImported - failedValidation);
 
     const summary: BatchSummary = {

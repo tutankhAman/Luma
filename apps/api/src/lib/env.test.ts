@@ -41,6 +41,23 @@ describe("assertBootEnv", () => {
   });
 
   it("defaults to process.env when called without arguments", () => {
-    expect(() => assertBootEnv()).not.toThrow();
+    const prevSecret = process.env.BETTER_AUTH_SECRET;
+    const prevUrl = process.env.DATABASE_URL;
+    process.env.BETTER_AUTH_SECRET = VALID_SECRET;
+    process.env.DATABASE_URL = "postgresql://localhost/luma";
+    try {
+      expect(() => assertBootEnv()).not.toThrow();
+    } finally {
+      if (prevSecret === undefined) {
+        delete process.env.BETTER_AUTH_SECRET;
+      } else {
+        process.env.BETTER_AUTH_SECRET = prevSecret;
+      }
+      if (prevUrl === undefined) {
+        delete process.env.DATABASE_URL;
+      } else {
+        process.env.DATABASE_URL = prevUrl;
+      }
+    }
   });
 });

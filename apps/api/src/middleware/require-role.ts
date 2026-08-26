@@ -20,6 +20,9 @@ export const requireRole =
       return;
     }
 
-    req.user = { ...user, role: matchedRole };
+    // Reuse normalized role from requireAuth; if somehow missing, normalize defensively
+    if (user.role !== matchedRole) {
+      req.user = { ...user, role: matchedRole };
+    }
     next();
   };
