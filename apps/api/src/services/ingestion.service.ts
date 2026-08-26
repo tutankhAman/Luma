@@ -671,11 +671,13 @@ export const processStreamAndNormalize = async (
 
     await finalizeSuccess();
 
-    // Auto-trigger validation (Hour 7-10)
-    try {
-      await validateBatch(batchId);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+    const batchForPostIngest = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    const fileType =
+      (batchForPostIngest?.fileType as string | undefined) ?? "loan_tape";
+
+    const setPipelineCompleted = async (metaMessage: string): Promise<void> => {
       try {
         const existing = await prisma.uploadBatch.findUnique({
           where: { id: batchId },
@@ -686,15 +688,79 @@ export const processStreamAndNormalize = async (
           data: {
             metadata: {
               ...existingMeta,
-              validationError: message,
+              pipelineStage: "completed",
+              stageMessage: metaMessage,
             },
           },
           where: { id: batchId },
         });
       } catch {
-        // ignore metadata update failure; ingestion itself remains done
+        // ignore
+      }
+    };
+
+    if (fileType === "servicer_update") {
+      try {
+        const { detectServicerConflicts } = await import(
+          "./conflict-detection.service.js"
+        );
+        await detectServicerConflicts(batchId);
+        await setPipelineCompleted(
+          "Ingestion and servicer conflict detection completed successfully."
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        try {
+          const existing = await prisma.uploadBatch.findUnique({
+            where: { id: batchId },
+          });
+          const existingMeta =
+            (existing?.metadata as Record<string, unknown> | null) ?? {};
+          await prisma.uploadBatch.update({
+            data: {
+              metadata: {
+                ...existingMeta,
+                conflictError: message,
+              },
+            },
+            where: { id: batchId },
+          });
+        } catch {
+          // ignore
+        }
+      }
+    } else if (fileType === "document_manifest") {
+      // Deferred validation (Phase 4): document manifests update documentStatus
+      // and are validated later. Mark the pipeline complete after ingestion.
+      await setPipelineCompleted(
+        "Ingestion completed. Document-manifest validation is deferred."
+      );
+    } else if (fileType === "loan_tape") {
+      try {
+        await validateBatch(batchId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        try {
+          const existing = await prisma.uploadBatch.findUnique({
+            where: { id: batchId },
+          });
+          const existingMeta =
+            (existing?.metadata as Record<string, unknown> | null) ?? {};
+          await prisma.uploadBatch.update({
+            data: {
+              metadata: {
+                ...existingMeta,
+                validationError: message,
+              },
+            },
+            where: { id: batchId },
+          });
+        } catch {
+          // ignore metadata update failure; ingestion itself remains done
+        }
       }
     }
+    // fileType === 'document_manifest': no validation yet (Phase 4 handles it)
   } catch (err) {
     await markFailed(err);
     destroyStreams();

@@ -415,9 +415,12 @@ This is the **most complex page** in the app. Build it methodically.
 - [ ] Install: `bun add @ai-sdk/google ai`
 - [ ] Create `lib/ai.ts`:
   ```typescript
+  // Packages: ai@7.0.79, @ai-sdk/google@4.0.51 (peer zod ^3.25 || ^4.1 — we use 4.4.3)
+  // Model ID configurable via AI_MODEL_ID env; default gemini-3.5-flash-lite.
+  // MOCK_AI=true bypasses Gemini for deterministic tests/demo when no key is available.
   import { createGoogleGenerativeAI } from '@ai-sdk/google';
   export const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-  export const model = google('gemini-2.0-flash');
+  export const model = google(process.env.AI_MODEL_ID ?? 'gemini-3.5-flash-lite');
   ```
 - [ ] Create `services/ai.service.ts`:
   - `explainException(exceptionId)`:
@@ -468,7 +471,7 @@ This is the **most complex page** in the app. Build it methodically.
     ```
     ┌─────────────────────────────────────────────┐
     │  <i class="ri-robot-2-line"></i> AI Recommendation                  [x]  │
-    │  Model: gemini-2.0-flash                     │
+    │  Model: gemini-3.5-flash-lite              │
     │  Confidence: 87%  ·  25 Aug 2026 11:30 AM   │
     ├─────────────────────────────────────────────┤
     │  Suggestion:                                │

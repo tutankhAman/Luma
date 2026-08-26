@@ -158,10 +158,11 @@ model Exception {
   status           String @default("open")
 
   reviewerId       String?
-  reviewedAt       DateTime?
-  reviewerNote     String?
-  correctedValue   String?
+  reviewedAt     DateTime?
+  reviewerNote   String?
+  correctedValue String?
   aiRecommendation Json?
+  metadata         Json?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

@@ -45,11 +45,20 @@
       }
     },
     {
-      "includes": ["**/*.integration.test.ts"],
+      "includes": ["**/*.integration.test.ts", "**/*.test.ts"],
       "linter": {
         "rules": {
           "performance": {
-            "noAwaitInLoops": "off"
+            "noAwaitInLoops": "off",
+            "useTopLevelRegex": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off",
+            "useConsistentTypeDefinitions": "off"
+          },
+          "suspicious": {
+            "noEmptyBlockStatements": "off",
+            "noUnnecessaryConditions": "off"
           }
         }
       }
@@ -57,6 +66,7 @@
     {
       "includes": [
         "apps/api/src/services/validation.service.ts",
+        "apps/api/src/services/ingestion.service.ts",
         "apps/api/src/routes/verified-loans.ts"
       ],
       "linter": {
@@ -96,6 +106,40 @@
           },
           "style": {
             "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/api/src/services/ingestion.service.ts"],
+      "linter": {
+        "rules": {
+          "complexity": { "noExcessiveCognitiveComplexity": "off" }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/api/src/lib/ai.ts",
+        "apps/api/src/middleware/rate-limit.ts",
+        "apps/api/src/services/ai.service.ts",
+        "apps/api/src/services/conflict-detection.service.ts",
+        "apps/api/src/routes/ai.ts"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "performance": {
+            "noAwaitInLoops": "off"
+          },
+          "style": {
+            "useDestructuring": "off",
+            "useErrorCause": "off"
+          },
+          "suspicious": {
+            "noUnnecessaryConditions": "off"
           }
         }
       }

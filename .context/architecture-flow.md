@@ -412,7 +412,7 @@ Returns: { verifiedLoan, canonicalData, auditTrail }
 
 ### Module F — Audit Trail
 
-- Append-only `AuditLog` table — no updates or deletes ever
+- Append-only `AuditLog` table — no updates or deletes ever (operational `UploadBatch.metadata.pipelineStage`/`conflictStage` progress markers are exempt — ephemeral telemetry, not business state; G3 applies to FILE_UPLOADED, LOAN_IMPORTED, VALIDATION_RUN, EXCEPTION_CREATED, AI_RECOMMENDATION, FIELD_EDITED, LOAN_APPROVED/REJECTED, VERIFIED_RECORD_CREATED, RECORD_EXPORTED)
 - Written **synchronously** within the same DB transaction as the triggering action
 - Queried via `GET /api/audit/:loanId` (paginated, chronological)
 - Consumer dashboard shows full lifecycle: upload → import → validate → exception → review → AI → verify
