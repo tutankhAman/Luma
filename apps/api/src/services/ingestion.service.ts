@@ -272,8 +272,21 @@ export const processStreamAndNormalize = async (
   );
 
   try {
+    const existing = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    const existingMeta =
+      (existing?.metadata as Record<string, unknown> | null) ?? {};
     await prisma.uploadBatch.update({
-      data: { status: "processing" },
+      data: {
+        metadata: {
+          ...existingMeta,
+          pipelineStage: "verifying_schema",
+          pipelineStep: 2,
+          stageMessage: "Inspecting CSV headers and verifying schema...",
+        },
+        status: "processing",
+      },
       where: { id: batchId },
     });
   } catch {
@@ -317,6 +330,8 @@ export const processStreamAndNormalize = async (
       ...existingMeta,
       error: message,
       failedRows: failedRows.slice(0, MAX_FAILED_ROWS_STORED),
+      pipelineStage: "failed",
+      stageMessage: message,
     };
     if (truncated) {
       nextMeta.failedRowsTruncated = true;
@@ -374,8 +389,21 @@ export const processStreamAndNormalize = async (
             metadata: { inserted, rowEnd, rowStart },
           },
         });
+        const existing = await tx.uploadBatch.findUnique({
+          where: { id: batchId },
+        });
+        const existingMeta =
+          (existing?.metadata as Record<string, unknown> | null) ?? {};
         await tx.uploadBatch.update({
-          data: { processedCount },
+          data: {
+            metadata: {
+              ...existingMeta,
+              pipelineStage: "ingesting",
+              pipelineStep: 3,
+              stageMessage: `Ingesting and normalizing loans (${processedCount} rows inserted)...`,
+            },
+            processedCount,
+          },
           where: { id: batchId },
         });
       });
@@ -484,6 +512,10 @@ export const processStreamAndNormalize = async (
     const nextMetadata: Record<string, unknown> = {
       ...existingMeta,
       failedRows,
+      pipelineStage: "validating",
+      pipelineStep: 4,
+      stageMessage:
+        "Running automated validation rules and duplicate checks...",
     };
     if (truncated) {
       (nextMetadata as Record<string, unknown>).failedRowsTruncated = true;

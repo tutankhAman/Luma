@@ -6,12 +6,33 @@ import {
   severitySchema,
 } from "./common.js";
 
+export const pipelineStageSchema = z.enum([
+  "staged",
+  "verifying_schema",
+  "ingesting",
+  "validating",
+  "completed",
+  "failed",
+]);
+export type PipelineStage = z.infer<typeof pipelineStageSchema>;
+
 export const failedRowSchema = z.object({
   rawData: z.string(),
   reason: z.string(),
   rowNumber: z.number().int().positive(),
 });
 export type FailedRow = z.infer<typeof failedRowSchema>;
+
+export interface PipelineProgressMetadata {
+  error?: string;
+  failedRows?: FailedRow[];
+  failedRowsTruncated?: boolean;
+  pipelineStage?: PipelineStage;
+  pipelineStep?: number;
+  skippedDuplicates?: number;
+  stageMessage?: string;
+  totalFailedRows?: number;
+}
 
 export const uploadBatchSchema = z.object({
   createdAt: z.string(),

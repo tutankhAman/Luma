@@ -572,16 +572,61 @@ export const validateBatch = async (batchId: string): Promise<void> => {
   process.stdout.write(
     `[Validation] Batch ${batchId}: Starting automated validation checks...\n`
   );
-  const existing = await prisma.exception.count({
+  try {
+    const batchBefore = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    const metaBefore =
+      (batchBefore?.metadata as Record<string, unknown> | null) ?? {};
+    await prisma.uploadBatch.update({
+      data: {
+        metadata: {
+          ...metaBefore,
+          pipelineStage: "validating",
+          pipelineStep: 4,
+          stageMessage:
+            "Running automated validation rules and duplicate checks...",
+        },
+      },
+      where: { id: batchId },
+    });
+  } catch {
+    // ignore
+  }
+
+  const existingExceptions = await prisma.exception.count({
     where: { loan: { sourceBatchId: batchId } },
   });
-  if (existing > 0) {
+  if (existingExceptions > 0) {
     process.stdout.write(
-      `[Validation] Batch ${batchId}: Exceptions already computed (${existing}), skipping.\n`
+      `[Validation] Batch ${batchId}: Exceptions already computed (${existingExceptions}), skipping.\n`
     );
-    return;
+  } else {
+    await runBatch(batchId);
   }
-  await runBatch(batchId);
+
+  try {
+    const batchAfter = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    const metaAfter =
+      (batchAfter?.metadata as Record<string, unknown> | null) ?? {};
+    await prisma.uploadBatch.update({
+      data: {
+        metadata: {
+          ...metaAfter,
+          pipelineStage: "completed",
+          pipelineStep: 5,
+          stageMessage:
+            "Ingestion and automated validation completed successfully.",
+        },
+      },
+      where: { id: batchId },
+    });
+  } catch {
+    // ignore
+  }
+
   process.stdout.write(
     `[Validation] Batch ${batchId}: Completed validation checks.\n`
   );
