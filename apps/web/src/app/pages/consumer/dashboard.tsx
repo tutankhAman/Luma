@@ -29,7 +29,7 @@ export default function ConsumerDashboard() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
       <div>
-        <h1 className="font-heading font-semibold text-2xl">
+        <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
           Verified Records
         </h1>
         <p className="text-[#A1A1AA] text-sm">

@@ -38,7 +38,7 @@ export function AiPanel({
 
   if (!exceptionId) {
     return (
-      <p className="rounded-lg bg-muted/50 p-3 text-[#A1A1AA] text-xs">
+      <p className="rounded-lg bg-[#27272A]/20 p-3 text-[#A1A1AA] text-xs">
         Select an exception to get an AI explanation.
       </p>
     );
@@ -47,7 +47,7 @@ export function AiPanel({
   const recommendation = explanation?.recommendation ?? null;
 
   return (
-    <div className="space-y-2 rounded-lg border border-[#8B5CF6]/30 border-dashed bg-[#2E1065]/30/30 p-3">
+    <div className="space-y-2 rounded-lg border border-[#8B5CF6]/30 border-dashed bg-[#2E1065]/20 p-3">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 font-medium text-[13px] text-white">
           <i

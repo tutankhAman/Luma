@@ -34,7 +34,7 @@ export default function ReviewerDashboard() {
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-heading font-semibold text-2xl text-white tracking-tight">
+          <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
             Reviewer Dashboard
           </h1>
           <p className="text-[#A1A1AA] text-sm">
@@ -137,7 +137,7 @@ export default function ReviewerDashboard() {
                   ][]
                 ).map(([severity, count]) => (
                   <button
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1 hover:bg-muted"
+                    className="flex w-full items-center justify-between rounded-lg px-2 py-1 hover:bg-[#27272A]/20"
                     key={severity}
                     onClick={() => navigate("/reviewer/exceptions")}
                     type="button"

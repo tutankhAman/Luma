@@ -11,7 +11,9 @@ import { verifiedLoansApi } from "@/lib/api";
 export default function ExportPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <h1 className="font-heading font-semibold text-2xl">Export</h1>
+      <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
+        Export
+      </h1>
       <Card>
         <CardHeader>
           <CardTitle>Download verified dataset</CardTitle>
