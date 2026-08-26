@@ -126,35 +126,17 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### B — Hours 2–10
 
 #### Hour 2–4: Complete Auth Server + Seed
-- [ ] Finalize `apps/api/src/lib/auth.ts`:
-  ```typescript
-  export const auth = betterAuth({
-    database: prismaAdapter(prisma, { provider: 'postgresql' }),
-    emailAndPassword: { enabled: true },
-    trustedOrigins: [process.env.FRONTEND_URL!],
-    plugins: [
-      admin({
-        defaultRole: 'data_consumer',
-        adminRoles: ['admin'],
-      }),
-    ],
-  });
-  ```
-- [ ] Mount in `index.ts` **before** `express.json()` — `app.all('/api/auth/*', toNodeHandler(auth))`
-- [ ] Configure CORS with `credentials: true`
-- [ ] Write `requireAuth` middleware: `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })`
-- [ ] Write `requireRole(...roles)` middleware — type-safe role array check
-- [ ] Write complete seed script:
-  ```
-  seed.ts:
-  - operator@luma.dev / password → role: data_operator
-  - reviewer@luma.dev  / password → role: reviewer
-  - consumer@luma.dev  / password → role: data_consumer
-  ```
-- [ ] Run seed: `bun run seed` — verify 3 users in DB
-- [ ] Write `GET /api/me` — returns current user (A needs this for role routing)
+- [x] Finalize `apps/api/src/lib/auth.ts` — done (pre-existing `ea254ab`, verified on Prisma 7): prismaAdapter(postgresql), emailAndPassword, trustedOrigins FRONTEND_URL, admin plugin defaultRole data_consumer/adminRoles [admin]
+- [x] Mount in `index.ts` **before** `express.json()` — done: `app.all('/api/auth/*splat', toNodeHandler(auth))`; refactored into `src/app.ts createApp()` (`d467706`) so tests can boot the app without listening
+- [x] Configure CORS with `credentials: true` — done: origin FRONTEND_URL, verified `access-control-allow-credentials: true`
+- [x] Write `requireAuth` middleware — done + hardened (`cc02f61`): 401 `{code:'UNAUTHENTICATED'}` when no session OR role unusable; role narrowed string→`Role` via `lib/roles.ts normalizeRole` (default fallback data_consumer)
+- [x] Write `requireRole(...roles)` middleware — done type-safe: matches via `roles.find(r => r === userRole)`, no casts; 401 unauth / 403 `{code:'FORBIDDEN'}` wrong role
+- [x] Write complete seed script — done (pre-existing `43967c2`/`e5e340c`): idempotent signUpEmail + role ensure + post-seed verification
+- [x] Run seed: `bun run seed` — verified dev DB 4 users; integration test also runs seed against isolated `luma_test` DB and asserts all 3 roles
+- [x] Write `GET /api/me` — done `d467706`: behind requireAuth, returns `MeResponse { id, name, email, role }` validated by `meResponseSchema` in @repo/types
+- [x] Tests (added beyond plan per review discipline): `cc02f61` typed req.user; unit tests 11 pass (`test` = middleware, stubbed getSession, no DB); integration 6 pass (`test:integration`, own process + `luma_test` DB after migrate deploy; covers health/me 401/sign-up→role→sign-in→me contract/bad-creds 401/CORS/seed roles)
 
-**→ Deliverable to A (Hour 4):** Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
+**→ Deliverable to A (Hour 4):** ✅ Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
 
 #### Hour 4–7: Upload Routes + CSV Ingestion Service (Million-Row Scale)
 - [ ] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse)
