@@ -27,6 +27,7 @@
     "@types/express": "^5.0.3",
     "@types/node": "^26.3.0",
     "@types/pg": "^8.23.1",
+    "bun-types": "^1.4.0",
     "dotenv": "^17.4.2",
     "prisma": "7",
     "typescript": "7.0.2"
