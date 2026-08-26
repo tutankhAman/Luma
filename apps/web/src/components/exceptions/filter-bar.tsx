@@ -66,7 +66,7 @@ export function FilterBar({
       <div className="flex flex-wrap items-center gap-2">
         <div
           aria-label="Filter by status"
-          className="flex items-center gap-1 rounded-lg bg-muted p-1"
+          className="flex items-center gap-1 rounded-lg border border-[#27272A] bg-[#09090B] p-1"
           role="tablist"
         >
           {STATUS_TABS.map((tab) => (

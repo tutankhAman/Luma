@@ -148,7 +148,7 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
             if (isEditing && editing) {
               return (
                 <div
-                  className="col-span-1 space-y-2 rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/30/40 p-3 sm:col-span-2"
+                  className="col-span-1 space-y-2 rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/20 p-3 sm:col-span-2"
                   key={key}
                 >
                   <p className="font-medium text-[#8B5CF6] text-xs">

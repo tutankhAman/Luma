@@ -77,7 +77,7 @@ export default function BatchDetailPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <h1 className="font-heading font-semibold text-2xl">
+        <h1 className="font-semibold text-[28px] text-white tracking-tight">
           {batch?.fileName ?? "Batch"}
         </h1>
         {batch ? <BatchStatusBadge status={batch.status} /> : null}

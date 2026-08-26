@@ -66,7 +66,7 @@ export default function LoanDetailPage() {
           Back to queue
         </Link>
         <span aria-hidden="true" className="h-4 w-px bg-[#27272A]" />
-        <h1 className="font-heading font-semibold text-2xl text-white tracking-tight">
+        <h1 className="font-semibold text-[28px] text-white tracking-tight">
           Loan {loan.loanId ?? "—"}
           <span className="ml-2 font-normal text-[#52525B] text-base">
             ({loan.borrowerId ?? "—"})
