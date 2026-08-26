@@ -459,7 +459,7 @@ Get a single exception with full context.
     "reasoning": "Servicer update file shows balance of 340000 as of 2026-08-01. Original tape appears stale.",
     "confidence": 0.87,
     "fieldsToChange": [{ "field": "currentBalance", "suggestedValue": "340000" }],
-    "model": "gemini-2.0-flash",
+    "model": "gemini-3.5-flash-lite",
     "promptSummary": "Loan L-10001 balance conflict resolution",
     "timestamp": "2026-08-25T11:30:00.000Z"
   },
@@ -604,7 +604,7 @@ Ask the AI to explain why a specific exception occurred and suggest a correction
         "source": "servicer_update"
       }
     ],
-    "model": "gemini-2.0-flash",
+    "model": "gemini-3.5-flash-lite",
     "promptSummary": "Balance conflict resolution for loan L-10001",
     "timestamp": "2026-08-25T11:30:00.000Z"
   }
@@ -613,7 +613,7 @@ Ask the AI to explain why a specific exception occurred and suggest a correction
 
 **Errors:**
 - `404` — Exception not found
-- `503` — AI service unavailable (returns null recommendation, does not fail the request)
+- AI unavailable: never `500` or `503` — returns `{ exceptionId, recommendation: null, error: "AI unavailable" }` with `200` (uniform graceful fallback for all AI routes)
 
 ---
 
@@ -634,7 +634,7 @@ Generate a natural-language summary of all open exceptions in a batch.
 {
   "batchId": "clx_batch_001",
   "summary": "This batch of 988 loans contains 246 validation exceptions. The most common issue is missing or invalid current balance (41 cases), followed by duplicate loan ID detection (34 cases). 75 exceptions are classified as critical severity and require immediate reviewer attention. Key patterns: 22 loans have maturity dates before origination dates, likely due to a date format mismatch in the source system. 15 loans are flagged as stale (last updated > 90 days ago).",
-  "model": "gemini-2.0-flash",
+  "model": "gemini-3.5-flash-lite",
   "timestamp": "2026-08-25T11:35:00.000Z"
 }
 ```
@@ -660,7 +660,7 @@ Ask the AI to re-evaluate the severity of an exception.
   "currentSeverity": "high",
   "suggestedSeverity": "critical",
   "reasoning": "A current balance exceeding original principal by 14% indicates potential fraud or a system error that could materially affect downstream analytics. This warrants critical classification.",
-  "model": "gemini-2.0-flash",
+  "model": "gemini-3.5-flash-lite",
   "timestamp": "2026-08-25T11:38:00.000Z"
 }
 ```
@@ -695,12 +695,14 @@ Generate a validation rule from a natural language description.
     "severity": "high",
     "exceptionType": "rate_out_of_range"
   },
-  "model": "gemini-2.0-flash",
+  "model": "gemini-3.5-flash-lite",
   "promptSummary": "Credit grade / rate mismatch rule",
   "timestamp": "2026-08-25T11:40:00.000Z",
   "note": "This rule was AI-generated. Review before applying to production validation."
 }
 ```
+
+**Graceful degradation (all AI routes):** Unavailable AI routes return HTTP `200` with the standard fallback payload (`{ <nullable primary payload>, error: "AI unavailable" }`), never `500` or `503`. Every AI response schema has a nullable primary payload + optional `error: string` (e.g., `recommendation: null + error: "AI unavailable"` on explain, `summary: null + error: ...` on summarize, `suggestedSeverity: null + reasoning: null + error ...` on classify, `rule: null + error ...` on suggest-rule).
 
 ---
 
@@ -855,7 +857,7 @@ Get the full audit trail for a single loan.
       "actor": { "id": "clx_user_rev", "name": "Reviewer User", "role": "reviewer" },
       "metadata": {
         "exceptionId": "clx_exc_001",
-        "model": "gemini-2.0-flash",
+        "model": "gemini-3.5-flash-lite",
         "promptSummary": "Balance conflict resolution for loan L-10001",
         "confidence": 0.87,
         "timestamp": "2026-08-25T11:30:00.000Z"

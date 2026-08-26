@@ -300,7 +300,6 @@ const collectBatchDuplicateSets = async (
   const borrowerComboCounts = new Map<string, number>();
   const borrowerCounts = new Map<string, number>();
   let countSkip = 0;
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: chunked scan breaks on empty batch
   while (true) {
     const loans: {
       borrowerId: string | null;
@@ -383,7 +382,6 @@ export const runBatch = async (
   const duplicateSets = await collectBatchDuplicateSets(batchId, thresholds);
 
   let skip = 0;
-  // biome-ignore lint/suspicious/noUnnecessaryConditions: chunked pagination breaks on empty
   while (true) {
     const chunkResult = await processValidationChunk(
       batchId,
