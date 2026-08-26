@@ -5,9 +5,12 @@ import express, { type Express } from "express";
 import { auth } from "./lib/auth.js";
 import { assertBootEnv } from "./lib/env.js";
 import { requireAuth } from "./middleware/require-auth.js";
+import auditRouter from "./routes/audit.js";
 import exceptionsRouter from "./routes/exceptions.js";
 import loansRouter from "./routes/loans.js";
+import summaryRouter from "./routes/summary.js";
 import uploadsRouter from "./routes/uploads.js";
+import verifiedLoansRouter from "./routes/verified-loans.js";
 
 export const createApp = (): Express => {
   assertBootEnv();
@@ -31,6 +34,9 @@ export const createApp = (): Express => {
   app.use("/api/uploads", uploadsRouter);
   app.use("/api/exceptions", exceptionsRouter);
   app.use("/api/loans", loansRouter);
+  app.use("/api/verified-loans", verifiedLoansRouter);
+  app.use("/api/audit", auditRouter);
+  app.use("/api/summary", summaryRouter);
 
   app.get("/api/health", (_req, res) => {
     const body: HealthResponse = {

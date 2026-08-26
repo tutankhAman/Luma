@@ -265,7 +265,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 **→ Deliverable to A (Hour 13):** Full exception and loan endpoints working
 
 #### Hour 13–16: Verification Service + Verified Loans Routes
-- [ ] Create `services/verification.service.ts`:
+- [x] Create `services/verification.service.ts`:
   - `verify(loanId, userId)`:
     1. Assert all exceptions closed (throw `409` if any `status === 'open'`)
     2. Load current loan fields
@@ -273,21 +273,21 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     4. `recordHash = SHA256(JSON.stringify(canonicalData, null, 0))`
     5. Create `VerifiedLoan` in `prisma.$transaction`
     6. Write `AuditLog: VERIFIED_RECORD_CREATED`
-- [ ] Create `routes/verified-loans.ts`:
+- [x] Create `routes/verified-loans.ts`:
   - `GET /api/verified-loans` — paginated list with filters
   - `GET /api/verified-loans/:id` — full canonical data
   - `GET /api/verified-loans/export` — streams CSV response (fast-csv)
     - Sets `Content-Disposition` header
     - Writes `AuditLog: RECORD_EXPORTED`
-- [ ] Role guards: consumer + reviewer on read, reviewer on `POST /verify`
+- [x] Role guards: consumer + reviewer on read, reviewer on `POST /verify`
 
 **→ Deliverable to A (Hour 16):** Verified loans endpoints + export working
 
 #### Hour 16–18: Audit Trail + Summary Routes
-- [ ] Create `routes/audit.ts`:
+- [x] Create `routes/audit.ts`:
   - `GET /api/audit/:loanId` — chronological AuditLog entries, paginated
   - Include actor name + role, metadata, event type, timestamp
-- [ ] Create `routes/summary.ts`:
+- [x] Create `routes/summary.ts`:
   - `GET /api/summary` — aggregate stats:
     - totalBatches, totalLoansImported, totalExceptions, openExceptions, verifiedLoans
     - exceptionsByType (object), exceptionsBySeverity (object)
