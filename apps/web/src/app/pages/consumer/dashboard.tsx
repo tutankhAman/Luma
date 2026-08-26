@@ -127,7 +127,7 @@ export default function ConsumerDashboard() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono text-muted-foreground text-xs">
+                      <TableCell className="text-muted-foreground text-xs tabular-nums">
                         {shortHash(record.recordHash)}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">

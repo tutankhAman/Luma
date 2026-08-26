@@ -49,7 +49,7 @@ function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
               <TableCell className="pl-4 tabular-nums">
                 {row.rowNumber}
               </TableCell>
-              <TableCell className="max-w-md truncate font-mono text-muted-foreground text-xs">
+              <TableCell className="max-w-md truncate text-muted-foreground text-xs">
                 {row.rawData}
               </TableCell>
               <TableCell className="text-destructive text-xs">
