@@ -16,6 +16,7 @@ import type {
   FileType,
   GetBatchResponse,
   HealthResponse,
+  LoanDetail,
   LoanFieldsPatchBody,
   LoanFieldsPatchResponse,
   LoanListItem,
@@ -114,6 +115,10 @@ export const uploadsApi = {
 };
 
 export const loansApi = {
+  detail: async (id: string): Promise<LoanDetail> => {
+    const { data } = await api.get<LoanDetail>(`/loans/${id}`);
+    return data;
+  },
   list: async (query: LoanListQuery) => {
     const { data } = await api.get<Paginated<LoanListItem>>("/loans", {
       params: query,

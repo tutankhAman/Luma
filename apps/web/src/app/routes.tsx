@@ -16,10 +16,8 @@ import BatchDetailPage from "./pages/operator/batch-detail";
 import OperatorDashboard from "./pages/operator/dashboard";
 import ReviewerDashboard from "./pages/reviewer/dashboard";
 import ExceptionQueuePage from "./pages/reviewer/exceptions";
-import {
-  ConsumerVerifiedLoanDetail,
-  ReviewerLoanDetail,
-} from "./pages/shared/loan-detail-placeholder";
+import LoanDetailPage from "./pages/reviewer/loan-detail";
+import { ConsumerVerifiedLoanDetail } from "./pages/shared/loan-detail-placeholder";
 
 export const routes: RouteObject[] = [
   {
@@ -46,7 +44,7 @@ export const routes: RouteObject[] = [
           },
           { element: <ReviewerDashboard />, path: "dashboard" },
           { element: <ExceptionQueuePage />, path: "exceptions" },
-          { element: <ReviewerLoanDetail />, path: "loans/:id" },
+          { element: <LoanDetailPage />, path: "loans/:id" },
         ],
         element: <ReviewerLayout />,
         path: "reviewer",

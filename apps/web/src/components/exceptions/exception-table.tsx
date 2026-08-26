@@ -1,24 +1,12 @@
-import type {
-  ExceptionListItem,
-  ExceptionStatus,
-  ExceptionType,
-  Severity,
-} from "@repo/types";
+import type { ExceptionListItem } from "@repo/types";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ExceptionStatusBadge,
   ExceptionTypeBadge,
   SeverityBadge,
 } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -30,70 +18,41 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-const SEVERITY_ORDER: Record<Severity, number> = {
-  critical: 0,
-  high: 1,
-  low: 3,
-  medium: 2,
-};
+const SEVERITY_ORDER = { critical: 0, high: 1, low: 3, medium: 2 } as const;
 
 type SortKey = "createdAt" | "severity";
 
-interface FilterSelectProps {
-  onChange: (value: string) => void;
-  options: string[];
-  placeholder: string;
-  value: string;
+export interface ExceptionPage {
+  data?: ExceptionListItem[];
+  pagination?: { page: number; total: number; totalPages: number };
 }
 
-function FilterSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-}: FilterSelectProps) {
+function EmptyState() {
   return (
-    <Select onValueChange={(next) => onChange(next ?? "all")} value={value}>
-      <SelectTrigger className="w-40" size="sm">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All</SelectItem>
-        {options.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option.replaceAll("_", " ")}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col items-center gap-2 py-14">
+      <i aria-hidden="true" className="ri-inbox-line text-3xl text-slate-300" />
+      <p className="font-medium text-slate-500 text-sm">No exceptions found</p>
+      <p className="text-muted-foreground text-xs">
+        Try adjusting the filters, or ingest a new batch to validate.
+      </p>
+    </div>
   );
 }
 
 export function ExceptionQueueTable({
   data,
+  pagination,
   isLoading,
-  search,
-  onSearchChange,
-  severity,
-  onSeverityChange,
-  status,
-  onStatusChange,
-  type,
-  onTypeChange,
+  onPageChange,
   onReview,
 }: {
   data?: ExceptionListItem[];
+  pagination?: { page: number; total: number; totalPages: number };
   isLoading?: boolean;
-  search: string;
-  onSearchChange: (value: string) => void;
-  severity: Severity | "";
-  onSeverityChange: (value: Severity | "") => void;
-  status: ExceptionStatus | "";
-  onStatusChange: (value: ExceptionStatus | "") => void;
-  type: ExceptionType | "";
-  onTypeChange: (value: ExceptionType | "") => void;
+  onPageChange: (page: number) => void;
   onReview: (exception: ExceptionListItem) => void;
 }) {
+  const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>("severity");
 
   const sorted = useMemo(() => {
@@ -124,125 +83,122 @@ export function ExceptionQueueTable({
     </button>
   );
 
+  const openLoan = (exception: ExceptionListItem) => {
+    navigate(`/reviewer/loans/${exception.loan.id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-2">
-        {[0, 1, 2, 3].map((row) => (
+        {[0, 1, 2, 3, 4].map((row) => (
           <Skeleton className="h-10 w-full" key={row} />
         ))}
       </div>
     );
   }
 
+  if (!sorted.length) {
+    return <EmptyState />;
+  }
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          className="h-8 w-56"
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search loan or borrower ID..."
-          value={search}
-        />
-        <FilterSelect
-          onChange={(value) =>
-            onStatusChange(value === "all" ? "" : (value as ExceptionStatus))
-          }
-          options={["open", "approved", "rejected", "corrected"]}
-          placeholder="Status"
-          value={status || "all"}
-        />
-        <FilterSelect
-          onChange={(value) =>
-            onSeverityChange(value === "all" ? "" : (value as Severity))
-          }
-          options={["critical", "high", "medium", "low"]}
-          placeholder="Severity"
-          value={severity || "all"}
-        />
-        <FilterSelect
-          onChange={(value) =>
-            onTypeChange(value === "all" ? "" : (value as ExceptionType))
-          }
-          options={[
-            "missing_field",
-            "duplicate",
-            "date_error",
-            "balance_error",
-            "rate_out_of_range",
-            "status_inconsistency",
-            "stale_record",
-            "conflicting_source",
-            "invalid_state",
-          ]}
-          placeholder="Type"
-          value={type || "all"}
-        />
-        <span className="ml-auto text-muted-foreground text-xs tabular-nums">
-          {sorted.length} exception{sorted.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      {sorted.length === 0 ? (
-        <p className="py-10 text-center text-muted-foreground text-sm">
-          No exceptions match the current filters.
-        </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Loan</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>{sortButton("severity", "Severity")}</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>{sortButton("createdAt", "Detected")}</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{sortButton("severity", "Severity")}</TableHead>
+            <TableHead>Loan ID</TableHead>
+            <TableHead>Borrower</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Field</TableHead>
+            <TableHead>Message</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>{sortButton("createdAt", "Detected")}</TableHead>
+            <TableHead className="text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sorted.map((exception) => (
+            <TableRow
+              className="cursor-pointer"
+              key={exception.id}
+              onClick={() => openLoan(exception)}
+            >
+              <TableCell>
+                <SeverityBadge severity={exception.severity} />
+              </TableCell>
+              <TableCell className="font-medium">
+                {exception.loan.loanId}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {exception.loan.borrowerId}
+              </TableCell>
+              <TableCell>
+                <ExceptionTypeBadge type={exception.exceptionType} />
+              </TableCell>
+              <TableCell className="font-mono text-muted-foreground text-xs">
+                {exception.field}
+              </TableCell>
+              <TableCell className="max-w-xs truncate text-muted-foreground text-xs">
+                {exception.message}
+              </TableCell>
+              <TableCell>
+                <ExceptionStatusBadge status={exception.status} />
+              </TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                {new Date(exception.createdAt).toLocaleString(undefined, {
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  month: "short",
+                })}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onReview(exception);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <i aria-hidden="true" className="ri-review-line text-base" />
+                  Review
+                </Button>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sorted.map((exception) => (
-              <TableRow key={exception.id}>
-                <TableCell className="font-medium">
-                  {exception.loan.loanId}
-                </TableCell>
-                <TableCell>
-                  <ExceptionTypeBadge type={exception.exceptionType} />
-                </TableCell>
-                <TableCell>
-                  <SeverityBadge severity={exception.severity} />
-                </TableCell>
-                <TableCell className="max-w-xs truncate text-muted-foreground text-xs">
-                  {exception.message}
-                </TableCell>
-                <TableCell>
-                  <ExceptionStatusBadge status={exception.status} />
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {new Date(exception.createdAt).toLocaleString(undefined, {
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    month: "short",
-                  })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    onClick={() => onReview(exception)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <i
-                      aria-hidden="true"
-                      className="ri-review-line text-base"
-                    />
-                    Review
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+          ))}
+        </TableBody>
+      </Table>
+
+      {pagination && pagination.totalPages > 1 ? (
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground text-xs tabular-nums">
+            Page {pagination.page} of {pagination.totalPages} ·{" "}
+            {pagination.total} exceptions
+          </p>
+          <div className="flex gap-2">
+            <Button
+              disabled={pagination.page <= 1}
+              onClick={() => onPageChange(pagination.page - 1)}
+              size="sm"
+              variant="outline"
+            >
+              <i aria-hidden="true" className="ri-arrow-left-line text-base" />
+              Prev
+            </Button>
+            <Button
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => onPageChange(pagination.page + 1)}
+              size="sm"
+              variant="outline"
+            >
+              Next
+              <i aria-hidden="true" className="ri-arrow-right-line text-base" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
