@@ -7,6 +7,9 @@ export const roleSchema = z.enum([
 ]);
 export type Role = z.infer<typeof roleSchema>;
 
+/** Mirrors the Prisma User.role default and the better-auth admin() defaultRole. */
+export const DEFAULT_USER_ROLE: Role = "data_consumer";
+
 export const batchStatusSchema = z.enum([
   "pending",
   "processing",
@@ -60,6 +63,7 @@ export type ExceptionStatus = z.infer<typeof exceptionStatusSchema>;
 export const auditEventTypeSchema = z.enum([
   "FILE_UPLOADED",
   "LOAN_IMPORTED",
+  "INGESTION_COMPLETED",
   "VALIDATION_RUN",
   "EXCEPTION_CREATED",
   "AI_RECOMMENDATION",

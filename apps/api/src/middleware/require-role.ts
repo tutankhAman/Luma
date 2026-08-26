@@ -1,35 +1,28 @@
-import { fromNodeHeaders } from "better-auth/node";
+import type { Role } from "@repo/types";
 import type { NextFunction, Request, Response } from "express";
-import { auth } from "../lib/auth.js";
 
-export const APP_ROLES = [
-  "data_operator",
-  "reviewer",
-  "data_consumer",
-] as const;
-
-export type AppRole = (typeof APP_ROLES)[number];
+export type AppRole = Role;
 
 export const requireRole =
   (...roles: AppRole[]) =>
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
+  (req: Request, res: Response, next: NextFunction): void => {
+    const { user } = req;
 
-    if (!session) {
+    if (!user) {
       res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
       return;
     }
 
-    const userRole = session.user.role;
+    const matchedRole = roles.find((role) => role === user.role);
 
-    if (!(userRole && roles.includes(userRole as AppRole))) {
+    if (!matchedRole) {
       res.status(403).json({ code: "FORBIDDEN", error: "Forbidden" });
       return;
     }
 
-    req.user = { ...session.user, role: userRole };
-    req.session = session.session;
+    // Reuse normalized role from requireAuth; if somehow missing, normalize defensively
+    if (user.role !== matchedRole) {
+      req.user = { ...user, role: matchedRole };
+    }
     next();
   };

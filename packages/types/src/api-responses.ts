@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { roleSchema } from "./common.js";
 
 export const paginationMetaSchema = z.object({
   limit: z.number().int().min(1),
@@ -53,3 +54,11 @@ export const authOkResponseSchema = z.object({
   ok: z.literal(true),
 });
 export type AuthOkResponse = z.infer<typeof authOkResponseSchema>;
+
+export const meResponseSchema = z.object({
+  email: z.email(),
+  id: z.string(),
+  name: z.string(),
+  role: roleSchema,
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;

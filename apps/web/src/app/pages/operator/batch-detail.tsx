@@ -67,9 +67,11 @@ export default function BatchDetailPage() {
   const { batchId } = useParams<{ batchId: string }>();
   const id = batchId ?? "";
   const { data: batch, isLoading } = useUploadBatch(id);
-  const { data: summary, isPending: summaryPending } =
-    useUploadBatchSummary(id);
   const processing = batch?.status === "processing";
+  const { data: summary, isPending: summaryPending } = useUploadBatchSummary(
+    id,
+    processing
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -100,6 +102,22 @@ export default function BatchDetailPage() {
               completes.
             </p>
           </CardContent>
+        </Card>
+      ) : null}
+
+      {batch?.status === "failed" ? (
+        <Card className="border-destructive/30 bg-destructive/5 shadow-none">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="flex items-center gap-2 font-medium text-destructive text-sm">
+              <i className="ri-error-warning-line text-base" />
+              Ingestion Failed
+            </CardTitle>
+            <CardDescription className="mt-1 text-destructive/90 text-xs">
+              {((batch.metadata as Record<string, unknown> | null)
+                ?.error as string) ||
+                "The CSV file could not be processed. Please ensure it contains valid loan records matching the schema."}
+            </CardDescription>
+          </CardHeader>
         </Card>
       ) : null}
 

@@ -113,8 +113,9 @@ RULES — blocking severity, each with exploit scenario:
 S1 — Auth on one surface. Verify via `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })` in Express `requireAuth`/`requireRole`. Frontend uses client-side guards (`ProtectedRoute` + `authClient.useSession()` + `user.role` check) — Vite SPA has no RSC; no `await headers()` forwarding. Reject missing server middleware or client guard as BLOCKING.
      Reason: Vite SPA has no server components — single auth surface on Express. Wrong-role access is prevented by server middleware (401/403) + client redirect (UX). No cookie split to worry about.
 
-S2 — Deny by default. Every route except /api/auth/* and /api/health must declare requireRole(...roles). Flag any missing guard as BLOCKING.
+S2 — Deny by default. Every route except /api/auth/*, /api/health, and GET /api/me must declare requireRole(...roles). Flag any missing guard as BLOCKING.
      Reason: Three roles share one DB. One unguarded POST /api/loans/:id/verify lets a data_consumer self-approve loans.
+     Amendment (2026-08-26, security review): GET /api/me is identity introspection — it returns the CALLER's own {id,name,email,role} from the session and is required by all 3 roles for routing. It requires requireAuth (401 without session) but not requireRole; requiring a role list there is a no-op and sets a false precedent. No other route may copy this exemption — business routes always declare requireRole(...).
 
 S3 — Audit log is append-only. REJECT any update/delete/upsert on AuditLog. Only create + findMany allowed. Verify no mutation in services/.
      Reason: Tamper-evident history is a judging criterion. Mutation destroys FILE_UPLOADED → VERIFIED_RECORD_CREATED lineage and invalidates recordHash trust.

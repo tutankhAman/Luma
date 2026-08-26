@@ -126,60 +126,28 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### B — Hours 2–10
 
 #### Hour 2–4: Complete Auth Server + Seed
-- [ ] Finalize `apps/api/src/lib/auth.ts`:
-  ```typescript
-  export const auth = betterAuth({
-    database: prismaAdapter(prisma, { provider: 'postgresql' }),
-    emailAndPassword: { enabled: true },
-    trustedOrigins: [process.env.FRONTEND_URL!],
-    plugins: [
-      admin({
-        defaultRole: 'data_consumer',
-        adminRoles: ['admin'],
-      }),
-    ],
-  });
-  ```
-- [ ] Mount in `index.ts` **before** `express.json()` — `app.all('/api/auth/*', toNodeHandler(auth))`
-- [ ] Configure CORS with `credentials: true`
-- [ ] Write `requireAuth` middleware: `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })`
-- [ ] Write `requireRole(...roles)` middleware — type-safe role array check
-- [ ] Write complete seed script:
-  ```
-  seed.ts:
-  - operator@luma.dev / password → role: data_operator
-  - reviewer@luma.dev  / password → role: reviewer
-  - consumer@luma.dev  / password → role: data_consumer
-  ```
-- [ ] Run seed: `bun run seed` — verify 3 users in DB
-- [ ] Write `GET /api/me` — returns current user (A needs this for role routing)
+- [x] Finalize `apps/api/src/lib/auth.ts` — done (pre-existing `ea254ab`, verified on Prisma 7): prismaAdapter(postgresql), emailAndPassword, trustedOrigins FRONTEND_URL, admin plugin defaultRole data_consumer/adminRoles [admin]
+- [x] Mount in `index.ts` **before** `express.json()` — done: `app.all('/api/auth/*splat', toNodeHandler(auth))`; refactored into `src/app.ts createApp()` (`d467706`) so tests can boot the app without listening
+- [x] Configure CORS with `credentials: true` — done: origin FRONTEND_URL, verified `access-control-allow-credentials: true`
+- [x] Write `requireAuth` middleware — done + hardened (`cc02f61`): 401 `{code:'UNAUTHENTICATED'}` when no session OR role unusable; role narrowed string→`Role` via `lib/roles.ts normalizeRole` (default fallback data_consumer)
+- [x] Write `requireRole(...roles)` middleware — done type-safe: matches via `roles.find(r => r === userRole)`, no casts; 401 unauth / 403 `{code:'FORBIDDEN'}` wrong role
+- [x] Write complete seed script — done (pre-existing `43967c2`/`e5e340c`): idempotent signUpEmail + role ensure + post-seed verification
+- [x] Run seed: `bun run seed` — verified dev DB 4 users; integration test also runs seed against isolated `luma_test` DB and asserts all 3 roles
+- [x] Write `GET /api/me` — done `d467706`: behind requireAuth, returns `MeResponse { id, name, email, role }` validated by `meResponseSchema` in @repo/types
+- [x] Tests (added beyond plan per review discipline): `cc02f61` typed req.user; unit tests 11 pass (`test` = middleware, stubbed getSession, no DB); integration 6 pass (`test:integration`, own process + `luma_test` DB after migrate deploy; covers health/me 401/sign-up→role→sign-in→me contract/bad-creds 401/CORS/seed roles)
 
-**→ Deliverable to A (Hour 4):** Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
+**→ Deliverable to A (Hour 4):** ✅ Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
 
 #### Hour 4–7: Upload Routes + CSV Ingestion Service (Million-Row Scale)
-- [ ] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse)
-- [ ] Create `routes/uploads.ts`:
-  - `POST /api/uploads` — Multer (save directly to disk/temp, not memory), create `UploadBatch`, immediately return `202 Accepted`
-  - Kick off async ingestion job in the background (runs independently of HTTP request)
-  - `GET /api/uploads` — paginated batch list
-  - `GET /api/uploads/:batchId` — batch detail + failed rows
-  - `GET /api/uploads/:batchId/summary` — validation summary counts
-- [ ] Create `services/ingestion.service.ts`:
-  - `processStreamAndNormalize(filePath, batchId)`:
-    - Use `fs.createReadStream().pipe(csv())`
-    - Multer disk storage with `limits: { fileSize: 500 * 1024 * 1024 }` (500 MB ≈ ~1.5M rows)
-    - Accumulate rows into chunks of 5,000 — normalize defensively; one malformed row must never throw and kill its chunk
-    - On chunk full: pause stream, `prisma.loan.createMany(chunk, { skipDuplicates: true })`, write ONE chunk-level `LOAN_IMPORTED` AuditLog (counts + row-range in metadata), resume stream
-    - Idempotent resume: `@@unique([sourceBatchId, sourceRowNumber])` on Loan + `skipDuplicates` → replaying after a mid-chunk crash can never double-insert
-    - On pipeline error: mark batch `failed`, persist reason to batch metadata, `stream.destroy()` — never leave a zombie `processing` batch
-  - Handle: missing columns, encoding issues, BOM stripping, empty rows
-  - Store failed rows in batch metadata JSON (capped at first 1,000 failures to prevent DB bloat)
-- [ ] Write Zod validators for upload route inputs
+- [x] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse) — done `45e17bd` (multer 2.2.0, csv-parser 3.2.1, @types/multer 2.2.0)
+- [x] Create `routes/uploads.ts` — done `47d80f5`/`b65705d`: `POST /api/uploads` disk storage `os.tmpdir()/luma-uploads` `limits:{fileSize:500*1024*1024}`, `.csv` only (415), `fileType` validated via `fileTypeSchema` (400), `UploadBatch` create `202 {batchId,fileName,fileType,status:"processing",message}`, fire-and-forget `processStreamAndNormalize` without await; `GET /api/uploads` paginated via `listUploadsQuerySchema` (page/limit/status) + `uploadedById` filter; `GET /api/uploads/:batchId` detail + `failedRows` from `metadata.failedRows` (capped); `GET /api/uploads/:batchId/summary` real `Loan.count` + `Exception.groupBy` by type/severity via `batchSummarySchema` with real `passedValidation`/`failedValidation`/`totalImported`; wired `app.use("/api/uploads", uploadsRouter)` after `express.json()`; multer `LIMIT_FILE_SIZE` → `413 PAYLOAD_TOO_LARGE` handler
+- [x] Create `services/ingestion.service.ts` — done `45e17bd`/`82bb7f1`: `processStreamAndNormalize(filePath,batchId)` uses `fs.createReadStream().pipe(csv({mapHeaders:BOM_REGEX}))`, chunks 5000, `pause`/`resume` around `prisma.loan.createMany({skipDuplicates:true})` idempotent via `@@unique([sourceBatchId,sourceRowNumber])`, chunk-level `LOAN_IMPORTED` audit, per-row `normalizeRow` defensive (BOM, bad dates → failedRows, empty rows skipped), `failedRows` capped 1000 in `metadata` + `INGESTION_COMPLETED` log, error path `markFailed` + `stream.destroy()` no zombie `processing`; helpers `flushChunk`/`finalizeSuccess`/`markFailed`/`pauseStreams` extracted to keep `processRows` complexity <20; pure helpers `parseDate`/`parseDecimal`/`parseIntSafe`/`normalizeRow` exported
+- [x] Write Zod validators for upload route inputs — done: `createUploadBodySchema` + `listUploadsQuerySchema` in `@repo/types` reused, `fileTypeSchema` + `batchStatusSchema` validated; `batchSummarySchema` used for summary response
 
-**→ Deliverable to A (Hour 7):** `POST /api/uploads` returns 202 instantly, `GET /api/uploads/:batchId` polls and shows batch progress updating over time
+**→ Deliverable to A (Hour 7):** ✅ `POST /api/uploads` returns 202 instantly, `GET /api/uploads/:batchId` polls every 2s and shows progress → `done` with real `recordCount`/`failedCount`/`failedRows`; `GET /api/uploads/:batchId/summary` already returns real validation counts via `Exception.groupBy`
 
 #### Hour 7–10: Validation Engine (Core)
-- [ ] Create `services/validation.service.ts`:
+- [x] Create `services/validation.service.ts`:
   - Rule interface: `{ id, name, check(loan): ValidationResult | null }`
   - Implement all 10 per-loan rules (together covering every §7 intentional data issue):
     - `requiredFields` → `missing_field`
@@ -201,9 +169,9 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   - Bulk-create `Exception` records in `prisma.$transaction` per chunk
   - Update `Loan.validationStatus`
   - Bulk-write `AuditLog`: `VALIDATION_RUN`, `EXCEPTION_CREATED`
-- [ ] Load `validation_rules.json` thresholds (interest rate range, stale days, etc.)
-- [ ] Auto-trigger validation after ingestion completes in job
-- [ ] Expose `GET /api/uploads/:batchId/summary` with real exception counts
+- [x] Load `validation_rules.json` thresholds (interest rate range, stale days, etc.)
+- [x] Auto-trigger validation after ingestion completes in job
+- [x] Expose `GET /api/uploads/:batchId/summary` with real exception counts
 
 **→ Deliverable to A (Hour 10):** Summary endpoint returns real grouped exception counts
 
@@ -212,7 +180,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### A — Hours 2–10
 
 #### Hour 2–4: Auth UI + Route Guards (Vite + react-router + ProtectedRoute)
-- [ ] Build `src/app/pages/(auth)/login.tsx`:
+- [x] Build `src/app/pages/(auth)/login.tsx`:
   - Email + password form (shadcn/ui `Form`, `Input`, `Button`)
   - Calls `authClient.signIn.email({ email, password })` (better-auth client → `:4000/api/auth/*`, via Vite `/api` proxy)
   - On success → `navigate` based on `user.role`:
@@ -221,19 +189,19 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - `data_consumer` → `/consumer/dashboard`
   - Error state (invalid credentials toast via Sonner)
   - Loading spinner on submit
-- [ ] Build `src/app/guards/ProtectedRoute.tsx`:
+- [x] Build `src/app/guards/ProtectedRoute.tsx`:
   - Reads `authClient.useSession()` (reactive `data` + `isPending`) — `withCredentials` already set on the fetch client
   - While `isPending` → skeleton
   - No session → `<Navigate to="/login" />`
   - Wrong `user.role` → `Forbidden` page (not white screen) — the API will return 403 anyway
-- [ ] Build `src/app/layouts/OperatorLayout.tsx`, `ReviewerLayout.tsx`, `ConsumerLayout.tsx` — each wraps `<ProtectedRoute role="...">` + `<Sidebar />` + `<Outlet />`
-- [ ] Build shared `src/components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button (`authClient.signOut()` → navigate `/login`)
-- [ ] Root `"/"` in `routes.tsx` — while-pending → skeleton, then redirect by role (or to `/login`)
+- [x] Build `src/app/layouts/OperatorLayout.tsx`, `ReviewerLayout.tsx`, `ConsumerLayout.tsx` — each wraps `<ProtectedRoute role="...">` + `<Sidebar />` + `<Outlet />`
+- [x] Build shared `src/components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button (`authClient.signOut()` → navigate `/login`)
+- [x] Root `"/"` in `routes.tsx` — while-pending → skeleton, then redirect by role (or to `/login`)
 
 **Uses:** `GET /api/auth/get-session`, `GET /api/me`
 
 #### Hour 4–7: Operator Dashboard + Upload UI
-- [ ] Build `app/(operator)/dashboard/page.tsx`:
+- [x] Build `app/(operator)/dashboard/page.tsx`:
   - Upload zone: `components/upload/csv-dropzone.tsx`
     - Drag-and-drop area (or `react-dropzone`)
     - File type selector: loan_tape / servicer_update / document_manifest
@@ -244,15 +212,13 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - Columns: File Name, Type, Records, Failed, Status, Uploaded At
     - Status badge: pending/processing/done/failed with colors
     - Row click → `/operator/uploads/:batchId`
-- [ ] TanStack Query hooks: `hooks/use-uploads.ts`
+- [x] TanStack Query hooks: `hooks/use-uploads.ts`
   - `useUploads()` — `GET /api/uploads` with refetch
   - `useUploadBatch(batchId)` — `GET /api/uploads/:batchId` — polls every 2s while `status === 'processing'`
   - `useCreateUpload()` — mutation for `POST /api/uploads`
 
-> **Mock strategy (while B finishes ingestion):** Hardcode a `mockBatch` object so the UI renders correctly.
-
 #### Hour 7–10: Batch Detail Page + Validation Summary
-- [ ] Build `app/(operator)/uploads/[batchId]/page.tsx`:
+- [x] Build `app/(operator)/uploads/[batchId]/page.tsx`:
   - **Import Summary card:** Total rows | Imported | Failed
   - **Failed Rows table:** Row Number, Raw Data snippet, Error Reason
   - **Validation Summary card** (from `GET /api/uploads/:batchId/summary`):
@@ -260,15 +226,15 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - Exception breakdown by type (progress bars)
     - Exception breakdown by severity (critical/high/medium/low badges with counts)
   - **Processing skeleton** when batch status is `processing` (auto-refreshes)
-- [ ] `hooks/use-batch-summary.ts` — `GET /api/uploads/:batchId/summary`
-- [ ] Create `components/ui/stat-card.tsx` — reusable metric card
-- [ ] Create `components/ui/severity-badge.tsx` — colored badge for critical/high/medium/low
+- [x] `hooks/use-batch-summary.ts` — `GET /api/uploads/:batchId/summary`
+- [x] Create `components/ui/stat-card.tsx` — reusable metric card
+- [x] Create `components/ui/severity-badge.tsx` — colored badge for critical/high/medium/low
 
 ### Phase 1 Checkpoint (Hour 10)
-- [ ] Operator can log in → see dashboard → upload CSV → see processing → see batch summary with real data
-- [ ] Reviewer and Consumer can log in → see their (empty) dashboards
-- [ ] Auth redirects work correctly for all 3 roles
-- [ ] B confirms: Upload + Ingestion + Validation Engine endpoints all return real data
+- [x] Operator can log in → see dashboard → upload CSV → see processing → see batch summary with real data
+- [x] Reviewer and Consumer can log in → see their (empty) dashboards
+- [x] Auth redirects work correctly for all 3 roles
+- [x] B confirms: Upload + Ingestion + Validation Engine endpoints all return real data
 
 ---
 

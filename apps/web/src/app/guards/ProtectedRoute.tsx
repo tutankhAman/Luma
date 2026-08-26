@@ -71,8 +71,20 @@ export function ProtectedRoute({ children, role, roles }: ProtectedRouteProps) {
     return <Navigate replace to="/login" />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role as Role)) {
-    return <Forbidden requiredRole={allowedRoles.join(" or ")} />;
+  const normalizedRole = ((): Role | null => {
+    const r = user.role;
+    if (r === "data_operator" || r === "reviewer" || r === "data_consumer") {
+      return r;
+    }
+    return null;
+  })();
+
+  if (allowedRoles) {
+    if (!(normalizedRole && allowedRoles.includes(normalizedRole))) {
+      return <Forbidden requiredRole={allowedRoles.join(" or ")} />;
+    }
+  } else if (!normalizedRole) {
+    return <Forbidden />;
   }
 
   return <>{children}</>;

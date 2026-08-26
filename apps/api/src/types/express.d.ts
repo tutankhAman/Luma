@@ -1,3 +1,5 @@
+import type { Role } from "@repo/types";
+
 declare global {
   // biome-ignore lint/style/noNamespace: Express module augmentation requires the global Express namespace
   namespace Express {
@@ -11,12 +13,10 @@ declare global {
         id: string;
         name: string;
         email: string;
-        role: string;
+        role: Role;
         emailVerified: boolean;
         image?: string | null;
       };
     }
   }
 }
-
-export {};

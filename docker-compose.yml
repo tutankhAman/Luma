@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: luma
     ports:
-      - "5432:5432"
+      # loopback only - never expose the dev database to the LAN
+      - "127.0.0.1:5432:5432"
     volumes:
       - luma_pgdata:/var/lib/postgresql/data
     healthcheck:
