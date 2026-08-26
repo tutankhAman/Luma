@@ -75,8 +75,8 @@ export function FilterBar({
               className={cn(
                 "rounded-md px-3 py-1 text-[13px] transition-colors",
                 filters.status === tab.value
-                  ? "bg-white font-medium text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "border border-[#8B5CF6]/30 bg-[#2E1065]/30 font-medium text-[#8B5CF6]"
+                  : "text-[#A1A1AA] hover:text-white"
               )}
               key={tab.label}
               onClick={() => onChange({ status: tab.value })}
@@ -101,8 +101,8 @@ export function FilterBar({
               className={cn(
                 "rounded-full border px-2.5 py-1 text-xs capitalize transition-colors",
                 filters.severity === severity
-                  ? "border-indigo-200 bg-indigo-50 font-medium text-indigo-700"
-                  : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                  ? "border-[#8B5CF6]/30 bg-[#2E1065]/30 font-medium text-[#8B5CF6]"
+                  : "border-[#27272A] text-[#A1A1AA] hover:bg-[#27272A]/20"
               )}
               key={severity}
               onClick={() =>

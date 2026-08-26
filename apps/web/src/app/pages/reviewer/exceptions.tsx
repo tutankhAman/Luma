@@ -1,15 +1,8 @@
 import type { ExceptionListItem } from "@repo/types";
-import { useMemo, useState } from "react";
-import { AiAssistantPanel } from "@/components/ai/ai-assistant-panel";
+import { useEffect, useState } from "react";
+import { AiResolutionPanel } from "@/components/exceptions/ai-resolution-panel";
 import { ExceptionQueueTable } from "@/components/exceptions/exception-table";
 import { FilterBar } from "@/components/exceptions/filter-bar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useExceptions } from "@/hooks/use-exceptions";
 import {
   EMPTY_EXCEPTION_FILTERS,
@@ -26,67 +19,48 @@ export default function ExceptionQueuePage() {
   const patch = (partial: Partial<ExceptionListFilters>) =>
     setFilters((prev) => ({ ...prev, page: 1, ...partial }));
 
-  const counts = useMemo(() => {
-    const rows = data?.data ?? [];
-    return {
-      critical: rows.filter(
-        (item) => item.severity === "critical" && item.status === "open"
-      ).length,
-      total: data?.pagination?.total ?? 0,
-    };
-  }, [data]);
+  useEffect(() => {
+    if (selected && !data?.data.some((item) => item.id === selected.id)) {
+      setSelected(null);
+    }
+  }, [data, selected]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <h1 className="font-heading font-semibold text-2xl">Exception Queue</h1>
-        {isFetching ? (
-          <i
-            aria-hidden="true"
-            className="ri-loader-4-line animate-spin text-muted-foreground"
-          />
-        ) : null}
-      </div>
+    <div className="flex min-h-screen">
+      <div className="custom-scrollbar-hide flex-1 overflow-y-auto bg-black p-10">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
+              Exception Queue
+            </h1>
+            <p className="text-[#A1A1AA] text-[14px]">
+              Review validation failures and apply AI-suggested corrections.
+            </p>
+          </div>
+          {isFetching ? (
+            <i
+              aria-hidden="true"
+              className="ri-loader-4-line animate-spin text-[#A1A1AA]"
+            />
+          ) : null}
+        </div>
 
-      <div className="flex items-center gap-3">
-        <span className="rounded-lg bg-indigo-50 px-3 py-1.5 font-medium text-indigo-700 text-sm tabular-nums">
-          {counts.total} exceptions
-        </span>
-        <span className="rounded-lg bg-rose-50 px-3 py-1.5 font-medium text-rose-700 text-sm tabular-nums">
-          {counts.critical} critical open
-        </span>
-      </div>
-
-      <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
-        <CardHeader>
-          <CardTitle className="text-slate-900">
-            Validation failures awaiting review
-          </CardTitle>
-          <CardDescription className="text-slate-500">
-            Click a row to open the loan, consult the AI assistant, then record
-            your decision — every action is audit logged.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FilterBar filters={filters} onChange={patch} />
+        <div className="mt-8 overflow-hidden rounded-2xl border border-[#27272A] bg-[#18181B]">
+          <div className="border-[#27272A] border-b bg-[#09090B]/50 p-4">
+            <FilterBar filters={filters} onChange={patch} />
+          </div>
           <ExceptionQueueTable
             data={data?.data}
             isLoading={isLoading}
             onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
-            onReview={setSelected}
+            onSelect={setSelected}
             pagination={data?.pagination}
+            selectedId={selected?.id ?? null}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <AiAssistantPanel
-        exception={selected}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelected(null);
-          }
-        }}
-      />
+      <AiResolutionPanel exception={selected} />
     </div>
   );
 }

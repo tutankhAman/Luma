@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export function Layout() {
   return (
-    <div className={cn("min-h-screen font-sans")}>
+    <div className={cn("dark min-h-screen bg-black font-sans text-white")}>
       <Outlet />
     </div>
   );

@@ -59,22 +59,22 @@ export default function LoanDetailPage() {
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <div className="flex flex-wrap items-center gap-3">
         <Link
-          className="flex items-center gap-1 text-slate-500 text-sm transition-colors hover:text-slate-900"
+          className="flex items-center gap-1 text-[#A1A1AA] text-sm transition-colors hover:text-white"
           to="/reviewer/exceptions"
         >
           <i aria-hidden="true" className="ri-arrow-left-line" />
           Back to queue
         </Link>
-        <span aria-hidden="true" className="h-4 w-px bg-slate-200" />
-        <h1 className="font-heading font-semibold text-2xl text-slate-900 tracking-tight">
+        <span aria-hidden="true" className="h-4 w-px bg-[#27272A]" />
+        <h1 className="font-heading font-semibold text-2xl text-white tracking-tight">
           Loan {loan.loanId ?? "—"}
-          <span className="ml-2 font-normal text-base text-slate-400">
+          <span className="ml-2 font-normal text-[#52525B] text-base">
             ({loan.borrowerId ?? "—"})
           </span>
         </h1>
         <ValidationStatusBadge status={loan.validationStatus} />
         {loan.verifiedRecord ? (
-          <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-emerald-700 text-xs">
+          <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-emerald-400 text-xs">
             Verified · {loan.verifiedRecord.recordHash.slice(0, 12)}…
           </span>
         ) : null}
@@ -84,12 +84,12 @@ export default function LoanDetailPage() {
         <LoanFieldsPanel loan={loan} />
 
         <div className="space-y-4">
-          <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+          <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-slate-900">
+              <CardTitle className="text-white">
                 Exceptions ({exceptions.length})
               </CardTitle>
-              <CardDescription className="text-slate-500">
+              <CardDescription className="text-[#A1A1AA]">
                 Select an exception to review and act on it.
               </CardDescription>
             </CardHeader>
@@ -119,7 +119,7 @@ export default function LoanDetailPage() {
                   />
                 </>
               ) : (
-                <p className="rounded-lg bg-emerald-50 p-3 text-emerald-700 text-xs">
+                <p className="rounded-lg bg-emerald-500/10 p-3 text-emerald-400 text-xs">
                   No exceptions on this loan — it can be verified.
                 </p>
               )}

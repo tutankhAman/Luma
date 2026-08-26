@@ -38,7 +38,7 @@ export function AiPanel({
 
   if (!exceptionId) {
     return (
-      <p className="rounded-lg bg-muted/50 p-3 text-muted-foreground text-xs">
+      <p className="rounded-lg bg-muted/50 p-3 text-[#A1A1AA] text-xs">
         Select an exception to get an AI explanation.
       </p>
     );
@@ -47,12 +47,12 @@ export function AiPanel({
   const recommendation = explanation?.recommendation ?? null;
 
   return (
-    <div className="space-y-2 rounded-lg border border-indigo-200 border-dashed bg-indigo-50/30 p-3">
+    <div className="space-y-2 rounded-lg border border-[#8B5CF6]/30 border-dashed bg-[#2E1065]/30/30 p-3">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1.5 font-medium text-[13px] text-slate-900">
+        <p className="flex items-center gap-1.5 font-medium text-[13px] text-white">
           <i
             aria-hidden="true"
-            className="ri-sparkling-2-line text-indigo-600"
+            className="ri-sparkling-2-line text-[#8B5CF6]"
           />
           AI Copilot
         </p>
@@ -79,10 +79,8 @@ export function AiPanel({
       {recommendation ? (
         <div className="space-y-2">
           <p className="font-medium text-[13px]">{recommendation.suggestion}</p>
-          <p className="text-muted-foreground text-xs">
-            {recommendation.reasoning}
-          </p>
-          <p className="flex flex-wrap gap-x-3 text-[11px] text-slate-400">
+          <p className="text-[#A1A1AA] text-xs">{recommendation.reasoning}</p>
+          <p className="flex flex-wrap gap-x-3 text-[#52525B] text-[11px]">
             <span>{recommendation.model}</span>
             <span>
               {Math.round(recommendation.confidence * 100)}% confidence
@@ -114,13 +112,13 @@ export function AiPanel({
               </Button>
             </div>
           ) : null}
-          <p className="text-[10px] text-slate-400 italic">
+          <p className="text-[#52525B] text-[10px] italic">
             AI output is advisory only — it never changes data without a human
             decision.
           </p>
         </div>
       ) : (
-        <p className="text-muted-foreground text-xs">
+        <p className="text-[#A1A1AA] text-xs">
           {loading
             ? "Generating structured explanation..."
             : "Ask the copilot why this record failed and what to correct."}
