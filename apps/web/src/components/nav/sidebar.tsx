@@ -76,20 +76,17 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[240px] shrink-0 flex-col border-zinc-200/60 border-r bg-[#FAFAFA] p-4">
-      <div className="mb-6 flex items-center gap-3 px-2">
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col border-[#27272A] border-r bg-[#09090B] p-4">
+      <div className="mb-6 flex items-center gap-2 px-1">
         <span
           aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 font-bold text-sm text-white"
+          className="flex size-8 items-center justify-center rounded-lg bg-white font-bold text-black text-sm"
         >
           L
         </span>
-        <span className="font-semibold text-zinc-900 tracking-tight">Luma</span>
-        <Badge
-          className="ml-auto rounded-full border border-zinc-200 bg-white px-2 py-0.5 font-medium text-[10px] text-zinc-600 uppercase tracking-widest shadow-sm"
-          variant="ghost"
-        >
-          Premium
+        <span className="font-semibold text-white">Luma</span>
+        <Badge className="ml-auto rounded-full border border-[#27272A] bg-[#2E1065]/30 text-[#8B5CF6] text-[11px]">
+          Copilot
         </Badge>
       </div>
 
@@ -98,10 +95,10 @@ export function Sidebar() {
           <NavLink
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-[13px] transition-all duration-200",
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
                 isActive
-                  ? "border border-zinc-200/50 bg-white text-zinc-900 shadow-sm"
-                  : "border border-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                  ? "border border-[#8B5CF6]/30 bg-[#2E1065]/30 font-medium text-[#8B5CF6]"
+                  : "text-[#A1A1AA] hover:bg-[#27272A]/20 hover:text-white"
               )
             }
             end={true}
@@ -114,37 +111,35 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto border-zinc-200/60 border-t pt-4">
-        <div className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-zinc-100">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-semibold text-[10px] text-zinc-700 uppercase tracking-wider"
-            >
-              {user?.name?.slice(0, 2) ?? "?"}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-medium text-xs text-zinc-900">
-                {user?.name}
-              </p>
-              <p className="truncate text-[11px] text-zinc-500">
-                {user ? ROLE_LABELS[user.role as Role] : ""}
-              </p>
-            </div>
-          </div>
-          <Button
-            className="h-8 w-8 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900"
-            disabled={signingOut}
-            onClick={() => {
-              void handleSignOut();
-            }}
-            size="icon"
-            title={signingOut ? "Signing out..." : "Sign out"}
-            variant="ghost"
+      <div className="border-[#27272A] border-t pt-4">
+        <div className="mb-3 flex items-center gap-2.5 px-1">
+          <span
+            aria-hidden="true"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6] text-[11px] uppercase"
           >
-            <i aria-hidden="true" className="ri-logout-box-r-line text-base" />
-          </Button>
+            {user?.name?.slice(0, 2) ?? "?"}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-sm text-white">
+              {user?.name}
+            </p>
+            <p className="truncate text-[#A1A1AA] text-xs">
+              {user ? ROLE_LABELS[user.role as Role] : ""}
+            </p>
+          </div>
         </div>
+        <Button
+          className="w-full justify-start text-[#A1A1AA] hover:text-white"
+          disabled={signingOut}
+          onClick={() => {
+            void handleSignOut();
+          }}
+          size="sm"
+          variant="ghost"
+        >
+          <i aria-hidden="true" className="ri-logout-box-r-line text-base" />
+          {signingOut ? "Signing out..." : "Sign out"}
+        </Button>
       </div>
     </aside>
   );

@@ -82,7 +82,7 @@ export function CsvDropzone() {
   };
 
   return (
-    <Card className="rounded-[24px] border border-zinc-200/60 bg-white shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
+    <Card className="rounded-[24px] border border-zinc-200/60 bg-[#18181B] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
       <CardHeader className="p-8 pb-0">
         <CardTitle className="font-medium text-lg text-zinc-900 tracking-tight">
           Upload loan data
@@ -193,7 +193,7 @@ export function CsvDropzone() {
         {progress === null ? null : (
           <div className="space-y-1">
             <Progress value={progress} />
-            <p className="text-right text-muted-foreground text-xs tabular-nums">
+            <p className="text-right text-[#A1A1AA] text-xs tabular-nums">
               {progress}%
             </p>
           </div>

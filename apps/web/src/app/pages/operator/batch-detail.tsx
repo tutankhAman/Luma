@@ -28,7 +28,7 @@ function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
   if (!rows?.length) {
     return (
       <CardContent>
-        <p className="text-center text-muted-foreground text-sm">
+        <p className="text-center text-[#A1A1AA] text-sm">
           All rows imported cleanly.
         </p>
       </CardContent>
@@ -50,10 +50,10 @@ function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
               <TableCell className="pl-4 tabular-nums">
                 {row.rowNumber}
               </TableCell>
-              <TableCell className="max-w-md truncate text-muted-foreground text-xs">
+              <TableCell className="max-w-md truncate text-[#A1A1AA] text-xs">
                 {row.rawData}
               </TableCell>
-              <TableCell className="text-destructive text-xs">
+              <TableCell className="text-rose-400 text-xs">
                 {row.reason}
               </TableCell>
             </TableRow>
@@ -103,11 +103,11 @@ export default function BatchDetailPage() {
       {batch?.status === "failed" ? (
         <Card className="border-destructive/30 bg-destructive/5 shadow-none">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="flex items-center gap-2 font-medium text-destructive text-sm">
+            <CardTitle className="flex items-center gap-2 font-medium text-rose-400 text-sm">
               <i className="ri-error-warning-line text-base" />
               Ingestion Failed
             </CardTitle>
-            <CardDescription className="mt-1 text-destructive/90 text-xs">
+            <CardDescription className="mt-1 text-rose-400/90 text-xs">
               {((batch.metadata as Record<string, unknown> | null)
                 ?.error as string) ||
                 "The CSV file could not be processed. Please ensure it contains valid loan records matching the schema."}

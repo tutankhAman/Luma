@@ -22,7 +22,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.from === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-xl rounded-br-sm bg-zinc-900 px-3 py-2 text-white text-xs">
+        <div className="max-w-[85%] rounded-xl rounded-br-sm bg-white px-3 py-2 text-black text-xs">
           {message.content}
         </div>
       </div>
@@ -30,7 +30,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   }
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-zinc-200/50 bg-zinc-50/50 px-3 py-2 text-xs text-zinc-600">
+      <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-[#27272A] bg-[#18181B] px-3 py-2 text-[#A1A1AA] text-xs">
         {message.content}
       </div>
     </div>
@@ -60,19 +60,19 @@ export function CopilotPanel() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[320px] shrink-0 flex-col border-zinc-200/60 border-l bg-white p-6 shadow-[-4px_0_24px_-8px_rgba(0,0,0,0.02)]">
-      <div className="mb-4 flex items-center gap-2 border-zinc-100 border-b pb-4">
+    <aside className="sticky top-0 flex h-screen w-[320px] shrink-0 flex-col border-[#27272A] border-l bg-gradient-to-b from-[#8B5CF6]/10 to-transparent p-6">
+      <div className="flex items-center gap-2 pb-4">
         <span
           aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900"
+          className="flex size-7 items-center justify-center rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6]"
         >
           <i className="ri-sparkling-2-line" />
         </span>
-        <h2 className="font-semibold text-sm text-zinc-900">AI Copilot</h2>
-        <span className="ml-auto flex items-center gap-1 font-medium text-xs text-zinc-400">
+        <h2 className="font-medium text-sm text-white">AI Copilot</h2>
+        <span className="ml-auto flex items-center gap-1 text-[#A1A1AA] text-xs">
           <span
             aria-hidden="true"
-            className="size-1.5 rounded-full bg-emerald-500"
+            className="size-1.5 rounded-full bg-emerald-400"
           />
           Online
         </span>
@@ -84,9 +84,9 @@ export function CopilotPanel() {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 border-zinc-100 border-t pt-4">
+      <div className="flex items-center gap-2 border-[#27272A] border-t pt-4">
         <Input
-          className="border-zinc-200 focus-visible:ring-zinc-900"
+          className="border-[#27272A] bg-[#18181B] text-white placeholder:text-[#52525B]"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -99,7 +99,7 @@ export function CopilotPanel() {
         />
         <Button
           aria-label="Send message"
-          className="bg-zinc-900 text-white hover:bg-zinc-800"
+          className="bg-white text-black hover:bg-gray-200"
           onClick={send}
           size="icon"
         >

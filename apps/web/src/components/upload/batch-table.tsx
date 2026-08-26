@@ -47,7 +47,7 @@ export function BatchTable({
 
   if (!batches?.length) {
     return (
-      <p className="p-6 text-center text-muted-foreground text-sm">
+      <p className="p-6 text-center text-[#A1A1AA] text-sm">
         No uploads yet — ingest your first loan tape above.
       </p>
     );
@@ -106,7 +106,7 @@ export function BatchTable({
             <TableCell className="px-6 py-4 text-right tabular-nums">
               {batch.failedCount > 0 ? (
                 <div className="flex justify-end">
-                  <span className="rounded bg-rose-50 px-2 py-0.5 font-medium text-rose-600 text-xs">
+                  <span className="rounded bg-rose-500/10 px-2 py-0.5 font-medium text-rose-400 text-xs">
                     {batch.failedCount}
                   </span>
                 </div>

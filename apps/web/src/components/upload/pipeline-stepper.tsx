@@ -162,23 +162,23 @@ function PipelineStepCard({
       className={cn(
         "relative flex items-start gap-3 rounded-lg border p-3 transition-colors",
         state === "completed" &&
-          "border-emerald-500/20 bg-emerald-500/[0.04] text-foreground",
+          "border-emerald-500/20 bg-emerald-500/100/[0.04] text-foreground",
         state === "current" && "border-primary/40 bg-primary/[0.05] shadow-xs",
         state === "failed" &&
-          "border-destructive/40 bg-destructive/10 text-destructive",
+          "border-destructive/40 bg-destructive/10 text-rose-400",
         state === "pending" &&
-          "border-muted bg-muted/20 text-muted-foreground opacity-60"
+          "border-muted bg-muted/20 text-[#A1A1AA] opacity-60"
       )}
     >
       <div
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-semibold text-xs",
           state === "completed" &&
-            "bg-emerald-500 text-white dark:bg-emerald-600",
+            "bg-emerald-500/100 text-white dark:bg-emerald-600",
           state === "current" &&
             "animate-pulse bg-primary text-primary-foreground",
           state === "failed" && "bg-destructive text-white",
-          state === "pending" && "bg-muted text-muted-foreground"
+          state === "pending" && "bg-muted text-[#A1A1AA]"
         )}
       >
         {renderStepIcon(state, step.id)}
@@ -186,7 +186,7 @@ function PipelineStepCard({
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-xs">{step.title}</p>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+        <p className="mt-0.5 truncate text-[#A1A1AA] text-[11px]">
           {getStepSubtitle(state, step.description)}
         </p>
       </div>
@@ -203,14 +203,14 @@ function HeaderStatusIcon({
 }) {
   if (isDone) {
     return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 font-semibold text-emerald-600 text-xs dark:text-emerald-400">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/100/10 font-semibold text-emerald-400 text-xs dark:text-emerald-400">
         <i className="ri-checkbox-circle-line text-lg" />
       </div>
     );
   }
   if (isFailed) {
     return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 font-semibold text-destructive text-xs">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 font-semibold text-rose-400 text-xs">
         <i className="ri-error-warning-line text-lg" />
       </div>
     );
@@ -245,9 +245,9 @@ function HeaderBadge({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-medium text-xs",
         isDone &&
-          "border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+          "border border-emerald-500/30 bg-emerald-500/100/10 text-emerald-400 dark:text-emerald-300",
         isFailed &&
-          "border border-destructive/30 bg-destructive/10 text-destructive",
+          "border border-destructive/30 bg-destructive/10 text-rose-400",
         isRunning && "border border-primary/30 bg-primary/10 text-primary"
       )}
     >
@@ -291,7 +291,7 @@ export function PipelineTracker({
       className={cn(
         "rounded-xl border bg-card p-5 text-card-foreground shadow-sm transition-all",
         isFailed && "border-destructive/30 bg-destructive/5",
-        isDone && "border-emerald-500/20 bg-emerald-500/[0.02]",
+        isDone && "border-emerald-500/20 bg-emerald-500/100/[0.02]",
         className
       )}
     >
@@ -303,9 +303,7 @@ export function PipelineTracker({
             <p
               className={cn(
                 "text-xs",
-                isFailed
-                  ? "font-medium text-destructive"
-                  : "text-muted-foreground"
+                isFailed ? "font-medium text-rose-400" : "text-[#A1A1AA]"
               )}
             >
               {message}
@@ -327,7 +325,7 @@ export function PipelineTracker({
         <div
           className={cn(
             "h-full transition-all duration-500 ease-out",
-            isDone && "bg-emerald-500",
+            isDone && "bg-emerald-500/100",
             isFailed && "bg-destructive",
             !(isDone || isFailed) && "bg-primary"
           )}

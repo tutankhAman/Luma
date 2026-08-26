@@ -43,26 +43,26 @@ export default function ExceptionQueuePage() {
         {isFetching ? (
           <i
             aria-hidden="true"
-            className="ri-loader-4-line animate-spin text-muted-foreground"
+            className="ri-loader-4-line animate-spin text-[#A1A1AA]"
           />
         ) : null}
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="rounded-lg bg-indigo-50 px-3 py-1.5 font-medium text-indigo-700 text-sm tabular-nums">
+        <span className="rounded-lg bg-[#2E1065]/30 px-3 py-1.5 font-medium text-[#8B5CF6] text-sm tabular-nums">
           {counts.total} exceptions
         </span>
-        <span className="rounded-lg bg-rose-50 px-3 py-1.5 font-medium text-rose-700 text-sm tabular-nums">
+        <span className="rounded-lg bg-rose-500/10 px-3 py-1.5 font-medium text-rose-400 text-sm tabular-nums">
           {counts.critical} critical open
         </span>
       </div>
 
-      <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+      <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
         <CardHeader>
-          <CardTitle className="text-slate-900">
+          <CardTitle className="text-white">
             Validation failures awaiting review
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-[#A1A1AA]">
             Click a row to open the loan, consult the AI assistant, then record
             your decision — every action is audit logged.
           </CardDescription>

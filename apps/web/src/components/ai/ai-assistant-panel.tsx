@@ -73,7 +73,7 @@ export function AiAssistantPanel({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={Boolean(exception)}>
-      <SheetContent className="gap-0 overflow-y-auto sm:max-w-md">
+      <SheetContent className="gap-0 overflow-y-auto bg-gradient-to-b from-[#8B5CF6]/10 to-transparent sm:max-w-md">
         <SheetHeader className="border-b">
           <SheetTitle className="flex items-center gap-2">
             <i
@@ -133,10 +133,8 @@ export function AiAssistantPanel({
               {recommendation ? (
                 <div className="space-y-2 text-xs">
                   <p className="font-medium">{recommendation.suggestion}</p>
-                  <p className="text-muted-foreground">
-                    {recommendation.reasoning}
-                  </p>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 rounded-md bg-muted/50 p-2 text-muted-foreground">
+                  <p className="text-[#A1A1AA]">{recommendation.reasoning}</p>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 rounded-md bg-muted/50 p-2 text-[#A1A1AA]">
                     <dt>Model</dt>
                     <dd className="tabular-nums">{recommendation.model}</dd>
                     <dt>Confidence</dt>
@@ -153,13 +151,13 @@ export function AiAssistantPanel({
                   {recommendedChangeRows(recommendation)}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-[#A1A1AA] text-xs">
                   {explaining
                     ? "Generating structured explanation..."
                     : "No recommendation yet. Ask the assistant to explain this exception."}
                 </p>
               )}
-              <p className="text-[0.7rem] text-muted-foreground/80 italic">
+              <p className="text-[#A1A1AA]/80 text-[0.7rem] italic">
                 AI output is advisory only and never changes data until a human
                 records a decision.
               </p>
@@ -287,7 +285,7 @@ export function AiAssistantPanel({
                   Reject loan
                 </Button>
               </div>
-              <p className="text-[0.7rem] text-muted-foreground">
+              <p className="text-[#A1A1AA] text-[0.7rem]">
                 Rejection requires a note. All actions are audit logged.
               </p>
             </section>
@@ -312,14 +310,12 @@ function recommendedChangeRows(
           key={`${change.field}-${change.suggestedValue}`}
         >
           <span className="font-medium">{change.field}</span>:{" "}
-          <span className="text-muted-foreground line-through">
+          <span className="text-[#A1A1AA] line-through">
             {change.currentValue ?? "?"}
           </span>{" "}
           → <span className="font-medium">{change.suggestedValue}</span>
           {change.source ? (
-            <span className="ml-1 text-muted-foreground">
-              ({change.source})
-            </span>
+            <span className="ml-1 text-[#A1A1AA]">({change.source})</span>
           ) : null}
         </li>
       ))}

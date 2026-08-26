@@ -32,7 +32,7 @@ export default function ConsumerDashboard() {
         <h1 className="font-heading font-semibold text-2xl">
           Verified Records
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-[#A1A1AA] text-sm">
           Trusted loan data with full lineage and tamper-evident hashes.
         </p>
       </div>
@@ -71,7 +71,7 @@ export default function ConsumerDashboard() {
             </div>
             <div className="space-y-1">
               <Progress value={data.qualityScore} />
-              <p className="text-muted-foreground text-xs">
+              <p className="text-[#A1A1AA] text-xs">
                 {data.qualityScore}% of imported loans passed verification on
                 first pass
               </p>
@@ -104,7 +104,7 @@ export default function ConsumerDashboard() {
                         {record.loan.loanId}
                       </TableCell>
                       <TableCell>{record.loan.borrowerId}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
+                      <TableCell className="text-[#A1A1AA] text-xs">
                         {record.sourceBatchRef}
                       </TableCell>
                       <TableCell>
@@ -122,15 +122,13 @@ export default function ConsumerDashboard() {
                         {record.aiRecommendationUsed ? (
                           <Badge variant="secondary">Yes</Badge>
                         ) : (
-                          <span className="text-muted-foreground text-xs">
-                            No
-                          </span>
+                          <span className="text-[#A1A1AA] text-xs">No</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs tabular-nums">
+                      <TableCell className="text-[#A1A1AA] text-xs tabular-nums">
                         {shortHash(record.recordHash)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
+                      <TableCell className="text-[#A1A1AA] text-xs">
                         {new Date(record.verifiedAt).toLocaleString(undefined, {
                           day: "2-digit",
                           hour: "2-digit",

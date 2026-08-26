@@ -75,7 +75,7 @@ export default function OperatorDashboard() {
             icon="ri-shield-check-line"
             label="Quality score"
             trend="Needs attention"
-            trendClassName="text-amber-600"
+            trendClassName="text-amber-400"
             value={`${summary.overview.qualityScore}%`}
           />
           <StatCard
@@ -89,7 +89,7 @@ export default function OperatorDashboard() {
 
       <CsvDropzone />
 
-      <Card className="overflow-hidden rounded-[24px] border border-zinc-200/60 bg-white shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
+      <Card className="overflow-hidden rounded-[24px] border border-zinc-200/60 bg-[#18181B] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
         <CardHeader className="p-6 pb-4">
           <CardTitle className="font-medium text-lg text-zinc-900 tracking-tight">
             Upload history

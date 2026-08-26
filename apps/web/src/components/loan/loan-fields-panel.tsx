@@ -129,10 +129,10 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
   };
 
   return (
-    <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+    <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
       <CardHeader>
-        <CardTitle className="text-slate-900">Loan fields</CardTitle>
-        <CardDescription className="text-slate-500">
+        <CardTitle className="text-white">Loan fields</CardTitle>
+        <CardDescription className="text-[#A1A1AA]">
           Pencil marks reviewer-editable fields. Every edit is audit logged with
           a reason.
         </CardDescription>
@@ -148,10 +148,10 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
             if (isEditing && editing) {
               return (
                 <div
-                  className="col-span-1 space-y-2 rounded-lg border border-indigo-200 bg-indigo-50/40 p-3 sm:col-span-2"
+                  className="col-span-1 space-y-2 rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/30/40 p-3 sm:col-span-2"
                   key={key}
                 >
-                  <p className="font-medium text-indigo-700 text-xs">
+                  <p className="font-medium text-[#8B5CF6] text-xs">
                     Editing {meta.label}
                   </p>
                   <Input
@@ -193,13 +193,13 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
 
             return (
               <div
-                className="flex items-center justify-between gap-2 border-slate-50 border-b py-2"
+                className="flex items-center justify-between gap-2 border-[#27272A]/50 border-b py-2"
                 key={key}
               >
-                <dt className="text-slate-500 text-xs">{meta.label}</dt>
+                <dt className="text-[#A1A1AA] text-xs">{meta.label}</dt>
                 <dd
                   className={cn(
-                    "flex items-center gap-1.5 text-right text-slate-900 text-sm",
+                    "flex items-center gap-1.5 text-right text-sm text-white",
                     editable && "font-medium"
                   )}
                 >
@@ -207,7 +207,7 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
                   {editable ? (
                     <button
                       aria-label={`Edit ${meta.label}`}
-                      className="text-slate-400 transition-colors hover:text-indigo-600"
+                      className="text-[#52525B] transition-colors hover:text-[#8B5CF6]"
                       onClick={() =>
                         startEdit(
                           key as LoanEditableField,

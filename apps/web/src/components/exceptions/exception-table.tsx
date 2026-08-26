@@ -30,9 +30,9 @@ export interface ExceptionPage {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 py-14">
-      <i aria-hidden="true" className="ri-inbox-line text-3xl text-slate-300" />
-      <p className="font-medium text-slate-500 text-sm">No exceptions found</p>
-      <p className="text-muted-foreground text-xs">
+      <i aria-hidden="true" className="ri-inbox-line text-3xl text-[#52525B]" />
+      <p className="font-medium text-[#A1A1AA] text-sm">No exceptions found</p>
+      <p className="text-[#A1A1AA] text-xs">
         Try adjusting the filters, or ingest a new batch to validate.
       </p>
     </div>
@@ -130,22 +130,22 @@ export function ExceptionQueueTable({
               <TableCell className="font-medium">
                 {exception.loan.loanId}
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="text-[#A1A1AA]">
                 {exception.loan.borrowerId}
               </TableCell>
               <TableCell>
                 <ExceptionTypeBadge type={exception.exceptionType} />
               </TableCell>
-              <TableCell className="font-mono text-muted-foreground text-xs">
+              <TableCell className="font-mono text-[#A1A1AA] text-xs">
                 {exception.field}
               </TableCell>
-              <TableCell className="max-w-xs truncate text-muted-foreground text-xs">
+              <TableCell className="max-w-xs truncate text-[#A1A1AA] text-xs">
                 {exception.message}
               </TableCell>
               <TableCell>
                 <ExceptionStatusBadge status={exception.status} />
               </TableCell>
-              <TableCell className="text-muted-foreground text-xs">
+              <TableCell className="text-[#A1A1AA] text-xs">
                 {new Date(exception.createdAt).toLocaleString(undefined, {
                   day: "2-digit",
                   hour: "2-digit",
@@ -173,7 +173,7 @@ export function ExceptionQueueTable({
 
       {pagination && pagination.totalPages > 1 ? (
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground text-xs tabular-nums">
+          <p className="text-[#A1A1AA] text-xs tabular-nums">
             Page {pagination.page} of {pagination.totalPages} ·{" "}
             {pagination.total} exceptions
           </p>

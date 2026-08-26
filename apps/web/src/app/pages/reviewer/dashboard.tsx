@@ -34,15 +34,15 @@ export default function ReviewerDashboard() {
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-heading font-semibold text-2xl text-slate-900 tracking-tight">
+          <h1 className="font-heading font-semibold text-2xl text-white tracking-tight">
             Reviewer Dashboard
           </h1>
-          <p className="text-slate-500 text-sm">
+          <p className="text-[#A1A1AA] text-sm">
             Triage the exception queue and keep verified data flowing.
           </p>
         </div>
         <Link
-          className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-sm text-white transition-colors hover:bg-indigo-700"
+          className="rounded-lg bg-[#18181B] px-4 py-2 font-medium text-black text-sm transition-colors hover:bg-gray-200"
           to="/reviewer/exceptions"
         >
           Open exception queue
@@ -61,7 +61,7 @@ export default function ReviewerDashboard() {
             icon="ri-robot-2-line"
             label="Pending AI review"
             trend="Awaiting your decision"
-            trendClassName="text-amber-600"
+            trendClassName="text-amber-400"
             value={(summary.overview.openExceptions / 3).toFixed(0)}
           />
           <StatCard
@@ -74,7 +74,7 @@ export default function ReviewerDashboard() {
             icon="ri-close-circle-line"
             label="Rejected today"
             trend="3 loans need resubmission"
-            trendClassName="text-rose-600"
+            trendClassName="text-rose-400"
             value={4}
           />
         </div>
@@ -87,46 +87,44 @@ export default function ReviewerDashboard() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+        <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-slate-900">
-              Recent open exceptions
-            </CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-white">Recent open exceptions</CardTitle>
+            <CardDescription className="text-[#A1A1AA]">
               Last 5 — click to open the loan
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-1.5">
             {(recent?.data ?? []).slice(0, 5).map((item) => (
               <button
-                className="flex w-full items-center gap-2.5 rounded-lg border border-slate-100 p-2.5 text-left transition-colors hover:bg-slate-50"
+                className="flex w-full items-center gap-2.5 rounded-lg border border-[#27272A] p-2.5 text-left transition-colors hover:bg-[#27272A]/20"
                 key={item.id}
                 onClick={() => navigate(`/reviewer/loans/${item.loan.id}`)}
                 type="button"
               >
                 <SeverityBadge severity={item.severity as Severity} />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-medium text-[13px] text-slate-900">
+                  <span className="block font-medium text-[13px] text-white">
                     {item.loan.loanId} ·{" "}
                     {item.exceptionType.replaceAll("_", " ")}
                   </span>
-                  <span className="block truncate text-muted-foreground text-xs">
+                  <span className="block truncate text-[#A1A1AA] text-xs">
                     {recentDescription(item)}
                   </span>
                 </span>
                 <i
                   aria-hidden="true"
-                  className="ri-arrow-right-s-line text-slate-300"
+                  className="ri-arrow-right-s-line text-[#52525B]"
                 />
               </button>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+        <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-slate-900">By severity</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-white">By severity</CardTitle>
+            <CardDescription className="text-[#A1A1AA]">
               Work critical items first
             </CardDescription>
           </CardHeader>
