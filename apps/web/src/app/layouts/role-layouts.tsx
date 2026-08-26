@@ -1,28 +1,37 @@
 import type { Role } from "@repo/types";
-import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { ProtectedRoute } from "@/app/guards/ProtectedRoute";
+import { CopilotPanel } from "@/components/ai/copilot-panel";
 import { Sidebar } from "@/components/nav/sidebar";
+import { cn } from "@/lib/utils";
 
 function RoleShell({
-  children,
   requiredRole,
+  withCopilot = false,
 }: {
-  children?: ReactNode;
   requiredRole: Role;
+  withCopilot?: boolean;
 }) {
   return (
     <ProtectedRoute role={requiredRole}>
-      <div className="flex h-screen overflow-hidden">
+      <div
+        className={cn(
+          "grid h-screen grid-cols-[260px_1fr] overflow-hidden bg-slate-50/50",
+          withCopilot && "xl:grid-cols-[260px_1fr_320px]"
+        )}
+      >
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">{children ?? <Outlet />}</main>
+        <main className="overflow-y-auto">
+          <Outlet />
+        </main>
+        {withCopilot ? <CopilotPanel /> : null}
       </div>
     </ProtectedRoute>
   );
 }
 
 export function OperatorLayout() {
-  return <RoleShell requiredRole="data_operator" />;
+  return <RoleShell requiredRole="data_operator" withCopilot={true} />;
 }
 
 export function ReviewerLayout() {

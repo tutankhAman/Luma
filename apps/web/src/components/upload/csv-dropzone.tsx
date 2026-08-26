@@ -82,14 +82,17 @@ export function CsvDropzone() {
   };
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <i aria-hidden="true" className="ri-upload-cloud-2-line text-lg" />
+        <CardTitle className="flex items-center gap-2 text-slate-900">
+          <i
+            aria-hidden="true"
+            className="ri-upload-cloud-2-line text-indigo-500 text-lg"
+          />
           Upload loan data
         </CardTitle>
-        <CardDescription>
-          CSV up to 500 MB — ingestion runs in the background and you can track
+        <CardDescription className="text-slate-500">
+          Max size 500 MB — ingestion runs in the background and you can track
           progress per batch.
         </CardDescription>
       </CardHeader>
@@ -97,10 +100,10 @@ export function CsvDropzone() {
         <button
           aria-label="Upload CSV file"
           className={cn(
-            "flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed p-8 text-center transition-colors",
+            "flex h-40 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-slate-200 border-dashed bg-slate-50/50 p-8 text-center transition-colors",
             dragging
-              ? "border-primary bg-primary/5"
-              : "border-border hover:bg-muted/50"
+              ? "border-indigo-300 bg-indigo-50/50"
+              : "hover:border-indigo-300 hover:bg-indigo-50/50"
           )}
           onClick={openPicker}
           onDragLeave={() => setDragging(false)}
@@ -117,7 +120,7 @@ export function CsvDropzone() {
         >
           <i
             aria-hidden="true"
-            className="ri-file-excel-2-line text-3xl text-muted-foreground"
+            className="ri-upload-cloud-2-line text-3xl text-indigo-500"
           />
           {file ? (
             <>
@@ -144,9 +147,11 @@ export function CsvDropzone() {
           />
         </button>
 
-        <div className="flex items-end gap-3">
+        <div className="mt-6 flex items-center justify-between gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="file-type">File type</Label>
+            <Label className="text-slate-500" htmlFor="file-type">
+              File type
+            </Label>
             <Select
               onValueChange={(value) => setFileType(value as FileType)}
               value={fileType}
@@ -164,7 +169,7 @@ export function CsvDropzone() {
             </Select>
           </div>
           <Button
-            className="ml-auto"
+            className="ml-auto rounded-lg bg-indigo-600 px-6 text-white hover:bg-indigo-700"
             disabled={!file || createUpload.isPending}
             onClick={startUpload}
           >

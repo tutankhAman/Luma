@@ -56,19 +56,31 @@ export function BatchTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>File Name</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead className="text-right">Records</TableHead>
-          <TableHead className="text-right">Failed</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Uploaded At</TableHead>
+        <TableRow className="border-slate-100 border-b bg-slate-50/80 hover:bg-slate-50/80">
+          <TableHead className="pl-4 text-slate-500 text-xs uppercase tracking-wider">
+            File Name
+          </TableHead>
+          <TableHead className="text-slate-500 text-xs uppercase tracking-wider">
+            Type
+          </TableHead>
+          <TableHead className="text-right text-slate-500 text-xs uppercase tracking-wider">
+            Records
+          </TableHead>
+          <TableHead className="text-right text-slate-500 text-xs uppercase tracking-wider">
+            Failed
+          </TableHead>
+          <TableHead className="text-slate-500 text-xs uppercase tracking-wider">
+            Status
+          </TableHead>
+          <TableHead className="text-slate-500 text-xs uppercase tracking-wider">
+            Uploaded At
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {batches.map((batch) => (
           <TableRow
-            className="cursor-pointer"
+            className="cursor-pointer border-slate-50 border-b transition-colors hover:bg-slate-50/50"
             key={batch.id}
             onClick={() => navigate(`/operator/uploads/${batch.id}`)}
             onKeyDown={(event) => {
@@ -78,30 +90,30 @@ export function BatchTable({
             }}
             tabIndex={0}
           >
-            <TableCell className="font-medium">
+            <TableCell className="flex items-center gap-2 pl-4 font-medium text-slate-900">
               <i
                 aria-hidden="true"
-                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} mr-2 text-muted-foreground`}
+                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} text-slate-400`}
               />
               {batch.fileName}
             </TableCell>
-            <TableCell className="capitalize">
+            <TableCell className="text-slate-600">
               {batch.fileType.replace(/_/g, " ")}
             </TableCell>
-            <TableCell className="text-right tabular-nums">
+            <TableCell className="text-right font-mono text-slate-600 tabular-nums">
               {batch.recordCount.toLocaleString()}
             </TableCell>
-            <TableCell className="text-right tabular-nums">
+            <TableCell className="text-right font-semibold tabular-nums">
               {batch.failedCount > 0 ? (
-                <span className="text-destructive">{batch.failedCount}</span>
+                <span className="text-rose-600">{batch.failedCount}</span>
               ) : (
-                "0"
+                <span className="text-slate-400">0</span>
               )}
             </TableCell>
             <TableCell>
               <BatchStatusBadge status={batch.status} />
             </TableCell>
-            <TableCell className="text-muted-foreground">
+            <TableCell className="text-slate-500 text-sm">
               {formatDate(batch.createdAt)}
             </TableCell>
           </TableRow>

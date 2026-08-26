@@ -2,6 +2,7 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
@@ -75,32 +76,32 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
-      <div className="flex h-14 items-center gap-2 border-b px-4">
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col border-slate-100 border-r bg-white p-4">
+      <div className="mb-6 flex items-center gap-2 px-1">
         <span
           aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-sm"
+          className="flex size-8 items-center justify-center rounded-lg bg-indigo-600 font-bold text-sm text-white"
         >
           L
         </span>
-        <span className="font-semibold">Luma</span>
-        <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[0.65rem] text-muted-foreground">
+        <span className="font-semibold text-slate-900">Luma</span>
+        <Badge
+          className="ml-auto rounded-full bg-slate-100 text-slate-500"
+          variant="ghost"
+        >
           Copilot
-        </span>
+        </Badge>
       </div>
 
-      <nav
-        aria-label="Primary"
-        className="flex-1 space-y-1 overflow-y-auto p-3"
-      >
+      <nav aria-label="Primary" className="flex-1 space-y-1">
         {items.map((item) => (
           <NavLink
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
                 isActive
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-indigo-50 font-medium text-indigo-700"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )
             }
             end={true}
@@ -113,23 +114,25 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="mb-2 flex items-center gap-2 px-1">
+      <div className="border-slate-100 border-t pt-4">
+        <div className="mb-3 flex items-center gap-2.5 px-1">
           <span
             aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground text-xs uppercase"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-700 text-xs uppercase"
           >
             {user?.name?.slice(0, 2) ?? "?"}
           </span>
           <div className="min-w-0">
-            <p className="truncate font-medium text-sm">{user?.name}</p>
-            <p className="truncate text-muted-foreground text-xs">
+            <p className="truncate font-medium text-slate-900 text-sm">
+              {user?.name}
+            </p>
+            <p className="truncate text-slate-500 text-xs">
               {user ? ROLE_LABELS[user.role as Role] : ""}
             </p>
           </div>
         </div>
         <Button
-          className="w-full justify-start"
+          className="w-full justify-start text-slate-500 hover:text-slate-900"
           disabled={signingOut}
           onClick={() => {
             void handleSignOut();
