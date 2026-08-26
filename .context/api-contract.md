@@ -613,7 +613,7 @@ Ask the AI to explain why a specific exception occurred and suggest a correction
 
 **Errors:**
 - `404` — Exception not found
-- AI unavailable: never `500` — returns `{ exceptionId, recommendation: null, error: "AI unavailable" }` with `200` (uniform graceful fallback for all AI routes; see §5 graceful-degradation note below — api-contract's `503` line is superseded)
+- AI unavailable: never `500` or `503` — returns `{ exceptionId, recommendation: null, error: "AI unavailable" }` with `200` (uniform graceful fallback for all AI routes)
 
 ---
 
@@ -702,7 +702,7 @@ Generate a validation rule from a natural language description.
 }
 ```
 
-**Graceful degradation (all AI routes):** Gemini failure never returns `500`. Every AI response schema has a nullable primary payload + optional `error: string` (e.g., `recommendation: null + error: "AI unavailable"` on explain, `summary: null + error: ...` on summarize, `suggestedSeverity: null + reasoning: null + error ...` on classify, `rule: null + error ...` on suggest-rule) with `200`. A 503-era line in the Errors table is an historical draft — `200 + error field` is the auditable contract A builds against.
+**Graceful degradation (all AI routes):** Unavailable AI routes return HTTP `200` with the standard fallback payload (`{ <nullable primary payload>, error: "AI unavailable" }`), never `500` or `503`. Every AI response schema has a nullable primary payload + optional `error: string` (e.g., `recommendation: null + error: "AI unavailable"` on explain, `summary: null + error: ...` on summarize, `suggestedSeverity: null + reasoning: null + error ...` on classify, `rule: null + error ...` on suggest-rule).
 
 ---
 

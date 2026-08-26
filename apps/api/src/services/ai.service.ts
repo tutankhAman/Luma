@@ -296,8 +296,8 @@ export const explainException = async (
         schema: explainGenerationSchema,
       });
       generation = result.object;
-    } catch {
-      throw new AiUnavailableError(AI_UNAVAILABLE_MSG);
+    } catch (err) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG, { cause: err });
     }
   }
 
@@ -413,8 +413,8 @@ export const summarizeBatch = async (
     try {
       const result = await generateText({ model, prompt });
       summaryText = result.text;
-    } catch {
-      throw new AiUnavailableError(AI_UNAVAILABLE_MSG);
+    } catch (err) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG, { cause: err });
     }
   }
 
@@ -490,8 +490,8 @@ export const classifySeverity = async (
       });
       suggestedSeverity = result.object.suggestedSeverity;
       reasoning = result.object.reasoning;
-    } catch {
-      throw new AiUnavailableError(AI_UNAVAILABLE_MSG);
+    } catch (err) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG, { cause: err });
     }
   }
 
@@ -575,8 +575,8 @@ export const suggestRule = async (
         schema: suggestRuleGenerationSchema,
       });
       rulePayload = result.object;
-    } catch {
-      throw new AiUnavailableError(AI_UNAVAILABLE_MSG);
+    } catch (err) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG, { cause: err });
     }
   }
 

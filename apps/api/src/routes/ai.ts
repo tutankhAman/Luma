@@ -6,6 +6,7 @@ import {
 } from "@repo/types";
 import express, { type Request, type Response } from "express";
 import { AiUnavailableError, NotFoundError } from "../lib/ai.js";
+import { prisma } from "../lib/prisma.js";
 import { mapZodIssuesToFields } from "../lib/validation.js";
 import { createAiRateLimiter } from "../middleware/rate-limit.js";
 import { requireAuth } from "../middleware/require-auth.js";
@@ -117,19 +118,18 @@ router.post(
         return;
       }
       if (err instanceof AiUnavailableError) {
-        const exc = await import("../lib/prisma.js").then(async (m) => {
-          try {
-            const row = await m.prisma.exception.findUnique({
-              select: { severity: true },
-              where: { id: parsed.data.exceptionId },
-            });
-            return row;
-          } catch {
-            return null;
-          }
-        });
+        let severity: string | null = null;
+        try {
+          const row = await prisma.exception.findUnique({
+            select: { severity: true },
+            where: { id: parsed.data.exceptionId },
+          });
+          severity = row?.severity ?? null;
+        } catch {
+          severity = null;
+        }
         res.json({
-          currentSeverity: exc?.severity ?? "medium",
+          currentSeverity: severity ?? "medium",
           error: err.message,
           exceptionId: parsed.data.exceptionId,
           model: "unavailable",

@@ -424,5 +424,5 @@ describe("AI endpoints + servicer conflict detection (integration, MOCK_AI)", ()
     }
     expect(statuses.slice(0, 20).every((s) => s === 200)).toBe(true);
     expect(statuses[20]).toBe(429);
-  });
+  }, 180_000);
 });

@@ -122,6 +122,8 @@ export const detectServicerConflicts = async (
             equals: servicerBatchId,
             path: ["conflictBatchId"],
           },
+          reviewerId: null,
+          status: "open",
         } as never,
       });
     } catch {
@@ -269,23 +271,10 @@ export const detectServicerConflicts = async (
 
     if (exceptionsToCreate.length > 0) {
       await prisma.$transaction(async (tx) => {
-        if (exceptionsToCreate.length > 0) {
-          await tx.exception.createMany({
-            data: exceptionsToCreate as never,
-            skipDuplicates: false,
-          });
-        }
-        const createdExceptions = await tx.exception.findMany({
-          orderBy: { createdAt: "desc" },
+        const createdExceptions = await tx.exception.createManyAndReturn({
+          data: exceptionsToCreate as never,
           select: { id: true, loanId: true },
-          take: exceptionsToCreate.length,
-          where: {
-            exceptionType: "conflicting_source",
-            metadata: {
-              equals: servicerBatchId,
-              path: ["conflictBatchId"],
-            },
-          } as never,
+          skipDuplicates: false,
         });
 
         if (createdExceptions.length > 0) {

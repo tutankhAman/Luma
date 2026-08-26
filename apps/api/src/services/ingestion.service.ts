@@ -677,12 +677,37 @@ export const processStreamAndNormalize = async (
     const fileType =
       (batchForPostIngest?.fileType as string | undefined) ?? "loan_tape";
 
+    const setPipelineCompleted = async (metaMessage: string): Promise<void> => {
+      try {
+        const existing = await prisma.uploadBatch.findUnique({
+          where: { id: batchId },
+        });
+        const existingMeta =
+          (existing?.metadata as Record<string, unknown> | null) ?? {};
+        await prisma.uploadBatch.update({
+          data: {
+            metadata: {
+              ...existingMeta,
+              pipelineStage: "completed",
+              stageMessage: metaMessage,
+            },
+          },
+          where: { id: batchId },
+        });
+      } catch {
+        // ignore
+      }
+    };
+
     if (fileType === "servicer_update") {
       try {
         const { detectServicerConflicts } = await import(
           "./conflict-detection.service.js"
         );
         await detectServicerConflicts(batchId);
+        await setPipelineCompleted(
+          "Ingestion and servicer conflict detection completed successfully."
+        );
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         try {
@@ -704,6 +729,12 @@ export const processStreamAndNormalize = async (
           // ignore
         }
       }
+    } else if (fileType === "document_manifest") {
+      // Deferred validation (Phase 4): document manifests update documentStatus
+      // and are validated later. Mark the pipeline complete after ingestion.
+      await setPipelineCompleted(
+        "Ingestion completed. Document-manifest validation is deferred."
+      );
     } else if (fileType === "loan_tape") {
       try {
         await validateBatch(batchId);

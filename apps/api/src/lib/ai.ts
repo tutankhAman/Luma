@@ -2,8 +2,8 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
 
 export class AiUnavailableError extends Error {
-  constructor(message = "AI unavailable") {
-    super(message);
+  constructor(message = "AI unavailable", options?: ErrorOptions) {
+    super(message, options);
     this.name = "AiUnavailableError";
   }
 }

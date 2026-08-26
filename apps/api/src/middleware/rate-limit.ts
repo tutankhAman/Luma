@@ -38,6 +38,10 @@ export const createAiRateLimiter = (opts?: {
     const existing = buckets.get(key) ?? [];
     const bucket = prune(existing, now, windowMs);
 
+    if (bucket.length === 0) {
+      buckets.delete(key);
+    }
+
     if (bucket.length >= limit) {
       const retryAfterMs = (bucket[0] ?? now) + windowMs - now;
       const retryAfterSec = Math.max(1, Math.ceil(retryAfterMs / 1000));
@@ -46,11 +50,6 @@ export const createAiRateLimiter = (opts?: {
         code: "RATE_LIMITED",
         error: "Too many AI requests — please try again shortly.",
       });
-      if (bucket.length === 0) {
-        buckets.delete(key);
-      } else {
-        buckets.set(key, bucket);
-      }
       return;
     }
 

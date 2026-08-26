@@ -8,7 +8,7 @@ const fakePrisma: {
   $transaction: ReturnType<typeof mock>;
   auditLog: { createMany: ReturnType<typeof mock> };
   exception: {
-    createMany: ReturnType<typeof mock>;
+    createManyAndReturn: ReturnType<typeof mock>;
     deleteMany: ReturnType<typeof mock>;
     findMany: ReturnType<typeof mock>;
   };
@@ -21,7 +21,7 @@ const fakePrisma: {
   $transaction: null as unknown as ReturnType<typeof mock>,
   auditLog: { createMany: mock(() => Promise.resolve({} as never)) },
   exception: {
-    createMany: mock(() => Promise.resolve({} as never)),
+    createManyAndReturn: mock(() => Promise.resolve([] as never)),
     deleteMany: mock(() => Promise.resolve({} as never)),
     findMany: mock(() => Promise.resolve([] as never)),
   },
@@ -106,7 +106,9 @@ const resetMocks = () => {
     } as never)
   );
   fakePrisma.uploadBatch.update = mock(() => Promise.resolve({} as never));
-  fakePrisma.exception.createMany = mock(() => Promise.resolve({} as never));
+  fakePrisma.exception.createManyAndReturn = mock(() =>
+    Promise.resolve([] as never)
+  );
   fakePrisma.exception.deleteMany = mock(() => Promise.resolve({} as never));
   fakePrisma.exception.findMany = mock(() => Promise.resolve([] as never));
   fakePrisma.auditLog.createMany = mock(() => Promise.resolve({} as never));
@@ -142,7 +144,7 @@ describe("detectServicerConflicts", () => {
         return Promise.resolve(tapeRows as never);
       }
     );
-    fakePrisma.exception.findMany = mock(() =>
+    fakePrisma.exception.createManyAndReturn = mock(() =>
       Promise.resolve([{ id: "exc_1", loanId: "tape_1" }] as never)
     );
 
@@ -151,7 +153,7 @@ describe("detectServicerConflicts", () => {
     expect(res.loansAffected).toBe(1);
     expect(res.matchedRows).toBe(1);
     const createArgs = (
-      fakePrisma.exception.createMany as ReturnType<typeof mock>
+      fakePrisma.exception.createManyAndReturn as ReturnType<typeof mock>
     ).mock.calls[0]?.[0] as
       | {
           data: Array<{
@@ -208,7 +210,7 @@ describe("detectServicerConflicts", () => {
         return Promise.resolve(tapeRows as never);
       }
     );
-    fakePrisma.exception.findMany = mock(() =>
+    fakePrisma.exception.createManyAndReturn = mock(() =>
       Promise.resolve([{ id: "exc_1", loanId: "tape_1" }] as never)
     );
 
@@ -357,7 +359,7 @@ describe("detectServicerConflicts", () => {
         return Promise.resolve(tapeRows as never);
       }
     );
-    fakePrisma.exception.findMany = mock(() =>
+    fakePrisma.exception.createManyAndReturn = mock(() =>
       Promise.resolve([
         { id: "e1", loanId: "tape_1" },
         { id: "e2", loanId: "tape_1" },
@@ -388,7 +390,7 @@ describe("detectServicerConflicts", () => {
         return Promise.resolve([tapeLoan("tape_1", "L-1")] as never);
       }
     );
-    fakePrisma.exception.findMany = mock(() =>
+    fakePrisma.exception.createManyAndReturn = mock(() =>
       Promise.resolve([{ id: "e1", loanId: "tape_1" }] as never)
     );
 
