@@ -72,7 +72,7 @@ router.get(
           ? {
               id: log.actor.id,
               name: log.actor.name,
-              role: actorRole ?? "data_consumer",
+              role: actorRole,
             }
           : null,
         createdAt: log.createdAt.toISOString(),

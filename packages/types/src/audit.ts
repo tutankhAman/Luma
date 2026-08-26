@@ -9,7 +9,7 @@ import {
 export const auditActorSchema = z.object({
   id: z.string(),
   name: z.string(),
-  role: roleSchema,
+  role: roleSchema.nullable(),
 });
 export type AuditActor = z.infer<typeof auditActorSchema>;
 
