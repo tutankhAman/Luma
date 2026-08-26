@@ -1,9 +1,11 @@
 import type {
   AiExplainResponse,
+  AuditTrailResponse,
   BatchSummary,
   ExceptionDetail,
   ExceptionListItem,
   GetBatchResponse,
+  LoanDetail,
   Severity,
   SummaryResponse,
   UploadBatch,
@@ -293,6 +295,115 @@ const summaryOverview: SummaryResponse = {
   ],
 };
 
+const loanDetail: LoanDetail = {
+  borrowerId: "B-5001",
+  borrowerState: "CA",
+  creditGrade: "A",
+  currentBalance: "400000.00",
+  daysPastDue: 0,
+  documentStatus: "complete",
+  employmentLength: "5-10 years",
+  exceptions: [
+    {
+      aiRecommendation: null,
+      createdAt: iso(95),
+      exceptionType: "balance_error",
+      field: "currentBalance",
+      id: "clx_exc_001",
+      message: "Current balance (400000) exceeds original principal (350000)",
+      severity: "critical",
+      status: "open",
+    },
+    {
+      aiRecommendation: null,
+      createdAt: iso(94),
+      exceptionType: "conflicting_source",
+      field: "currentBalance",
+      id: "clx_exc_002",
+      message:
+        "Servicer update shows balance 340000 which conflicts with loan tape value 400000",
+      severity: "high",
+      status: "open",
+    },
+  ],
+  id: "clx_loan_001",
+  importStatus: "imported",
+  incomeBand: "100k-150k",
+  interestRate: "6.75",
+  lastPaymentDate: iso(60 * 24 * 25),
+  lastUpdatedAt: iso(60 * 24 * 6),
+  loanId: "L-10001",
+  loanPurpose: "purchase",
+  loanType: "mortgage",
+  maturityDate: iso(-60 * 24 * 365 * 26),
+  originalPrincipal: "350000.00",
+  originationDate: iso(60 * 24 * 365 * 4),
+  paymentStatus: "current",
+  servicerName: "First National",
+  sourceBatch: { fileName: "loan_tape.csv", id: "clx_batch_001" },
+  sourceRowNumber: 3,
+  sourceSystem: "origination",
+  termMonths: 360,
+  validationStatus: "failed",
+  verifiedRecord: null,
+};
+
+const auditTrail: AuditTrailResponse = {
+  data: [
+    {
+      actor: {
+        id: "clx_user_op",
+        name: "Operator User",
+        role: "data_operator",
+      },
+      createdAt: iso(60 * 26),
+      eventType: "LOAN_IMPORTED",
+      id: "clx_log_001",
+      metadata: {
+        batchId: "clx_batch_001",
+        fileName: "loan_tape.csv",
+        sourceRowNumber: 3,
+      },
+    },
+    {
+      actor: null,
+      createdAt: iso(95),
+      eventType: "EXCEPTION_CREATED",
+      id: "clx_log_002",
+      metadata: {
+        exceptionId: "clx_exc_001",
+        exceptionType: "balance_error",
+        field: "currentBalance",
+        severity: "critical",
+      },
+    },
+    {
+      actor: { id: "clx_user_rev", name: "Reviewer User", role: "reviewer" },
+      createdAt: iso(35),
+      eventType: "AI_RECOMMENDATION",
+      id: "clx_log_003",
+      metadata: {
+        confidence: 0.87,
+        exceptionId: "clx_exc_001",
+        model: "gemini-2.0-flash",
+        promptSummary: "Balance conflict resolution for loan L-10001",
+      },
+    },
+    {
+      actor: { id: "clx_user_rev", name: "Reviewer User", role: "reviewer" },
+      createdAt: iso(20),
+      eventType: "REVIEWER_COMMENT",
+      id: "clx_log_004",
+      metadata: {
+        exceptionId: "clx_exc_001",
+        note: "Cross-checking balance against servicer update.",
+      },
+    },
+  ],
+  loanId: "clx_loan_001",
+  pagination: { limit: 50, page: 1, total: 4, totalPages: 1 },
+};
+
 const verifiedLoans: VerifiedLoanListResponse = {
   data: [
     {
@@ -335,6 +446,8 @@ function delay<T>(value: T, ms = 350): Promise<T> {
 export const mockApi = {
   aiExplain: (): Promise<AiExplainResponse> =>
     delay(structuredClone(aiExplain), 900),
+  auditTrail: (loanId: string): Promise<AuditTrailResponse> =>
+    delay({ ...structuredClone(auditTrail), loanId }),
   batch: (batchId: string): Promise<GetBatchResponse> =>
     delay(
       structuredClone(
@@ -347,6 +460,8 @@ export const mockApi = {
     delay(structuredClone(exceptionDetail)),
   exceptions: (): Promise<{ data: ExceptionListItem[] }> =>
     delay({ data: structuredClone(exceptions) }),
+  loanDetail: (loanId: string): Promise<LoanDetail> =>
+    delay({ ...structuredClone(loanDetail), id: loanId }),
   summary: (): Promise<SummaryResponse> =>
     delay(structuredClone(summaryOverview)),
   upload: (): Promise<{ batchId: string; message: string }> =>

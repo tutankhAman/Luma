@@ -18,15 +18,23 @@ export function useExceptions(filters: ExceptionListFilters) {
       if (USE_MOCKS) {
         return filterMockExceptions(filters);
       }
-      return exceptionsApi.list({ ...filters, limit: 50 });
+      return exceptionsApi.list({
+        ...filters,
+        batchId: filters.batchId || undefined,
+        limit: 20,
+        search: filters.search || undefined,
+        severity: filters.severity || undefined,
+        status: filters.status || undefined,
+        type: filters.type || undefined,
+      });
     },
     queryKey: ["exceptions", filters],
   });
 }
 
 function filterMockExceptions(filters: ExceptionListFilters) {
-  return mockApi.exceptions().then(({ data }) => ({
-    data: data.filter((item) => {
+  return mockApi.exceptions().then(({ data }) => {
+    const filtered = data.filter((item) => {
       if (filters.status && item.status !== filters.status) {
         return false;
       }
@@ -45,9 +53,49 @@ function filterMockExceptions(filters: ExceptionListFilters) {
         }
       }
       return true;
-    }),
-    pagination: { limit: 50, page: 1, total: data.length, totalPages: 1 },
-  }));
+    });
+    const start = (filters.page - 1) * 20;
+    return {
+      data: filtered.slice(start, start + 20),
+      pagination: {
+        limit: 20,
+        page: filters.page,
+        total: filtered.length,
+        totalPages: Math.max(1, Math.ceil(filtered.length / 20)),
+      },
+    };
+  });
+}
+
+export function useException(id: string) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () =>
+      USE_MOCKS ? mockApi.exceptionDetail() : exceptionsApi.detail(id),
+    queryKey: ["exception", id],
+  });
+}
+
+export function useAddComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { exceptionId: string; note: string }) => {
+      if (USE_MOCKS) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return { exceptionId: input.exceptionId, note: input.note };
+      }
+      return exceptionsApi.comment(input.exceptionId, { note: input.note });
+    },
+    onError: (error: Error) => {
+      toast.error("Could not add note", { description: error.message });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success("Note added");
+      void queryClient.invalidateQueries({
+        queryKey: ["exception", variables.exceptionId],
+      });
+    },
+  });
 }
 
 export function useAiDecision() {
