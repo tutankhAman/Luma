@@ -22,6 +22,7 @@ export function useUploads(page = 1, status?: BatchStatus) {
 
 export function useUploadBatch(batchId: string) {
   return useQuery({
+    enabled: Boolean(batchId),
     queryFn: () =>
       USE_MOCKS ? mockApi.batch(batchId) : uploadsApi.detail(batchId),
     queryKey: ["uploads", batchId],
@@ -69,6 +70,9 @@ export function useCreateUpload() {
       toast.success(result.message ?? "Upload started");
       void queryClient.invalidateQueries({ queryKey: ["uploads"] });
       void queryClient.invalidateQueries({ queryKey: ["summary"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["uploads", result.batchId],
+      });
     },
   });
 }
