@@ -16,12 +16,12 @@ function RoleShell({
     <ProtectedRoute role={requiredRole}>
       <div
         className={cn(
-          "grid h-screen grid-cols-[240px_1fr] overflow-hidden bg-[#FAFAFA]",
-          withCopilot && "xl:grid-cols-[240px_1fr_320px]"
+          "grid h-screen min-h-screen grid-cols-[260px_1fr] overflow-hidden bg-black",
+          withCopilot && "xl:grid-cols-[260px_1fr_320px]"
         )}
       >
         <Sidebar />
-        <main className="overflow-y-auto">
+        <main className="custom-scrollbar-hide flex-1 overflow-y-auto">
           <Outlet />
         </main>
         {withCopilot ? <CopilotPanel /> : null}

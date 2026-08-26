@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -17,38 +16,34 @@ export function StatCard({
   value,
   hint,
   trend,
-  trendClassName = "text-emerald-600",
+  trendClassName = "text-emerald-400",
 }: StatCardProps) {
   return (
-    <Card className="relative overflow-hidden rounded-2xl border-zinc-200/60 bg-white p-5 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)] transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.05)]">
-      <CardContent className="flex flex-col gap-1 p-0">
-        <div className="flex items-center justify-between">
-          <p className="truncate font-medium text-sm text-zinc-500">{label}</p>
-          {icon ? (
-            <span
-              aria-hidden="true"
-              className={cn(
-                "flex size-5 items-center justify-center text-zinc-400"
-              )}
-            >
-              <i className={icon} />
-            </span>
-          ) : null}
-        </div>
-        <p className="mt-1 font-semibold text-3xl text-zinc-900 tabular-nums tracking-tighter">
-          {value}
-        </p>
-        <div className="mt-1 flex items-center gap-2">
+    <div className="rounded-[24px] border border-[#27272A] bg-[#18181B] p-6 shadow-2xl">
+      <div className="flex items-center gap-3">
+        {icon ? (
+          <span
+            aria-hidden="true"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6] text-base"
+          >
+            <i className={icon} />
+          </span>
+        ) : null}
+        <div className="min-w-0">
+          <p className="truncate text-[#A1A1AA] text-xs">{label}</p>
+          <p className="font-semibold text-white text-xl tabular-nums">
+            {value}
+          </p>
           {trend ? (
             <p className={cn("truncate font-medium text-xs", trendClassName)}>
               {trend}
             </p>
           ) : null}
           {hint ? (
-            <p className="truncate text-xs text-zinc-400">{hint}</p>
+            <p className="truncate text-[#A1A1AA]/70 text-xs">{hint}</p>
           ) : null}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -31,7 +31,7 @@ const EVENT_COLORS: Partial<Record<AuditEventType, string>> = {
   EXCEPTION_CREATED: "text-rose-500",
   LOAN_APPROVED: "text-emerald-500",
   LOAN_REJECTED: "text-rose-500",
-  VERIFIED_RECORD_CREATED: "text-indigo-500",
+  VERIFIED_RECORD_CREATED: "text-[#8B5CF6]",
 };
 
 function describeEntry(entry: AuditLogEntry): string {
@@ -59,10 +59,10 @@ export function AuditTimeline({ loanId }: { loanId: string }) {
   const hasMore = (data?.pagination.totalPages ?? 1) > page;
 
   return (
-    <Card className="rounded-2xl border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+    <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
       <CardHeader>
-        <CardTitle className="text-slate-900">Audit timeline</CardTitle>
-        <CardDescription className="text-slate-500">
+        <CardTitle className="text-white">Audit timeline</CardTitle>
+        <CardDescription className="text-[#A1A1AA]">
           Append-only history — oldest first. {data?.pagination.total ?? 0}{" "}
           events.
         </CardDescription>
@@ -81,24 +81,24 @@ export function AuditTimeline({ loanId }: { loanId: string }) {
                 {index < entries.length - 1 ? (
                   <span
                     aria-hidden="true"
-                    className="absolute top-8 bottom-0 left-[13px] w-px bg-slate-100"
+                    className="absolute top-8 bottom-0 left-[13px] w-px bg-[#27272A]"
                   />
                 ) : null}
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-white",
-                    EVENT_COLORS[entry.eventType] ?? "text-slate-400"
+                    "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-[#27272A] bg-[#18181B]",
+                    EVENT_COLORS[entry.eventType] ?? "text-[#52525B]"
                   )}
                 >
                   <i className={EVENT_ICONS[entry.eventType]} />
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <p className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-medium text-[13px] text-slate-900">
+                    <span className="font-medium text-[13px] text-white">
                       {entry.eventType.replaceAll("_", " ")}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[#A1A1AA] text-[11px]">
                       {entry.actor?.name ?? "System"} ·{" "}
                       {new Date(entry.createdAt).toLocaleString(undefined, {
                         day: "2-digit",
@@ -108,7 +108,7 @@ export function AuditTimeline({ loanId }: { loanId: string }) {
                       })}
                     </span>
                   </p>
-                  <p className="truncate text-muted-foreground text-xs">
+                  <p className="truncate text-[#A1A1AA] text-xs">
                     {describeEntry(entry)}
                   </p>
                 </div>

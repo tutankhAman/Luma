@@ -70,7 +70,7 @@ export function ReviewerActions({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label className="text-slate-500" htmlFor="reviewer-note">
+        <Label className="text-[#A1A1AA]" htmlFor="reviewer-note">
           Reviewer note
         </Label>
         <Textarea
@@ -101,7 +101,7 @@ export function ReviewerActions({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-slate-100 border-t pt-3">
+      <div className="flex flex-wrap gap-2 border-[#27272A] border-t pt-3">
         <Button
           disabled={resolved || !exceptionId}
           onClick={() => setConfirmAction("approve")}
@@ -121,13 +121,11 @@ export function ReviewerActions({
         </Button>
       </div>
 
-      <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+      <div className="rounded-lg border border-[#27272A] bg-[#09090B]/60 p-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="font-medium text-[13px] text-slate-900">
-              Verify loan
-            </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="font-medium text-[13px] text-white">Verify loan</p>
+            <p className="text-[#A1A1AA] text-[11px]">
               {allResolved
                 ? "All exceptions closed — create the verified record."
                 : "Resolve every exception first."}

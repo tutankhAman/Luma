@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface ChatMessage {
@@ -21,16 +20,16 @@ const WELCOME: ChatMessage[] = [
 function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.from === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-xl rounded-br-sm bg-zinc-900 px-3 py-2 text-white text-xs">
+      <div className="m-4 mt-0 flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm border border-[#27272A] bg-white px-4 py-3 text-[13px] text-black leading-relaxed">
           {message.content}
         </div>
       </div>
     );
   }
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-xl rounded-bl-sm border border-zinc-200/50 bg-zinc-50/50 px-3 py-2 text-xs text-zinc-600">
+    <div className="m-4 mt-0 flex justify-start">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-[#27272A] bg-[#18181B] p-4 text-[#A1A1AA] text-[13px] leading-relaxed">
         {message.content}
       </div>
     </div>
@@ -60,33 +59,35 @@ export function CopilotPanel() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[320px] shrink-0 flex-col border-zinc-200/60 border-l bg-white p-6 shadow-[-4px_0_24px_-8px_rgba(0,0,0,0.02)]">
-      <div className="mb-4 flex items-center gap-2 border-zinc-100 border-b pb-4">
-        <span
-          aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900"
-        >
-          <i className="ri-sparkling-2-line" />
-        </span>
-        <h2 className="font-semibold text-sm text-zinc-900">AI Copilot</h2>
-        <span className="ml-auto flex items-center gap-1 font-medium text-xs text-zinc-400">
+    <aside className="sticky top-0 flex h-screen w-[320px] shrink-0 flex-col border-[#27272A] border-l bg-[#09090B]">
+      <div className="flex items-center justify-between border-[#27272A] border-b p-4">
+        <h2 className="flex items-center gap-2 font-medium text-sm text-white">
           <span
             aria-hidden="true"
-            className="size-1.5 rounded-full bg-emerald-500"
+            className="flex size-7 items-center justify-center rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6]"
+          >
+            <i className="ri-sparkling-2-line" />
+          </span>
+          AI Copilot
+        </h2>
+        <span className="flex items-center gap-1 text-[#A1A1AA] text-xs">
+          <span
+            aria-hidden="true"
+            className="size-1.5 rounded-full bg-emerald-400"
           />
           Online
         </span>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="custom-scrollbar-hide flex-1 overflow-y-auto pt-4">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
       </div>
 
-      <div className="flex items-center gap-2 border-zinc-100 border-t pt-4">
+      <div className="p-4">
         <Input
-          className="border-zinc-200 focus-visible:ring-zinc-900"
+          className="rounded-xl border border-[#27272A] bg-[#18181B] px-4 py-3 text-[13px] text-white placeholder:text-[#52525B]"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -97,14 +98,6 @@ export function CopilotPanel() {
           placeholder="Ask about your data..."
           value={draft}
         />
-        <Button
-          aria-label="Send message"
-          className="bg-zinc-900 text-white hover:bg-zinc-800"
-          onClick={send}
-          size="icon"
-        >
-          <i aria-hidden="true" className="ri-send-plane-2-line text-base" />
-        </Button>
       </div>
     </aside>
   );

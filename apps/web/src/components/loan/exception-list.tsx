@@ -2,7 +2,7 @@ import type { LoanExceptionItem } from "@repo/types";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_DOT: Record<string, string> = {
-  critical: "bg-rose-500",
+  critical: "bg-rose-500/100",
   high: "bg-orange-500",
   low: "bg-blue-500",
   medium: "bg-amber-500",
@@ -29,8 +29,8 @@ export function ExceptionList({
           className={cn(
             "flex w-full items-center gap-2.5 rounded-lg border p-2.5 text-left transition-colors",
             activeId === exception.id
-              ? "border-indigo-200 bg-indigo-50/50"
-              : "border-slate-100 hover:bg-slate-50"
+              ? "border-[#8B5CF6]/30 bg-[#2E1065]/30/50"
+              : "border-[#27272A] hover:bg-[#27272A]/20"
           )}
           key={exception.id}
           onClick={() => onSelect(exception.id)}
@@ -46,17 +46,17 @@ export function ExceptionList({
           />
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
-              <span className="font-medium text-[13px] text-slate-900">
+              <span className="font-medium text-[13px] text-white">
                 {exception.exceptionType.replaceAll("_", " ")}
               </span>
-              <span className="text-[11px] text-slate-400">#{index + 1}</span>
+              <span className="text-[#52525B] text-[11px]">#{index + 1}</span>
               {exception.status === "open" ? null : (
-                <span className="rounded-full bg-slate-100 px-1.5 text-[10px] text-slate-500 capitalize">
+                <span className="rounded-full bg-[#27272A] px-1.5 text-[#A1A1AA] text-[10px] capitalize">
                   {exception.status}
                 </span>
               )}
             </span>
-            <span className="block truncate text-[12px] text-slate-500">
+            <span className="block truncate text-[#A1A1AA] text-[12px]">
               {exception.field ? `${exception.field}: ` : ""}
               {exception.message}
             </span>
