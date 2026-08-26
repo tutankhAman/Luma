@@ -30,7 +30,6 @@ export function RoleRedirect() {
 
 const STEPS = [
   { description: "Create your operator account", title: "Create an account" },
-  { description: "Confirm your email address", title: "Verify your email" },
   {
     description: "Upload tapes and resolve exceptions",
     title: "Start verifying loans",
@@ -133,12 +132,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocial = (provider: string) => {
-    toast.info(`${provider} sign-in is not configured`, {
-      description: "Use the email form with the seeded demo accounts.",
-    });
-  };
-
   return (
     <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
       <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient p-12 lg:flex">
@@ -201,33 +194,6 @@ export default function LoginPage() {
               ? "Start turning messy loan data into trusted records."
               : "Sign in to continue to Luma Copilot."}
           </p>
-
-          <div className="mb-6 grid grid-cols-2 gap-4">
-            <button
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#27272A] text-[13px] text-white transition-colors hover:bg-[#18181B]"
-              onClick={() => handleSocial("Google")}
-              type="button"
-            >
-              <i aria-hidden="true" className="ri-google-line text-base" />
-              Google
-            </button>
-            <button
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#27272A] text-[13px] text-white transition-colors hover:bg-[#18181B]"
-              onClick={() => handleSocial("GitHub")}
-              type="button"
-            >
-              <i aria-hidden="true" className="ri-github-line text-base" />
-              GitHub
-            </button>
-          </div>
-
-          <div className="mb-6 flex items-center gap-3">
-            <span aria-hidden="true" className="h-px flex-1 bg-[#27272A]" />
-            <span className="text-[#A1A1AA] text-[11px]">
-              or continue with email
-            </span>
-            <span aria-hidden="true" className="h-px flex-1 bg-[#27272A]" />
-          </div>
 
           <form
             className="space-y-4"
