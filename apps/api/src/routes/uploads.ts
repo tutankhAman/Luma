@@ -18,7 +18,7 @@ import { processStreamAndNormalize } from "../services/ingestion.service.js";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const UPLOAD_DIR = path.join(os.tmpdir(), "luma-uploads");
-const BATCH_ID_SCHEMA = z.string().cuid();
+const BATCH_ID_SCHEMA = z.string().cuid2().or(z.string().cuid());
 
 const ensureUploadDir = (): void => {
   if (!fs.existsSync(UPLOAD_DIR)) {

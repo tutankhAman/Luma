@@ -58,16 +58,24 @@ export const createApp = (): Express => {
       res: express.Response,
       _next: express.NextFunction
     ): void => {
-      if (
-        err !== null &&
-        typeof err === "object" &&
-        "code" in err &&
-        (err as { code: string }).code === "LIMIT_FILE_SIZE"
-      ) {
-        res
-          .status(413)
-          .json({ code: "PAYLOAD_TOO_LARGE", error: "File too large" });
-        return;
+      if (err !== null && typeof err === "object" && "code" in err) {
+        const { code } = err as { code: string };
+        if (code === "LIMIT_FILE_SIZE") {
+          res
+            .status(413)
+            .json({ code: "PAYLOAD_TOO_LARGE", error: "File too large" });
+          return;
+        }
+        if (
+          code === "LIMIT_UNEXPECTED_FILE" ||
+          code === "LIMIT_FIELD_KEY" ||
+          code === "LIMIT_FIELD_VALUE"
+        ) {
+          res
+            .status(400)
+            .json({ code: "BAD_REQUEST", error: "Invalid upload" });
+          return;
+        }
       }
       if (
         err !== null &&
