@@ -114,7 +114,7 @@ model Loan {
   maturityDate      DateTime?
   originalPrincipal Decimal?  @db.Decimal(15, 2)
   currentBalance    Decimal?  @db.Decimal(15, 2)
-  interestRate      Decimal?  @db.Decimal(5, 4)
+  interestRate      Decimal?  @db.Decimal(10, 4)
   termMonths        Int?
   borrowerState     String?
   loanPurpose       String?
