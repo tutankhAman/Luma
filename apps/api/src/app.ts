@@ -3,9 +3,12 @@ import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express, { type Express } from "express";
 import { auth } from "./lib/auth.js";
+import { assertBootEnv } from "./lib/env.js";
 import { requireAuth } from "./middleware/require-auth.js";
 
 export const createApp = (): Express => {
+  assertBootEnv();
+
   const app = express();
 
   const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
