@@ -1,6 +1,7 @@
 import type { ExceptionStatus, ExceptionType, Severity } from "@repo/types";
 
 export interface ExceptionListFilters {
+  batchId: string;
   page: number;
   search: string;
   severity: Severity | "";
@@ -9,6 +10,7 @@ export interface ExceptionListFilters {
 }
 
 export const EMPTY_EXCEPTION_FILTERS: ExceptionListFilters = {
+  batchId: "",
   page: 1,
   search: "",
   severity: "",
