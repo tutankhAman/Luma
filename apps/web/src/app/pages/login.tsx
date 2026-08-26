@@ -142,19 +142,19 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
       <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient p-12 lg:flex">
-        <div className="mb-10 flex items-center gap-2 font-medium text-slate-900">
+        <div className="mb-10 flex items-center gap-2 font-medium text-white">
           <span
             aria-hidden="true"
-            className="size-5 rounded-full border border-slate-900"
+            className="size-5 rounded-full border border-white"
           />
           Luma
         </div>
-        <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight drop-shadow-md">
+        <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
           Loan data verification,
           <br />
           made trustworthy
         </h1>
-        <p className="mb-12 max-w-[280px] text-center text-[15px] text-white/80 leading-snug drop-shadow-sm">
+        <p className="mb-12 max-w-[280px] text-center text-[#A1A1AA] text-[15px] leading-snug">
           Turn messy loan tapes into validated, traceable records with AI
           assistance at every step.
         </p>
