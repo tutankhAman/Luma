@@ -1,7 +1,7 @@
 import { loanFieldsPatchBodySchema, loanListQuerySchema } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import {
@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 const LOAN_FIELD_MAP: Record<string, string> = {
   borrowerState: "borrowerState",
@@ -48,12 +48,7 @@ router.get(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid query",
-        fields: Object.fromEntries(
-          parsed.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsed.error.issues),
       });
       return;
     }
@@ -281,12 +276,7 @@ router.patch(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }

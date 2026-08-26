@@ -6,14 +6,14 @@ import {
   exceptionRejectBodySchema,
 } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 router.use(requireAuth, requireRole("reviewer"));
 
@@ -23,12 +23,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(400).json({
       code: "BAD_REQUEST",
       error: "Invalid query",
-      fields: Object.fromEntries(
-        parsed.error.issues.map((issue) => [
-          issue.path.join("."),
-          issue.message,
-        ])
-      ),
+      fields: mapZodIssuesToFields(parsed.error.issues),
     });
     return;
   }
@@ -176,12 +171,7 @@ router.post(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }
@@ -250,12 +240,7 @@ router.post(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }
@@ -332,12 +317,7 @@ router.post(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }
@@ -409,12 +389,7 @@ router.post(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }
@@ -436,19 +411,17 @@ router.post(
 
     const nowIso = new Date().toISOString();
 
-    await prisma.$transaction(async (tx) => {
-      await tx.auditLog.create({
-        data: {
-          actorId: user.id,
-          eventType: "AI_RECOMMENDATION",
-          exceptionId,
-          loanId: existing.loanId,
-          metadata: {
-            aiDecision: parsedBody.data.decision,
-            editedValue: parsedBody.data.editedValue ?? null,
-          },
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        eventType: "AI_RECOMMENDATION",
+        exceptionId,
+        loanId: existing.loanId,
+        metadata: {
+          aiDecision: parsedBody.data.decision,
+          editedValue: parsedBody.data.editedValue ?? null,
         },
-      });
+      },
     });
 
     res.json({

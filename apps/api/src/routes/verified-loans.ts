@@ -1,13 +1,13 @@
 import { verifiedLoanListQuerySchema } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 const CSV_COLUMNS: string[] = [
   "id",
@@ -205,12 +205,7 @@ router.get(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid query",
-        fields: Object.fromEntries(
-          parsed.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsed.error.issues),
       });
       return;
     }
