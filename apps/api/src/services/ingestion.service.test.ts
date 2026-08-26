@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+const INVALID_DATE_FORMAT_REGEX = /invalid date format/i;
+
 const fakePrisma: {
   loan: { createMany: ReturnType<typeof mock> };
   uploadBatch: {
@@ -75,7 +77,7 @@ describe("parseDate", () => {
   });
 
   it("throws with invalid date format message when caller expects throw", () => {
-    expect(() => parseDate("not-a-date")).toThrow(/invalid date format/i);
+    expect(() => parseDate("not-a-date")).toThrow(INVALID_DATE_FORMAT_REGEX);
   });
 });
 
@@ -169,7 +171,7 @@ describe("normalizeRow", () => {
     if (!result.success) {
       throw new Error("expected success");
     }
-    const data = result.data;
+    const { data } = result;
     expect(data.loanId).toBe("L-10001");
     expect(data.borrowerId).toBe("B-5001");
     expect(data.sourceBatchId).toBe(batchId);
@@ -226,7 +228,6 @@ describe("normalizeRow", () => {
   });
 
   it("invalid maturity_date -> failure", () => {
-    const bad = { ...baseRow, maturity_date: "13-40-2022" };
     // 13-40-2022 is actually invalid (month 13, day 40) but Date parsing may be lenient? Use clearly invalid
     const bad2 = { ...baseRow, maturity_date: "not-a-date" };
     const result = normalizeRow(bad2, batchId, 7);
@@ -331,11 +332,11 @@ describe("processStreamAndNormalize end-to-end", () => {
 
       // createMany should have been called at least once with 3 rows
       expect(fakePrisma.loan.createMany).toHaveBeenCalled();
-      const calls = (
+      const { calls } = (
         fakePrisma.loan.createMany as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
+      ).mock;
       // flatten all inserted rows across calls
       let totalInserted = 0;
       for (const call of calls) {
@@ -343,7 +344,7 @@ describe("processStreamAndNormalize end-to-end", () => {
         expect(args.skipDuplicates).toBe(true);
         totalInserted += args.data.length;
         // each data row should have sourceBatchId and sourceRowNumber
-        for (const row of args.data as Array<Record<string, unknown>>) {
+        for (const row of args.data as Record<string, unknown>[]) {
           expect(row.sourceBatchId).toBe(batchId);
           expect(typeof row.sourceRowNumber).toBe("number");
           expect((row.sourceRowNumber as number) >= 2).toBe(true);
@@ -353,16 +354,16 @@ describe("processStreamAndNormalize end-to-end", () => {
 
       // batch updated to done with failedCount=1, failedRows persisted
       expect(fakePrisma.uploadBatch.update).toHaveBeenCalled();
-      const updateCalls = (
+      const { calls: updateCalls } = (
         fakePrisma.uploadBatch.update as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
+      ).mock;
       // first call is processing, last call is done
-      const lastUpdate = updateCalls[updateCalls.length - 1]?.[0] as {
-        where: { id: string };
-        data: Record<string, unknown>;
-      };
+      const lastUpdateEntry = updateCalls.at(-1) as unknown as [
+        { where: { id: string }; data: Record<string, unknown> },
+      ];
+      const [lastUpdate] = lastUpdateEntry;
       expect(lastUpdate.where.id).toBe(batchId);
       expect(lastUpdate.data.status).toBe("done");
       expect(lastUpdate.data.failedCount).toBe(1);
@@ -371,27 +372,30 @@ describe("processStreamAndNormalize end-to-end", () => {
       const metadata = lastUpdate.data.metadata as Record<string, unknown>;
       expect(Array.isArray(metadata.failedRows)).toBe(true);
       expect((metadata.failedRows as unknown[]).length).toBe(1);
-      const failedEntry = (
-        metadata.failedRows as Array<Record<string, unknown>>
-      )[0]!;
-      expect(failedEntry.reason).toBeDefined();
+      const [failedEntry] = metadata.failedRows as Record<string, unknown>[];
+      expect(failedEntry).toBeDefined();
+      if (!failedEntry) {
+        throw new Error("expected failedEntry");
+      }
       expect(String(failedEntry.reason).toLowerCase()).toContain("loan_id");
 
       // LOAN_IMPORTED audit logs written (one per chunk)
-      const auditCalls = (
+      const { calls: auditCalls } = (
         fakePrisma.auditLog.create as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
+      ).mock;
       const loanImported = auditCalls.filter(
         (c) =>
           (c[0] as { data: { eventType: string } }).data.eventType ===
           "LOAN_IMPORTED"
       );
       expect(loanImported.length).toBe(1);
-      const loanMeta = (
-        loanImported[0]![0] as { data: { metadata: Record<string, unknown> } }
-      ).data.metadata;
+      const loanImportedEntry = loanImported[0] as unknown as [
+        { data: { metadata: Record<string, unknown> } },
+      ];
+      const [loanImportedCall] = loanImportedEntry;
+      const { metadata: loanMeta } = loanImportedCall.data;
       expect(loanMeta.inserted).toBe(3);
       expect(typeof loanMeta.rowStart).toBe("number");
       expect(typeof loanMeta.rowEnd).toBe("number");
@@ -403,17 +407,20 @@ describe("processStreamAndNormalize end-to-end", () => {
           "INGESTION_COMPLETED"
       );
       expect(completed.length).toBe(1);
-      const compMeta = (
-        completed[0]![0] as { data: { metadata: Record<string, unknown> } }
-      ).data.metadata;
+      const completedEntry = completed[0] as unknown as [
+        { data: { metadata: Record<string, unknown> } },
+      ];
+      const [completedCall] = completedEntry;
+      const { metadata: compMeta } = completedCall.data;
       expect(compMeta.totalRows).toBe(4);
       expect(compMeta.validInserted).toBe(3);
       expect(compMeta.failedCount).toBe(1);
 
       // initial processing status call present
-      const firstUpdate = updateCalls[0]?.[0] as {
-        data: Record<string, unknown>;
-      };
+      const firstUpdateEntry = updateCalls[0] as unknown as [
+        { data: Record<string, unknown> },
+      ];
+      const [firstUpdate] = firstUpdateEntry;
       expect(firstUpdate.data.status).toBe("processing");
     } finally {
       fs.rmSync(tmpDir, { force: true, recursive: true });
@@ -440,25 +447,26 @@ describe("processStreamAndNormalize end-to-end", () => {
 
     try {
       await processStreamAndNormalize(filePath, batchId);
-      const calls = (
+      const { calls } = (
         fakePrisma.loan.createMany as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
+      ).mock;
       let total = 0;
       for (const c of calls) {
         total += (c[0] as { data: unknown[] }).data.length;
       }
       expect(total).toBe(2);
 
-      const updateCalls = (
+      const { calls: updateCalls } = (
         fakePrisma.uploadBatch.update as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
-      const last = updateCalls[updateCalls.length - 1]?.[0] as {
-        data: Record<string, unknown>;
-      };
+      ).mock;
+      const lastEntry = updateCalls.at(-1) as unknown as [
+        { data: Record<string, unknown> },
+      ];
+      const [last] = lastEntry;
       expect(last.data.recordCount).toBe(2);
       expect(last.data.failedCount).toBe(0);
     } finally {
@@ -479,14 +487,15 @@ describe("processStreamAndNormalize end-to-end", () => {
 
     try {
       await processStreamAndNormalize(filePath, batchId);
-      const updateCalls = (
+      const { calls: updateCalls } = (
         fakePrisma.uploadBatch.update as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
-      const last = updateCalls[updateCalls.length - 1]?.[0] as {
-        data: Record<string, unknown>;
-      };
+      ).mock;
+      const lastEntry = updateCalls.at(-1) as unknown as [
+        { data: Record<string, unknown> },
+      ];
+      const [last] = lastEntry;
       const meta = last.data.metadata as Record<string, unknown>;
       expect((meta.failedRows as unknown[]).length).toBe(1000);
       expect(meta.failedRowsTruncated).toBe(true);
@@ -530,19 +539,21 @@ describe("processStreamAndNormalize error path", () => {
       ).resolves.toBeUndefined();
 
       // should have marked failed at least once after error
-      const updateCalls = (
+      const { calls: updateCalls } = (
         fakePrisma.uploadBatch.update as unknown as {
           mock: { calls: unknown[][] };
         }
-      ).mock.calls;
+      ).mock;
       // first is processing, later is failed
       const failedCall = updateCalls.find(
         (c) => (c[0] as { data: { status: string } }).data.status === "failed"
       );
       expect(failedCall).toBeDefined();
-      const failedData = (
-        failedCall?.[0] as { data: { metadata: Record<string, unknown> } }
-      ).data;
+      const failedCallEntry = failedCall as unknown as [
+        { data: { metadata: Record<string, unknown> } },
+      ];
+      const [failedArg] = failedCallEntry;
+      const { data: failedData } = failedArg;
       expect(String(failedData.metadata.error).toLowerCase()).toContain(
         "db boom"
       );
@@ -569,11 +580,11 @@ describe("processStreamAndNormalize error path", () => {
       processStreamAndNormalize(missingPath, batchId)
     ).resolves.toBeUndefined();
 
-    const updateCalls = (
+    const { calls: updateCalls } = (
       fakePrisma.uploadBatch.update as unknown as {
         mock: { calls: unknown[][] };
       }
-    ).mock.calls;
+    ).mock;
     const failed = updateCalls.find(
       (c) => (c[0] as { data: { status: string } }).data.status === "failed"
     );

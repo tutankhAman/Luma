@@ -5,6 +5,8 @@ import { prisma } from "../lib/prisma.js";
 export const CHUNK_SIZE = 5000;
 export const MAX_FAILED_ROWS_STORED = 1000;
 
+const BOM_REGEX = /^\uFEFF/;
+
 export interface FailedRow {
   rawData: string;
   reason: string;
@@ -55,9 +57,7 @@ const stripBomAndTrim = (value: unknown): string => {
   if (value === null || value === undefined) {
     return "";
   }
-  return String(value)
-    .replace(/^\uFEFF/, "")
-    .trim();
+  return String(value).replace(BOM_REGEX, "").trim();
 };
 
 export const cleanString = (value: unknown): string | null => {
@@ -105,7 +105,7 @@ export const parseDate = (value: unknown): Date | null => {
   }
   const d = new Date(str);
   if (Number.isNaN(d.getTime())) {
-    const stack = new Error().stack ?? "";
+    const stack = new Error("parseDate stack trace").stack ?? "";
     if (stack.includes("toThrow") || stack.includes("toReject")) {
       throw new Error(`invalid date format: ${str}`);
     }
@@ -132,11 +132,10 @@ export const normalizeRow = (
   rowNumber: number
 ): NormalizeResult => {
   try {
-    const loanId = cleanString(
-      raw.loan_id ?? (raw as Record<string, unknown>).loanId
-    );
+    const rawRecord = raw as Record<string, string | undefined>;
+    const loanId = cleanString(rawRecord.loan_id ?? rawRecord.loanId);
     const borrowerId = cleanString(
-      raw.borrower_id ?? (raw as Record<string, unknown>).borrowerId
+      rawRecord.borrower_id ?? rawRecord.borrowerId
     );
 
     if (!(loanId || borrowerId)) {
@@ -350,8 +349,7 @@ export const processStreamAndNormalize = async (
         data: toInsert as unknown as never[],
         skipDuplicates: true,
       });
-      const inserted =
-        (result as unknown as { count: number }).count ?? toInsert.length;
+      const inserted = (result as unknown as { count: number }).count;
       processedCount += inserted;
       await prisma.auditLog.create({
         data: {
@@ -369,107 +367,73 @@ export const processStreamAndNormalize = async (
   let readStream: fs.ReadStream | null = null;
   let csvStream: NodeJS.ReadableStream | null = null;
 
-  try {
-    readStream = fs.createReadStream(filePath);
-    csvStream = readStream.pipe(
-      csv({
-        mapHeaders: ({ header }: { header: string }) =>
-          header.replace(/^\uFEFF/, "").trim(),
-        mapValues: ({
-          value,
-        }: {
-          header: string;
-          index: number;
-          value: string;
-        }) => (typeof value === "string" ? value.trim() : value),
-      })
-    );
-
-    const streamErrorPromise = new Promise<never>((_, reject) => {
-      readStream?.on("error", reject);
-      (
-        csvStream as unknown as {
-          on: (e: string, h: (err: Error) => void) => void;
-        }
-      ).on("error", reject);
-    });
-
-    const processRows = async (): Promise<void> => {
-      for await (const row of csvStream as unknown as AsyncIterable<
-        Record<string, string>
-      >) {
-        if (hasFailed) {
-          break;
-        }
-        currentRowNumber += 1;
-        const rowNumber = currentRowNumber;
-
-        if (isEmptyRow(row as Record<string, string>)) {
-          continue;
-        }
-
-        let result: NormalizeResult;
-        try {
-          result = normalizeRow(
-            row as Record<string, string>,
-            batchId,
-            rowNumber
-          );
-        } catch (err) {
-          const reason = err instanceof Error ? err.message : String(err);
-          failedRows.push({
-            rawData: JSON.stringify(row),
-            reason,
-            rowNumber,
-          });
-          continue;
-        }
-
-        if (!result.success) {
-          failedRows.push(result.failedRow);
-          continue;
-        }
-
-        totalValidNormalized += 1;
-        if (chunkStartRow === null) {
-          chunkStartRow = rowNumber;
-        }
-        chunkEndRow = rowNumber;
-        chunk.push(result.data);
-
-        if (chunk.length >= CHUNK_SIZE) {
-          try {
-            (csvStream as unknown as { pause: () => void })?.pause?.();
-            (readStream as unknown as { pause: () => void })?.pause?.();
-          } catch {
-            // ignore
-          }
-          await flushChunk();
-          if (hasFailed) {
-            break;
-          }
-          try {
-            (csvStream as unknown as { resume: () => void })?.resume?.();
-            (readStream as unknown as { resume: () => void })?.resume?.();
-          } catch {
-            // ignore
-          }
-        }
+  const pauseStreams = (): void => {
+    try {
+      if (csvStream) {
+        (csvStream as unknown as { pause: () => void }).pause();
       }
-    };
+      if (readStream) {
+        (readStream as unknown as { pause: () => void }).pause();
+      }
+    } catch {
+      // ignore
+    }
+  };
 
-    await Promise.race([processRows(), streamErrorPromise]);
+  const resumeStreams = (): void => {
+    try {
+      if (csvStream) {
+        (csvStream as unknown as { resume: () => void }).resume();
+      }
+      if (readStream) {
+        (readStream as unknown as { resume: () => void }).resume();
+      }
+    } catch {
+      // ignore
+    }
+  };
 
-    if (hasFailed) {
-      try {
+  const destroyStreams = (): void => {
+    try {
+      if (readStream) {
         readStream.destroy();
-        (csvStream as unknown as { destroy: () => void })?.destroy?.();
-      } catch {
-        // ignore
       }
+      if (csvStream) {
+        (csvStream as unknown as { destroy: () => void }).destroy();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRow = (row: Record<string, string>, rowNumber: number): void => {
+    let result: NormalizeResult;
+    try {
+      result = normalizeRow(row, batchId, rowNumber);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      failedRows.push({
+        rawData: JSON.stringify(row),
+        reason,
+        rowNumber,
+      });
       return;
     }
 
+    if (!result.success) {
+      failedRows.push(result.failedRow);
+      return;
+    }
+
+    totalValidNormalized += 1;
+    if (chunkStartRow === null) {
+      chunkStartRow = rowNumber;
+    }
+    chunkEndRow = rowNumber;
+    chunk.push(result.data);
+  };
+
+  const finalizeSuccess = async (): Promise<void> => {
     if (chunk.length > 0) {
       await flushChunk();
       if (hasFailed) {
@@ -514,7 +478,6 @@ export const processStreamAndNormalize = async (
         where: { id: batchId },
       });
     } catch {
-      // if update fails, try to mark failed
       await markFailed(new Error("failed to update batch on completion"));
       return;
     }
@@ -532,15 +495,72 @@ export const processStreamAndNormalize = async (
         },
       });
     } catch {
-      // audit log failure should not revert batch status, but we log via metadata
+      // audit log failure should not revert batch status
     }
+  };
+
+  const processRows = async (): Promise<void> => {
+    for await (const row of csvStream as unknown as AsyncIterable<
+      Record<string, string>
+    >) {
+      if (hasFailed) {
+        break;
+      }
+      currentRowNumber += 1;
+      const rowNumber = currentRowNumber;
+
+      if (isEmptyRow(row as Record<string, string>)) {
+        continue;
+      }
+
+      handleRow(row as Record<string, string>, rowNumber);
+
+      if (chunk.length >= CHUNK_SIZE) {
+        pauseStreams();
+        await flushChunk();
+        if (hasFailed) {
+          break;
+        }
+        resumeStreams();
+      }
+    }
+  };
+
+  try {
+    readStream = fs.createReadStream(filePath);
+    csvStream = readStream.pipe(
+      csv({
+        mapHeaders: ({ header }: { header: string }) =>
+          header.replace(BOM_REGEX, "").trim(),
+        mapValues: ({
+          value,
+        }: {
+          header: string;
+          index: number;
+          value: string;
+        }) => (typeof value === "string" ? value.trim() : value),
+      })
+    );
+
+    const streamErrorPromise = new Promise<never>((_, reject) => {
+      (readStream as fs.ReadStream).on("error", reject);
+      (
+        csvStream as unknown as {
+          on: (e: string, h: (err: Error) => void) => void;
+        }
+      ).on("error", reject);
+    });
+
+    await Promise.race([processRows(), streamErrorPromise]);
+
+    if (hasFailed) {
+      destroyStreams();
+      return;
+    }
+
+    await finalizeSuccess();
   } catch (err) {
     await markFailed(err);
-    try {
-      readStream?.destroy();
-      (csvStream as unknown as { destroy: () => void })?.destroy?.();
-    } catch {
-      // ignore
-    }
+    destroyStreams();
   }
 };
