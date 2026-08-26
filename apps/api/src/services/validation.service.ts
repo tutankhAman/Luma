@@ -98,6 +98,17 @@ const decimalToNumber = (value: unknown): number | null => {
   return n;
 };
 
+const toPrincipalKey = (value: unknown): string => {
+  const num = decimalToNumber(value);
+  if (num !== null) {
+    return String(num);
+  }
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value).trim();
+};
+
 const checkDateRules = (
   loan: LoanLike,
   exceptions: ValidationException[]
@@ -317,7 +328,7 @@ const collectBatchDuplicateSets = async (
         loanIdCounts.set(loan.loanId, (loanIdCounts.get(loan.loanId) ?? 0) + 1);
       }
       if (loan.borrowerId) {
-        const comboKey = `${loan.borrowerId}|${String(loan.originalPrincipal)}|${loan.originationDate?.toISOString() ?? ""}`;
+        const comboKey = `${loan.borrowerId}|${toPrincipalKey(loan.originalPrincipal)}|${loan.originationDate?.toISOString() ?? ""}`;
         borrowerComboCounts.set(
           comboKey,
           (borrowerComboCounts.get(comboKey) ?? 0) + 1
@@ -427,7 +438,7 @@ const processValidationChunk = async (
     }
 
     if (loan.borrowerId) {
-      const comboKey = `${loan.borrowerId}|${String(loan.originalPrincipal)}|${loan.originationDate?.toISOString() ?? ""}`;
+      const comboKey = `${loan.borrowerId}|${toPrincipalKey(loan.originalPrincipal)}|${loan.originationDate?.toISOString() ?? ""}`;
       if (duplicateCombos.has(comboKey)) {
         perLoan.push({
           exceptionType: "duplicate",
@@ -488,8 +499,15 @@ const persistValidationChunk = async (
   }>,
   loanStatusUpdates: Array<{ id: string; status: string }>
 ): Promise<void> => {
-  if (allExceptions.length > 0) {
-    await prisma.$transaction(async (tx) => {
+  const persist = async (
+    tx: {
+      auditLog: { create: (args: unknown) => Promise<unknown> };
+      exception: { createMany: (args: unknown) => Promise<unknown> };
+      loan: { update: (args: unknown) => Promise<unknown> };
+    },
+    exceptionCount: number
+  ): Promise<void> => {
+    if (allExceptions.length > 0) {
       await tx.exception.createMany({
         data: allExceptions.map((exc) => ({
           exceptionType: exc.exceptionType,
@@ -500,42 +518,34 @@ const persistValidationChunk = async (
           status: "open",
         })),
       });
-      for (const update of loanStatusUpdates) {
-        await tx.loan.update({
-          data: { validationStatus: update.status },
-          where: { id: update.id },
-        });
-      }
-      await tx.auditLog.create({
-        data: {
-          batchId,
-          eventType: "VALIDATION_RUN",
-          metadata: {
-            exceptionCount: allExceptions.length,
-            loanCount: loansLength,
-          },
-        },
+    }
+    // Sequential updates inside tx: Prisma interactive transactions don't support concurrent queries
+    for (const update of loanStatusUpdates) {
+      await tx.loan.update({
+        data: { validationStatus: update.status },
+        where: { id: update.id },
       });
+    }
+    await tx.auditLog.create({
+      data: {
+        batchId,
+        eventType: "VALIDATION_RUN",
+        metadata: { exceptionCount, loanCount: loansLength },
+      },
     });
-  } else {
-    await prisma.$transaction(async (tx) => {
-      for (const update of loanStatusUpdates) {
-        await tx.loan.update({
-          data: { validationStatus: update.status },
-          where: { id: update.id },
-        });
-      }
-      await tx.auditLog.create({
-        data: {
-          batchId,
-          eventType: "VALIDATION_RUN",
-          metadata: { exceptionCount: 0, loanCount: loansLength },
-        },
-      });
-    });
-  }
+  };
+
+  await prisma.$transaction(async (tx) => {
+    await persist(tx as never, allExceptions.length);
+  });
 };
 
 export const validateBatch = async (batchId: string): Promise<void> => {
+  const existing = await prisma.exception.count({
+    where: { loan: { sourceBatchId: batchId } },
+  });
+  if (existing > 0) {
+    return;
+  }
   await runBatch(batchId);
 };
