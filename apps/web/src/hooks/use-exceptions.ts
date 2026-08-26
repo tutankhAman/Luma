@@ -52,31 +52,6 @@ export function useAddComment() {
   });
 }
 
-export function useAiDecision() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: {
-      exceptionId: string;
-      decision: "accepted" | "edited" | "rejected";
-      editedValue?: string | null;
-    }) =>
-      exceptionsApi.recordAiDecision(input.exceptionId, {
-        decision: input.decision,
-        editedValue: input.editedValue ?? null,
-      }),
-    onError: (error: Error) => {
-      toast.error("Could not record decision", { description: error.message });
-    },
-    onSuccess: (result) => {
-      toast.success(`AI suggestion ${result.aiDecision}`);
-      void queryClient.invalidateQueries({ queryKey: ["exceptions"] });
-      void queryClient.invalidateQueries({
-        queryKey: ["exception", result.exceptionId],
-      });
-    },
-  });
-}
-
 export function useExceptionReview() {
   const queryClient = useQueryClient();
   const invalidate = (exceptionId: string) => {

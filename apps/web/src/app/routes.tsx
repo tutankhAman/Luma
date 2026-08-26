@@ -12,12 +12,12 @@ import LoginPageDefault, { RoleRedirect } from "./pages/login";
 
 const LoginPage = LoginPageDefault;
 
+import ConsumerLoanDetailPage from "./pages/consumer/loan-detail";
 import BatchDetailPage from "./pages/operator/batch-detail";
 import OperatorDashboard from "./pages/operator/dashboard";
 import ReviewerDashboard from "./pages/reviewer/dashboard";
 import ExceptionQueuePage from "./pages/reviewer/exceptions";
 import LoanDetailPage from "./pages/reviewer/loan-detail";
-import { ConsumerVerifiedLoanDetail } from "./pages/shared/loan-detail-placeholder";
 
 export const routes: RouteObject[] = [
   {
@@ -56,7 +56,7 @@ export const routes: RouteObject[] = [
             index: true,
           },
           { element: <ConsumerDashboard />, path: "dashboard" },
-          { element: <ConsumerVerifiedLoanDetail />, path: "loans/:id" },
+          { element: <ConsumerLoanDetailPage />, path: "loans/:id" },
           { element: <ExportPage />, path: "export" },
         ],
         element: <ConsumerLayout />,

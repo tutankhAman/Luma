@@ -29,7 +29,7 @@ export function ExceptionList({
           className={cn(
             "flex w-full items-center gap-2.5 rounded-lg border p-2.5 text-left transition-colors",
             activeId === exception.id
-              ? "border-[#8B5CF6]/30 bg-[#2E1065]/30/50"
+              ? "border-[#8B5CF6]/30 bg-[#2E1065]/20"
               : "border-[#27272A] hover:bg-[#27272A]/20"
           )}
           key={exception.id}

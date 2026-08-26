@@ -7,3 +7,11 @@ export function useVerifiedLoans(page = 1, search = "") {
     queryKey: ["verified-loans", page, search],
   });
 }
+
+export function useVerifiedLoanDetail(id: string) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => verifiedLoansApi.detail(id),
+    queryKey: ["verified-loan", id],
+  });
+}

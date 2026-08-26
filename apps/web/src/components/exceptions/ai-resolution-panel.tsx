@@ -1,12 +1,11 @@
 import type { ExceptionDetail, ExceptionListItem } from "@repo/types";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { ExceptionStatusBadge, SeverityBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAiDecision, useExceptionReview } from "@/hooks/use-exceptions";
-import { aiApi } from "@/lib/api";
+import { useAiDecision, useExplainException } from "@/hooks/use-ai";
+import { useExceptionReview } from "@/hooks/use-exceptions";
 
 function AiAnalysisBox({
   analysis,
@@ -71,7 +70,7 @@ export function AiResolutionPanel({
 }) {
   const [analysis, setAnalysis] =
     useState<ExceptionDetail["aiRecommendation"]>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const explain = useExplainException();
   const aiDecision = useAiDecision();
   const { approve, reject } = useExceptionReview();
 
@@ -79,20 +78,8 @@ export function AiResolutionPanel({
     if (!exception) {
       return;
     }
-    setAnalyzing(true);
-    try {
-      const result = await aiApi.explain(exception.id);
-      setAnalysis(result.recommendation);
-    } catch (error) {
-      toast.error("AI unavailable", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Proceed with manual review.",
-      });
-    } finally {
-      setAnalyzing(false);
-    }
+    const result = await explain.mutateAsync(exception.id);
+    setAnalysis(result.recommendation);
   };
 
   const reset = () => setAnalysis(null);
@@ -157,9 +144,9 @@ export function AiResolutionPanel({
           </p>
         </div>
 
-        <AiAnalysisBox analysis={analysis} loading={analyzing} />
+        <AiAnalysisBox analysis={analysis} loading={explain.isPending} />
 
-        {analysis || analyzing ? null : (
+        {analysis || explain.isPending ? null : (
           <Button
             className="w-full bg-[#8B5CF6] font-medium text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:bg-[#7C3AED]"
             onClick={() => void runAnalysis()}
