@@ -10,7 +10,7 @@ import type {
   VerifiedLoanListResponse,
 } from "@repo/types";
 
-export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false";
+export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
 const now = Date.now();
 const iso = (minutesAgo: number): string =>

@@ -31,12 +31,13 @@ export function useUploadBatch(batchId: string) {
   });
 }
 
-export function useUploadBatchSummary(batchId: string) {
+export function useUploadBatchSummary(batchId: string, isProcessing = false) {
   return useQuery({
     enabled: Boolean(batchId),
     queryFn: () =>
       USE_MOCKS ? mockApi.uploadSummary(batchId) : uploadsApi.summary(batchId),
     queryKey: ["uploads", batchId, "summary"],
+    refetchInterval: isProcessing ? 2000 : false,
   });
 }
 
