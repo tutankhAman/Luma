@@ -10,7 +10,7 @@
     "lint": "biome check .",
     "seed": "bun src/seed.ts",
     "start": "bun src/index.ts",
-    "test": "bun test src/lib src/middleware",
+    "test": "bun test src/lib src/middleware src/routes src/services",
     "test:integration": "bun test src/auth-flow.integration.test.ts"
   },
   "dependencies": {
