@@ -65,16 +65,6 @@
       }
     },
     {
-      "includes": ["apps/api/src/routes/loans.ts"],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noAwaitInLoops": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["apps/web/src/components/ui/**"],
       "linter": {
         "rules": {

@@ -350,21 +350,19 @@ router.patch(
         where: { id: loanId },
       })) as unknown as { updatedAt: Date; id: string };
 
-      for (const edit of editsForAudit) {
-        await tx.auditLog.create({
-          data: {
-            actorId: user.id,
-            eventType: "FIELD_EDITED",
-            loanId,
-            metadata: {
-              field: edit.field,
-              newValue: edit.newValue,
-              oldValue: edit.oldValue,
-              reason,
-            },
+      await tx.auditLog.createMany({
+        data: editsForAudit.map((edit) => ({
+          actorId: user.id,
+          eventType: "FIELD_EDITED",
+          loanId,
+          metadata: {
+            field: edit.field,
+            newValue: edit.newValue,
+            oldValue: edit.oldValue,
+            reason,
           },
-        });
-      }
+        })),
+      });
 
       return result;
     })) as unknown as { updatedAt: Date; id: string };
