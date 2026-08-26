@@ -1,34 +1,41 @@
-import { Navigate, type RouteObject } from "react-router-dom";
+import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { Layout } from "./layout";
+import {
+  ConsumerLayout,
+  OperatorLayout,
+  ReviewerLayout,
+} from "./layouts/role-layouts";
+import ConsumerDashboard from "./pages/consumer/dashboard";
+import ExportPage from "./pages/consumer/export";
+import LoginPageDefault, { RoleRedirect } from "./pages/login";
 
-const Placeholder = ({ label }: { label: string }) => (
-  <div className="flex min-h-[60vh] items-center justify-center p-8">
-    <p className="text-muted-foreground text-sm">
-      {label} — coming in next milestones
-    </p>
-  </div>
-);
+const LoginPage = LoginPageDefault;
+
+import BatchDetailPage from "./pages/operator/batch-detail";
+import OperatorDashboard from "./pages/operator/dashboard";
+import ReviewerDashboard from "./pages/reviewer/dashboard";
+import ExceptionQueuePage from "./pages/reviewer/exceptions";
+import {
+  ConsumerVerifiedLoanDetail,
+  ReviewerLoanDetail,
+} from "./pages/shared/loan-detail-placeholder";
 
 export const routes: RouteObject[] = [
   {
     children: [
-      { element: <Navigate replace to="/login" />, index: true },
-      { element: <Placeholder label="Login" />, path: "login" },
+      { element: <RoleRedirect />, index: true },
+      { element: <LoginPage />, path: "login" },
       {
         children: [
           {
             element: <Navigate replace to="/operator/dashboard" />,
             index: true,
           },
-          {
-            element: <Placeholder label="Operator dashboard" />,
-            path: "dashboard",
-          },
-          {
-            element: <Placeholder label="Batch detail" />,
-            path: "uploads/:batchId",
-          },
+          { element: <OperatorDashboard />, path: "dashboard" },
+          { element: <BatchDetailPage />, path: "uploads/:batchId" },
         ],
+        element: <OperatorLayout />,
         path: "operator",
       },
       {
@@ -37,19 +44,11 @@ export const routes: RouteObject[] = [
             element: <Navigate replace to="/reviewer/exceptions" />,
             index: true,
           },
-          {
-            element: <Placeholder label="Reviewer dashboard" />,
-            path: "dashboard",
-          },
-          {
-            element: <Placeholder label="Exception queue" />,
-            path: "exceptions",
-          },
-          {
-            element: <Placeholder label="Loan detail (reviewer)" />,
-            path: "loans/:id",
-          },
+          { element: <ReviewerDashboard />, path: "dashboard" },
+          { element: <ExceptionQueuePage />, path: "exceptions" },
+          { element: <ReviewerLoanDetail />, path: "loans/:id" },
         ],
+        element: <ReviewerLayout />,
         path: "reviewer",
       },
       {
@@ -58,13 +57,11 @@ export const routes: RouteObject[] = [
             element: <Navigate replace to="/consumer/dashboard" />,
             index: true,
           },
-          {
-            element: <Placeholder label="Consumer dashboard" />,
-            path: "dashboard",
-          },
-          { element: <Placeholder label="Verified loan" />, path: "loans/:id" },
-          { element: <Placeholder label="Export" />, path: "export" },
+          { element: <ConsumerDashboard />, path: "dashboard" },
+          { element: <ConsumerVerifiedLoanDetail />, path: "loans/:id" },
+          { element: <ExportPage />, path: "export" },
         ],
+        element: <ConsumerLayout />,
         path: "consumer",
       },
     ],
