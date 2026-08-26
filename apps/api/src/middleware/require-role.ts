@@ -23,13 +23,14 @@ export const requireRole =
     }
 
     const userRole = session.user.role;
+    const matchedRole = roles.find((role) => role === userRole);
 
-    if (!(userRole && roles.includes(userRole as AppRole))) {
+    if (!matchedRole) {
       res.status(403).json({ code: "FORBIDDEN", error: "Forbidden" });
       return;
     }
 
-    req.user = { ...session.user, role: userRole };
+    req.user = { ...session.user, role: matchedRole };
     req.session = session.session;
     next();
   };
