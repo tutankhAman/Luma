@@ -101,18 +101,26 @@ export default function BatchDetailPage() {
       ) : null}
 
       {batch?.status === "failed" ? (
-        <Card className="border-destructive/30 bg-destructive/5 shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="flex items-center gap-2 font-medium text-rose-400 text-sm">
-              <i className="ri-error-warning-line text-base" />
+        <Card className="rounded-[24px] border border-rose-500/30 bg-rose-500/10 shadow-none">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="flex items-center gap-2 font-semibold text-rose-400 text-sm">
+              <i aria-hidden="true" className="ri-error-warning-line text-lg" />
               Ingestion Failed
             </CardTitle>
-            <CardDescription className="mt-1 text-rose-400/90 text-xs">
-              {((batch.metadata as Record<string, unknown> | null)
-                ?.error as string) ||
-                "The CSV file could not be processed. Please ensure it contains valid loan records matching the schema."}
+            <CardDescription className="mt-1 text-[13px] text-rose-200/90">
+              The CSV stream stopped before completing. Fix the source file and
+              re-upload — partially imported rows are kept and a retry is
+              idempotent.
             </CardDescription>
           </CardHeader>
+          <CardContent className="p-5 pt-0">
+            <pre className="custom-scrollbar-hide max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-rose-500/20 bg-black/50 p-3 font-mono text-[11px] text-rose-300/80">
+              {String(
+                (batch.metadata as Record<string, unknown> | null)?.error ??
+                  `Unknown error — check the API logs for batch ${batch.id}`
+              )}
+            </pre>
+          </CardContent>
         </Card>
       ) : null}
 
