@@ -4,6 +4,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@utility bg-auth-gradient {
+  /* white -> #8B5CF6 -> #2E1065 -> black through 11 purple stops */
+  background-image: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #f5f2fe 5%,
+    #e3d9fc 11%,
+    #cdb9f9 18%,
+    #b193f8 26%,
+    #8b5cf6 35%,
+    #7443d6 45%,
+    #5f31ad 55%,
+    #4a2388 65%,
+    #38166c 75%,
+    #2e1065 84%,
+    #170736 93%,
+    #000000 100%
+  );
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans:
