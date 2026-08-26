@@ -139,26 +139,12 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 **→ Deliverable to A (Hour 4):** ✅ Auth endpoints working, `/api/me` returns `{ id, name, email, role }`
 
 #### Hour 4–7: Upload Routes + CSV Ingestion Service (Million-Row Scale)
-- [ ] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse)
-- [ ] Create `routes/uploads.ts`:
-  - `POST /api/uploads` — Multer (save directly to disk/temp, not memory), create `UploadBatch`, immediately return `202 Accepted`
-  - Kick off async ingestion job in the background (runs independently of HTTP request)
-  - `GET /api/uploads` — paginated batch list
-  - `GET /api/uploads/:batchId` — batch detail + failed rows
-  - `GET /api/uploads/:batchId/summary` — validation summary counts
-- [ ] Create `services/ingestion.service.ts`:
-  - `processStreamAndNormalize(filePath, batchId)`:
-    - Use `fs.createReadStream().pipe(csv())`
-    - Multer disk storage with `limits: { fileSize: 500 * 1024 * 1024 }` (500 MB ≈ ~1.5M rows)
-    - Accumulate rows into chunks of 5,000 — normalize defensively; one malformed row must never throw and kill its chunk
-    - On chunk full: pause stream, `prisma.loan.createMany(chunk, { skipDuplicates: true })`, write ONE chunk-level `LOAN_IMPORTED` AuditLog (counts + row-range in metadata), resume stream
-    - Idempotent resume: `@@unique([sourceBatchId, sourceRowNumber])` on Loan + `skipDuplicates` → replaying after a mid-chunk crash can never double-insert
-    - On pipeline error: mark batch `failed`, persist reason to batch metadata, `stream.destroy()` — never leave a zombie `processing` batch
-  - Handle: missing columns, encoding issues, BOM stripping, empty rows
-  - Store failed rows in batch metadata JSON (capped at first 1,000 failures to prevent DB bloat)
-- [ ] Write Zod validators for upload route inputs
+- [x] Install: `bun add multer csv-parser` (using csv-parser for streams instead of papaparse) — done `45e17bd` (multer 2.2.0, csv-parser 3.2.1, @types/multer 2.2.0)
+- [x] Create `routes/uploads.ts` — done `47d80f5`/`b65705d`: `POST /api/uploads` disk storage `os.tmpdir()/luma-uploads` `limits:{fileSize:500*1024*1024}`, `.csv` only (415), `fileType` validated via `fileTypeSchema` (400), `UploadBatch` create `202 {batchId,fileName,fileType,status:"processing",message}`, fire-and-forget `processStreamAndNormalize` without await; `GET /api/uploads` paginated via `listUploadsQuerySchema` (page/limit/status) + `uploadedById` filter; `GET /api/uploads/:batchId` detail + `failedRows` from `metadata.failedRows` (capped); `GET /api/uploads/:batchId/summary` real `Loan.count` + zeroed exception groups via `batchSummarySchema` (until Hour 7-10); wired `app.use("/api/uploads", uploadsRouter)` after `express.json()`; multer `LIMIT_FILE_SIZE` → `413 PAYLOAD_TOO_LARGE` handler
+- [x] Create `services/ingestion.service.ts` — done `45e17bd`/`82bb7f1`: `processStreamAndNormalize(filePath,batchId)` uses `fs.createReadStream().pipe(csv({mapHeaders:BOM_REGEX}))`, chunks 5000, `pause`/`resume` around `prisma.loan.createMany({skipDuplicates:true})` idempotent via `@@unique([sourceBatchId,sourceRowNumber])`, chunk-level `LOAN_IMPORTED` audit, per-row `normalizeRow` defensive (BOM, bad dates → failedRows, empty rows skipped), `failedRows` capped 1000 in `metadata` + `INGESTION_COMPLETED` log, error path `markFailed` + `stream.destroy()` no zombie `processing`; helpers `flushChunk`/`finalizeSuccess`/`markFailed`/`pauseStreams` extracted to keep `processRows` complexity <20; pure helpers `parseDate`/`parseDecimal`/`parseIntSafe`/`normalizeRow` exported
+- [x] Write Zod validators for upload route inputs — done: `createUploadBodySchema` + `listUploadsQuerySchema` in `@repo/types` reused, `fileTypeSchema` + `batchStatusSchema` validated; `batchSummarySchema` used for summary response
 
-**→ Deliverable to A (Hour 7):** `POST /api/uploads` returns 202 instantly, `GET /api/uploads/:batchId` polls and shows batch progress updating over time
+**→ Deliverable to A (Hour 7):** ✅ `POST /api/uploads` returns 202 instantly, `GET /api/uploads/:batchId` polls every 2s and shows progress → `done` with real `recordCount`/`failedCount`/`failedRows`
 
 #### Hour 7–10: Validation Engine (Core)
 - [ ] Create `services/validation.service.ts`:

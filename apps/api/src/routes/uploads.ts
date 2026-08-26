@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import {
   type BatchSummary,
-  batchStatusSchema,
   type CreateUploadResponse,
   fileTypeSchema,
   type GetBatchResponse,
@@ -11,6 +10,7 @@ import {
 } from "@repo/types";
 import express, { type Request, type Response } from "express";
 import multer from "multer";
+import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
@@ -18,6 +18,7 @@ import { processStreamAndNormalize } from "../services/ingestion.service.js";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const UPLOAD_DIR = path.join(os.tmpdir(), "luma-uploads");
+const BATCH_ID_SCHEMA = z.string().cuid();
 
 const ensureUploadDir = (): void => {
   if (!fs.existsSync(UPLOAD_DIR)) {
@@ -106,15 +107,26 @@ router.post(
       return;
     }
 
-    const batch = await prisma.uploadBatch.create({
-      data: {
-        fileName: file.originalname,
-        filePath: file.path,
-        fileType: parsedType.data,
-        recordCount: 0,
-        status: "processing",
-        uploadedById: user.id,
-      },
+    const batch = await prisma.$transaction(async (tx) => {
+      const created = await tx.uploadBatch.create({
+        data: {
+          fileName: file.originalname,
+          filePath: file.path,
+          fileType: parsedType.data,
+          recordCount: 0,
+          status: "processing",
+          uploadedById: user.id,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
+          batchId: created.id,
+          eventType: "FILE_UPLOADED",
+          metadata: { fileName: created.fileName, fileType: created.fileType },
+        },
+      });
+      return created;
     });
 
     const response: CreateUploadResponse = {
@@ -158,11 +170,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   const where: Record<string, unknown> = { uploadedById: user.id };
   if (status) {
-    const statusParsed = batchStatusSchema.safeParse(status);
-    if (!statusParsed.success) {
-      res.status(400).json({ code: "BAD_REQUEST", error: "Invalid status" });
-      return;
-    }
     where.status = status;
   }
 
@@ -199,10 +206,25 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get("/:batchId", async (req: Request, res: Response): Promise<void> => {
-  const { batchId } = req.params as { batchId: string };
+  const rawBatchId = (req.params as { batchId: string }).batchId;
+  const parsedId = BATCH_ID_SCHEMA.safeParse(rawBatchId);
+  if (!parsedId.success) {
+    res.status(400).json({
+      code: "BAD_REQUEST",
+      error: "Invalid batchId",
+      fields: { batchId: "Must be a valid cuid" },
+    });
+    return;
+  }
+  const { data: batchId } = parsedId;
+  const { user } = req;
+  if (!user) {
+    res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
+    return;
+  }
 
-  const batch = await prisma.uploadBatch.findUnique({
-    where: { id: batchId },
+  const batch = await prisma.uploadBatch.findFirst({
+    where: { id: batchId, uploadedById: user.id },
   });
 
   if (!batch) {
@@ -235,10 +257,25 @@ router.get("/:batchId", async (req: Request, res: Response): Promise<void> => {
 router.get(
   "/:batchId/summary",
   async (req: Request, res: Response): Promise<void> => {
-    const { batchId } = req.params as { batchId: string };
+    const rawBatchId = (req.params as { batchId: string }).batchId;
+    const parsedId = BATCH_ID_SCHEMA.safeParse(rawBatchId);
+    if (!parsedId.success) {
+      res.status(400).json({
+        code: "BAD_REQUEST",
+        error: "Invalid batchId",
+        fields: { batchId: "Must be a valid cuid" },
+      });
+      return;
+    }
+    const { data: batchId } = parsedId;
+    const { user } = req;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
+      return;
+    }
 
-    const batch = await prisma.uploadBatch.findUnique({
-      where: { id: batchId },
+    const batch = await prisma.uploadBatch.findFirst({
+      where: { id: batchId, uploadedById: user.id },
     });
 
     if (!batch) {
@@ -250,10 +287,21 @@ router.get(
       where: { sourceBatchId: batchId },
     });
 
-    const exceptions = await prisma.exception.findMany({
-      where: { loan: { sourceBatchId: batchId } },
-      select: { exceptionType: true, severity: true },
-    });
+    const [byType, bySeverity, totalExceptions] = await Promise.all([
+      prisma.exception.groupBy({
+        _count: { exceptionType: true },
+        by: ["exceptionType"],
+        where: { loan: { sourceBatchId: batchId } },
+      }),
+      prisma.exception.groupBy({
+        _count: { severity: true },
+        by: ["severity"],
+        where: { loan: { sourceBatchId: batchId } },
+      }),
+      prisma.exception.count({
+        where: { loan: { sourceBatchId: batchId } },
+      }),
+    ]);
 
     const exceptionsByType: Record<string, number> = {
       balance_error: 0,
@@ -274,19 +322,20 @@ router.get(
       medium: 0,
     };
 
-    for (const exception of exceptions) {
-      const { exceptionType, severity } = exception;
-      if (exceptionType in exceptionsByType) {
-        exceptionsByType[exceptionType] =
-          (exceptionsByType[exceptionType] ?? 0) + 1;
+    for (const row of byType) {
+      const key = row.exceptionType;
+      if (key in exceptionsByType) {
+        exceptionsByType[key] = row._count.exceptionType ?? 0;
       }
-      if (severity in exceptionsBySeverity) {
-        exceptionsBySeverity[severity] =
-          (exceptionsBySeverity[severity] ?? 0) + 1;
+    }
+    for (const row of bySeverity) {
+      const key = row.severity;
+      if (key in exceptionsBySeverity) {
+        exceptionsBySeverity[key] = row._count.severity ?? 0;
       }
     }
 
-    const failedValidation = exceptions.length;
+    const failedValidation = totalExceptions;
     const passedValidation = Math.max(0, totalImported - failedValidation);
 
     const summary: BatchSummary = {

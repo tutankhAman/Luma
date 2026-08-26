@@ -10,9 +10,17 @@ import {
 import type { AddressInfo } from "node:net";
 
 const fakePrisma = {
+  $transaction: mock(async (cb: (tx: unknown) => Promise<unknown>) =>
+    cb({
+      auditLog: { create: fakePrisma.auditLog.create },
+      uploadBatch: { create: fakePrisma.uploadBatch.create },
+    } as never)
+  ),
   auditLog: { create: mock(() => Promise.resolve({} as never)) },
   exception: {
+    count: mock(() => Promise.resolve(0 as never)),
     findMany: mock(() => Promise.resolve([] as never)),
+    groupBy: mock(() => Promise.resolve([] as never)),
   },
   loan: {
     count: mock(() => Promise.resolve(0 as never)),
@@ -30,6 +38,7 @@ const fakePrisma = {
         status: "processing",
       } as never)
     ),
+    findFirst: mock(() => Promise.resolve(null as never)),
     findMany: mock(() => Promise.resolve([] as never)),
     findUnique: mock(() => Promise.resolve(null as never)),
     update: mock(() => Promise.resolve({} as never)),
@@ -110,9 +119,12 @@ beforeEach(() => {
   fakePrisma.uploadBatch.findUnique = mock(() =>
     Promise.resolve(null as never)
   );
+  fakePrisma.uploadBatch.findFirst = mock(() => Promise.resolve(null as never));
   fakePrisma.uploadBatch.count = mock(() => Promise.resolve(0 as never));
   fakePrisma.loan.count = mock(() => Promise.resolve(0 as never));
   fakePrisma.exception.findMany = mock(() => Promise.resolve([] as never));
+  fakePrisma.exception.groupBy = mock(() => Promise.resolve([] as never));
+  fakePrisma.exception.count = mock(() => Promise.resolve(0 as never));
 });
 
 describe("POST /api/uploads", () => {
@@ -199,6 +211,10 @@ describe("POST /api/uploads", () => {
       body: form,
       method: "POST",
     });
+    if (res.status !== 202) {
+      const body = await res.text();
+      throw new Error(`expected 202 got ${res.status}: ${body}`);
+    }
     expect(res.status).toBe(202);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.batchId).toBe("batch_123");
@@ -243,22 +259,29 @@ describe("GET /api/uploads", () => {
 });
 
 describe("GET /api/uploads/:batchId", () => {
+  it("returns 400 for invalid cuid", async () => {
+    const res = await fetch(`${baseUrl}/api/uploads/nonexistent`);
+    expect(res.status).toBe(400);
+  });
+
   it("returns 404 when not found", async () => {
-    fakePrisma.uploadBatch.findUnique = mock(() =>
+    const cuid = "c".repeat(25);
+    fakePrisma.uploadBatch.findFirst = mock(() =>
       Promise.resolve(null as never)
     );
-    const res = await fetch(`${baseUrl}/api/uploads/nonexistent`);
+    const res = await fetch(`${baseUrl}/api/uploads/${cuid}`);
     expect(res.status).toBe(404);
   });
 
   it("returns batch detail with failedRows", async () => {
-    fakePrisma.uploadBatch.findUnique = mock(() =>
+    const cuid = "c".repeat(25);
+    fakePrisma.uploadBatch.findFirst = mock(() =>
       Promise.resolve({
         createdAt: new Date("2026-08-25T10:00:00.000Z"),
         failedCount: 1,
         fileName: "test.csv",
         fileType: "loan_tape",
-        id: "batch_123",
+        id: cuid,
         metadata: { failedRows: [{ rawData: "x", reason: "y", rowNumber: 2 }] },
         recordCount: 10,
         status: "done",
@@ -266,36 +289,44 @@ describe("GET /api/uploads/:batchId", () => {
         uploadedById: "user_op",
       } as never)
     );
-    const res = await fetch(`${baseUrl}/api/uploads/batch_123`);
+    const res = await fetch(`${baseUrl}/api/uploads/${cuid}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { failedRows: unknown[]; id: string };
-    expect(body.id).toBe("batch_123");
+    expect(body.id).toBe(cuid);
     expect(body.failedRows.length).toBe(1);
   });
 });
 
 describe("GET /api/uploads/:batchId/summary", () => {
+  it("returns 400 for invalid cuid", async () => {
+    const res = await fetch(`${baseUrl}/api/uploads/nonexistent/summary`);
+    expect(res.status).toBe(400);
+  });
+
   it("returns 404 when batch not found", async () => {
-    fakePrisma.uploadBatch.findUnique = mock(() =>
+    const cuid = "c".repeat(25);
+    fakePrisma.uploadBatch.findFirst = mock(() =>
       Promise.resolve(null as never)
     );
-    const res = await fetch(`${baseUrl}/api/uploads/nonexistent/summary`);
+    const res = await fetch(`${baseUrl}/api/uploads/${cuid}/summary`);
     expect(res.status).toBe(404);
   });
 
   it("returns summary with real counts and zeroed exception groups", async () => {
-    fakePrisma.uploadBatch.findUnique = mock(() =>
+    const cuid = "c".repeat(25);
+    fakePrisma.uploadBatch.findFirst = mock(() =>
       Promise.resolve({
         createdAt: new Date(),
         fileName: "test.csv",
         fileType: "loan_tape",
-        id: "batch_123",
+        id: cuid,
         status: "done",
       } as never)
     );
     fakePrisma.loan.count = mock(() => Promise.resolve(10 as never));
-    fakePrisma.exception.findMany = mock(() => Promise.resolve([] as never));
-    const res = await fetch(`${baseUrl}/api/uploads/batch_123/summary`);
+    fakePrisma.exception.count = mock(() => Promise.resolve(0 as never));
+    fakePrisma.exception.groupBy = mock(() => Promise.resolve([] as never));
+    const res = await fetch(`${baseUrl}/api/uploads/${cuid}/summary`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       batchId: string;
@@ -305,7 +336,7 @@ describe("GET /api/uploads/:batchId/summary", () => {
       exceptionsByType: Record<string, number>;
       exceptionsBySeverity: Record<string, number>;
     };
-    expect(body.batchId).toBe("batch_123");
+    expect(body.batchId).toBe(cuid);
     expect(body.totalImported).toBe(10);
     expect(body.failedValidation).toBe(0);
     expect(body.passedValidation).toBe(10);

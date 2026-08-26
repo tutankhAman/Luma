@@ -105,10 +105,6 @@ export const parseDate = (value: unknown): Date | null => {
   }
   const d = new Date(str);
   if (Number.isNaN(d.getTime())) {
-    const stack = new Error("parseDate stack trace").stack ?? "";
-    if (stack.includes("toThrow") || stack.includes("toReject")) {
-      throw new Error(`invalid date format: ${str}`);
-    }
     return null;
   }
   return d;
@@ -297,6 +293,7 @@ export const processStreamAndNormalize = async (
   }
 
   const failedRows: FailedRow[] = [];
+  let totalFailedRows = 0;
   let chunk: LoanCreateData[] = [];
   let chunkStartRow: number | null = null;
   let chunkEndRow: number | null = null;
@@ -332,6 +329,13 @@ export const processStreamAndNormalize = async (
         // ignore
       }
     }
+    try {
+      await fs.promises.unlink(filePath).catch(() => {
+        // ignore ENOENT
+      });
+    } catch {
+      // ignore
+    }
   };
 
   const flushChunk = async (): Promise<void> => {
@@ -345,18 +349,24 @@ export const processStreamAndNormalize = async (
     chunkStartRow = null;
     chunkEndRow = null;
     try {
-      const result = await prisma.loan.createMany({
-        data: toInsert as unknown as never[],
-        skipDuplicates: true,
-      });
-      const inserted = (result as unknown as { count: number }).count;
-      processedCount += inserted;
-      await prisma.auditLog.create({
-        data: {
-          batchId,
-          eventType: "LOAN_IMPORTED",
-          metadata: { inserted, rowEnd, rowStart },
-        },
+      await prisma.$transaction(async (tx) => {
+        const result = await tx.loan.createMany({
+          data: toInsert as unknown as never[],
+          skipDuplicates: true,
+        });
+        const inserted = (result as unknown as { count: number }).count;
+        processedCount += inserted;
+        await tx.auditLog.create({
+          data: {
+            batchId,
+            eventType: "LOAN_IMPORTED",
+            metadata: { inserted, rowEnd, rowStart },
+          },
+        });
+        await tx.uploadBatch.update({
+          data: { processedCount },
+          where: { id: batchId },
+        });
       });
     } catch (err) {
       await markFailed(err);
@@ -366,32 +376,6 @@ export const processStreamAndNormalize = async (
 
   let readStream: fs.ReadStream | null = null;
   let csvStream: NodeJS.ReadableStream | null = null;
-
-  const pauseStreams = (): void => {
-    try {
-      if (csvStream) {
-        (csvStream as unknown as { pause: () => void }).pause();
-      }
-      if (readStream) {
-        (readStream as unknown as { pause: () => void }).pause();
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  const resumeStreams = (): void => {
-    try {
-      if (csvStream) {
-        (csvStream as unknown as { resume: () => void }).resume();
-      }
-      if (readStream) {
-        (readStream as unknown as { resume: () => void }).resume();
-      }
-    } catch {
-      // ignore
-    }
-  };
 
   const destroyStreams = (): void => {
     try {
@@ -412,16 +396,22 @@ export const processStreamAndNormalize = async (
       result = normalizeRow(row, batchId, rowNumber);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      failedRows.push({
-        rawData: JSON.stringify(row),
-        reason,
-        rowNumber,
-      });
+      totalFailedRows += 1;
+      if (failedRows.length < MAX_FAILED_ROWS_STORED) {
+        failedRows.push({
+          rawData: JSON.stringify(row),
+          reason,
+          rowNumber,
+        });
+      }
       return;
     }
 
     if (!result.success) {
-      failedRows.push(result.failedRow);
+      totalFailedRows += 1;
+      if (failedRows.length < MAX_FAILED_ROWS_STORED) {
+        failedRows.push(result.failedRow);
+      }
       return;
     }
 
@@ -441,10 +431,9 @@ export const processStreamAndNormalize = async (
       }
     }
 
-    const failedCount = failedRows.length;
+    const failedCount = totalFailedRows;
     const recordCount = totalValidNormalized + failedCount;
-    const capped = failedRows.slice(0, MAX_FAILED_ROWS_STORED);
-    const truncated = failedRows.length > MAX_FAILED_ROWS_STORED;
+    const truncated = totalFailedRows > MAX_FAILED_ROWS_STORED;
 
     let existingMeta: Record<string, unknown> = {};
     try {
@@ -458,24 +447,37 @@ export const processStreamAndNormalize = async (
 
     const nextMetadata: Record<string, unknown> = {
       ...existingMeta,
-      failedRows: capped,
+      failedRows,
     };
     if (truncated) {
       (nextMetadata as Record<string, unknown>).failedRowsTruncated = true;
       (nextMetadata as Record<string, unknown>).totalFailedRows =
-        failedRows.length;
+        totalFailedRows;
     }
 
     try {
-      await prisma.uploadBatch.update({
-        data: {
-          failedCount,
-          metadata: nextMetadata as never,
-          processedCount,
-          recordCount,
-          status: "done",
-        },
-        where: { id: batchId },
+      await prisma.$transaction(async (tx) => {
+        await tx.uploadBatch.update({
+          data: {
+            failedCount,
+            metadata: nextMetadata as never,
+            processedCount,
+            recordCount,
+            status: "done",
+          },
+          where: { id: batchId },
+        });
+        await tx.auditLog.create({
+          data: {
+            batchId,
+            eventType: "INGESTION_COMPLETED",
+            metadata: {
+              failedCount,
+              totalRows: recordCount,
+              validInserted: processedCount,
+            },
+          },
+        });
       });
     } catch {
       await markFailed(new Error("failed to update batch on completion"));
@@ -483,19 +485,11 @@ export const processStreamAndNormalize = async (
     }
 
     try {
-      await prisma.auditLog.create({
-        data: {
-          batchId,
-          eventType: "INGESTION_COMPLETED",
-          metadata: {
-            failedCount,
-            totalRows: recordCount,
-            validInserted: processedCount,
-          },
-        },
+      await fs.promises.unlink(filePath).catch(() => {
+        // ignore ENOENT
       });
     } catch {
-      // audit log failure should not revert batch status
+      // ignore
     }
   };
 
@@ -516,12 +510,10 @@ export const processStreamAndNormalize = async (
       handleRow(row as Record<string, string>, rowNumber);
 
       if (chunk.length >= CHUNK_SIZE) {
-        pauseStreams();
         await flushChunk();
         if (hasFailed) {
           break;
         }
-        resumeStreams();
       }
     }
   };
@@ -542,11 +534,11 @@ export const processStreamAndNormalize = async (
       })
     );
 
-    const streamErrorPromise = new Promise<never>((_, reject) => {
-      (readStream as fs.ReadStream).on("error", reject);
+    const streamErrorPromise = new Promise<never>((_resolve, reject) => {
+      readStream?.on("error", reject);
       (
         csvStream as unknown as {
-          on: (e: string, h: (err: Error) => void) => void;
+          on: (event: string, handler: (err: Error) => void) => unknown;
         }
       ).on("error", reject);
     });

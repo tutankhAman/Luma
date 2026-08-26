@@ -3,15 +3,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const INVALID_DATE_FORMAT_REGEX = /invalid date format/i;
-
 const fakePrisma: {
+  $transaction: ReturnType<typeof mock>;
+  auditLog: { create: ReturnType<typeof mock> };
   loan: { createMany: ReturnType<typeof mock> };
   uploadBatch: {
-    update: ReturnType<typeof mock>;
     findUnique: ReturnType<typeof mock>;
+    update: ReturnType<typeof mock>;
   };
-  auditLog: { create: ReturnType<typeof mock> };
 } = {
   auditLog: {
     create: mock(() => Promise.resolve({} as never)),
@@ -23,7 +22,30 @@ const fakePrisma: {
     findUnique: mock(() => Promise.resolve({ metadata: {} } as never)),
     update: mock(() => Promise.resolve({} as never)),
   },
+} as unknown as {
+  $transaction: ReturnType<typeof mock>;
+  auditLog: { create: ReturnType<typeof mock> };
+  loan: { createMany: ReturnType<typeof mock> };
+  uploadBatch: {
+    findUnique: ReturnType<typeof mock>;
+    update: ReturnType<typeof mock>;
+  };
 };
+
+(
+  fakePrisma as unknown as {
+    $transaction: ReturnType<typeof mock>;
+  }
+).$transaction = mock((callback: (tx: unknown) => Promise<unknown>) =>
+  callback({
+    auditLog: { create: fakePrisma.auditLog.create },
+    loan: { createMany: fakePrisma.loan.createMany },
+    uploadBatch: {
+      findUnique: fakePrisma.uploadBatch.findUnique,
+      update: fakePrisma.uploadBatch.update,
+    },
+  } as never)
+) as never;
 
 mock.module("../lib/prisma.js", () => ({ prisma: fakePrisma }));
 
@@ -46,6 +68,18 @@ const resetMocks = () => {
     Promise.resolve({ metadata: {} } as never)
   );
   fakePrisma.auditLog.create = mock(() => Promise.resolve({} as never));
+  (
+    fakePrisma as unknown as { $transaction: ReturnType<typeof mock> }
+  ).$transaction = mock((callback: (tx: unknown) => Promise<unknown>) =>
+    callback({
+      auditLog: { create: fakePrisma.auditLog.create },
+      loan: { createMany: fakePrisma.loan.createMany },
+      uploadBatch: {
+        findUnique: fakePrisma.uploadBatch.findUnique,
+        update: fakePrisma.uploadBatch.update,
+      },
+    } as never)
+  ) as never;
 };
 
 describe("parseDate", () => {
@@ -76,8 +110,8 @@ describe("parseDate", () => {
     expect(result).toBeNull();
   });
 
-  it("throws with invalid date format message when caller expects throw", () => {
-    expect(() => parseDate("not-a-date")).toThrow(INVALID_DATE_FORMAT_REGEX);
+  it("returns null for invalid date (pure, no throw)", () => {
+    expect(parseDate("not-a-date")).toBeNull();
   });
 });
 
