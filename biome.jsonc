@@ -45,6 +45,16 @@
       }
     },
     {
+      "includes": ["**/*.integration.test.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["apps/web/src/components/ui/**"],
       "linter": {
         "rules": {
