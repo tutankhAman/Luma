@@ -147,7 +147,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 **→ Deliverable to A (Hour 7):** ✅ `POST /api/uploads` returns 202 instantly, `GET /api/uploads/:batchId` polls every 2s and shows progress → `done` with real `recordCount`/`failedCount`/`failedRows`; `GET /api/uploads/:batchId/summary` already returns real validation counts via `Exception.groupBy`
 
 #### Hour 7–10: Validation Engine (Core)
-- [ ] Create `services/validation.service.ts`:
+- [x] Create `services/validation.service.ts`:
   - Rule interface: `{ id, name, check(loan): ValidationResult | null }`
   - Implement all 10 per-loan rules (together covering every §7 intentional data issue):
     - `requiredFields` → `missing_field`
@@ -169,9 +169,9 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
   - Bulk-create `Exception` records in `prisma.$transaction` per chunk
   - Update `Loan.validationStatus`
   - Bulk-write `AuditLog`: `VALIDATION_RUN`, `EXCEPTION_CREATED`
-- [ ] Load `validation_rules.json` thresholds (interest rate range, stale days, etc.)
-- [ ] Auto-trigger validation after ingestion completes in job
-- [ ] Expose `GET /api/uploads/:batchId/summary` with real exception counts
+- [x] Load `validation_rules.json` thresholds (interest rate range, stale days, etc.)
+- [x] Auto-trigger validation after ingestion completes in job
+- [x] Expose `GET /api/uploads/:batchId/summary` with real exception counts
 
 **→ Deliverable to A (Hour 10):** Summary endpoint returns real grouped exception counts
 
@@ -180,7 +180,7 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### A — Hours 2–10
 
 #### Hour 2–4: Auth UI + Route Guards (Vite + react-router + ProtectedRoute)
-- [ ] Build `src/app/pages/(auth)/login.tsx`:
+- [x] Build `src/app/pages/(auth)/login.tsx`:
   - Email + password form (shadcn/ui `Form`, `Input`, `Button`)
   - Calls `authClient.signIn.email({ email, password })` (better-auth client → `:4000/api/auth/*`, via Vite `/api` proxy)
   - On success → `navigate` based on `user.role`:
@@ -189,19 +189,19 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - `data_consumer` → `/consumer/dashboard`
   - Error state (invalid credentials toast via Sonner)
   - Loading spinner on submit
-- [ ] Build `src/app/guards/ProtectedRoute.tsx`:
+- [x] Build `src/app/guards/ProtectedRoute.tsx`:
   - Reads `authClient.useSession()` (reactive `data` + `isPending`) — `withCredentials` already set on the fetch client
   - While `isPending` → skeleton
   - No session → `<Navigate to="/login" />`
   - Wrong `user.role` → `Forbidden` page (not white screen) — the API will return 403 anyway
-- [ ] Build `src/app/layouts/OperatorLayout.tsx`, `ReviewerLayout.tsx`, `ConsumerLayout.tsx` — each wraps `<ProtectedRoute role="...">` + `<Sidebar />` + `<Outlet />`
-- [ ] Build shared `src/components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button (`authClient.signOut()` → navigate `/login`)
-- [ ] Root `"/"` in `routes.tsx` — while-pending → skeleton, then redirect by role (or to `/login`)
+- [x] Build `src/app/layouts/OperatorLayout.tsx`, `ReviewerLayout.tsx`, `ConsumerLayout.tsx` — each wraps `<ProtectedRoute role="...">` + `<Sidebar />` + `<Outlet />`
+- [x] Build shared `src/components/nav/sidebar.tsx` — role-aware nav links, user avatar, sign-out button (`authClient.signOut()` → navigate `/login`)
+- [x] Root `"/"` in `routes.tsx` — while-pending → skeleton, then redirect by role (or to `/login`)
 
 **Uses:** `GET /api/auth/get-session`, `GET /api/me`
 
 #### Hour 4–7: Operator Dashboard + Upload UI
-- [ ] Build `app/(operator)/dashboard/page.tsx`:
+- [x] Build `app/(operator)/dashboard/page.tsx`:
   - Upload zone: `components/upload/csv-dropzone.tsx`
     - Drag-and-drop area (or `react-dropzone`)
     - File type selector: loan_tape / servicer_update / document_manifest
@@ -212,15 +212,13 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - Columns: File Name, Type, Records, Failed, Status, Uploaded At
     - Status badge: pending/processing/done/failed with colors
     - Row click → `/operator/uploads/:batchId`
-- [ ] TanStack Query hooks: `hooks/use-uploads.ts`
+- [x] TanStack Query hooks: `hooks/use-uploads.ts`
   - `useUploads()` — `GET /api/uploads` with refetch
   - `useUploadBatch(batchId)` — `GET /api/uploads/:batchId` — polls every 2s while `status === 'processing'`
   - `useCreateUpload()` — mutation for `POST /api/uploads`
 
-> **Mock strategy (while B finishes ingestion):** Hardcode a `mockBatch` object so the UI renders correctly.
-
 #### Hour 7–10: Batch Detail Page + Validation Summary
-- [ ] Build `app/(operator)/uploads/[batchId]/page.tsx`:
+- [x] Build `app/(operator)/uploads/[batchId]/page.tsx`:
   - **Import Summary card:** Total rows | Imported | Failed
   - **Failed Rows table:** Row Number, Raw Data snippet, Error Reason
   - **Validation Summary card** (from `GET /api/uploads/:batchId/summary`):
@@ -228,15 +226,15 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - Exception breakdown by type (progress bars)
     - Exception breakdown by severity (critical/high/medium/low badges with counts)
   - **Processing skeleton** when batch status is `processing` (auto-refreshes)
-- [ ] `hooks/use-batch-summary.ts` — `GET /api/uploads/:batchId/summary`
-- [ ] Create `components/ui/stat-card.tsx` — reusable metric card
-- [ ] Create `components/ui/severity-badge.tsx` — colored badge for critical/high/medium/low
+- [x] `hooks/use-batch-summary.ts` — `GET /api/uploads/:batchId/summary`
+- [x] Create `components/ui/stat-card.tsx` — reusable metric card
+- [x] Create `components/ui/severity-badge.tsx` — colored badge for critical/high/medium/low
 
 ### Phase 1 Checkpoint (Hour 10)
-- [ ] Operator can log in → see dashboard → upload CSV → see processing → see batch summary with real data
-- [ ] Reviewer and Consumer can log in → see their (empty) dashboards
-- [ ] Auth redirects work correctly for all 3 roles
-- [ ] B confirms: Upload + Ingestion + Validation Engine endpoints all return real data
+- [x] Operator can log in → see dashboard → upload CSV → see processing → see batch summary with real data
+- [x] Reviewer and Consumer can log in → see their (empty) dashboards
+- [x] Auth redirects work correctly for all 3 roles
+- [x] B confirms: Upload + Ingestion + Validation Engine endpoints all return real data
 
 ---
 
