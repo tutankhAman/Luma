@@ -46,7 +46,11 @@ export const createAiRateLimiter = (opts?: {
         code: "RATE_LIMITED",
         error: "Too many AI requests — please try again shortly.",
       });
-      buckets.set(key, bucket);
+      if (bucket.length === 0) {
+        buckets.delete(key);
+      } else {
+        buckets.set(key, bucket);
+      }
       return;
     }
 

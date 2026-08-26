@@ -201,7 +201,7 @@ export const detectServicerConflicts = async (
       select: tapeSelect as never,
       where: {
         loanId: { in: loanIds },
-        sourceBatchId: { not: servicerBatchId },
+        sourceBatch: { fileType: "loan_tape" },
       },
     })) as unknown as TapeLoanRow[];
 

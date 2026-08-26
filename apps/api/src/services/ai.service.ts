@@ -34,8 +34,18 @@ const classifyGenerationSchema = z.object({
   suggestedSeverity: severitySchema,
 });
 
+const suggestRuleConditionSchema = z
+  .record(z.string(), z.unknown())
+  .refine(
+    (obj) =>
+      !Object.keys(obj).some(
+        (k) => k === "__proto__" || k === "constructor" || k === "prototype"
+      ),
+    { message: "condition contains forbidden key" }
+  );
+
 const suggestRuleGenerationSchema = z.object({
-  condition: z.unknown(),
+  condition: suggestRuleConditionSchema,
   description: z.string().min(1),
   exceptionType: exceptionTypeSchema,
   name: z.string().min(1),

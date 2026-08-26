@@ -106,6 +106,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // S3 exception: test teardown only, never in src/services/ — scoped to luma_test + RUN_TAG.
+  if (process.env.DATABASE_URL !== TEST_DATABASE_URL) {
+    throw new Error("Refusing to delete — DATABASE_URL is not luma_test");
+  }
   await prisma.exception.deleteMany({
     where: { loan: { sourceBatch: { fileName: { contains: RUN_TAG } } } },
   } as never);
