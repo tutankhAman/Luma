@@ -14,9 +14,11 @@
     "test:integration": "bun test src/auth-flow.integration.test.ts src/uploads.integration.test.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.51",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7",
     "@repo/types": "workspace:*",
+    "ai": "^7.0.79",
     "better-auth": "^1.7.1",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.1",
