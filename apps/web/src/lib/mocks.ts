@@ -42,6 +42,11 @@ const batch: GetBatchResponse = {
   fileName: "loan_tape.csv",
   fileType: "loan_tape",
   id: "clx_batch_001",
+  metadata: {
+    pipelineStage: "completed",
+    pipelineStep: 5,
+    stageMessage: "Ingestion and automated validation completed successfully.",
+  },
   recordCount: 1000,
   status: "done",
 };

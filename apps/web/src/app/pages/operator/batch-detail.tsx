@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PipelineTracker } from "@/components/upload/pipeline-stepper";
 import {
   ImportSummaryCard,
   ValidationSummaryCard,
@@ -89,36 +90,14 @@ export default function BatchDetailPage() {
         </div>
       ) : null}
 
-      {processing ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10">
-            <i
-              aria-hidden="true"
-              className="ri-loader-4-line animate-spin text-3xl text-primary"
-            />
-            <p className="font-medium">Processing ingestion...</p>
-            <p className="text-muted-foreground text-sm">
-              This page auto-refreshes every 2 seconds until the stream
-              completes.
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {batch?.status === "failed" ? (
-        <Card className="border-destructive/30 bg-destructive/5 shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="flex items-center gap-2 font-medium text-destructive text-sm">
-              <i className="ri-error-warning-line text-base" />
-              Ingestion Failed
-            </CardTitle>
-            <CardDescription className="mt-1 text-destructive/90 text-xs">
-              {((batch.metadata as Record<string, unknown> | null)
-                ?.error as string) ||
-                "The CSV file could not be processed. Please ensure it contains valid loan records matching the schema."}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {batch ? (
+        <PipelineTracker
+          failedCount={batch.failedCount}
+          metadata={batch.metadata}
+          processedCount={batch.processedCount}
+          recordCount={batch.recordCount}
+          status={batch.status}
+        />
       ) : null}
 
       {processing || isLoading ? null : (
