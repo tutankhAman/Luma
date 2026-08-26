@@ -1,7 +1,7 @@
 import { loanFieldsPatchBodySchema, loanListQuerySchema } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import {
@@ -11,7 +11,7 @@ import {
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 const LOAN_FIELD_MAP: Record<string, string> = {
   borrowerState: "borrowerState",
@@ -25,11 +25,15 @@ const LOAN_FIELD_MAP: Record<string, string> = {
 
 const coerceFieldValue = (field: string, value: string): unknown => {
   if (field === "currentBalance" || field === "interestRate") {
-    const num = Number(value);
-    if (Number.isNaN(num) || !Number.isFinite(num)) {
+    const trimmed = value.trim();
+    if (trimmed === "") {
       return null;
     }
-    return num;
+    const num = Number(trimmed);
+    if (Number.isNaN(num) || !Number.isFinite(num) || num < 0) {
+      return null;
+    }
+    return trimmed;
   }
   return value;
 };
@@ -44,12 +48,7 @@ router.get(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid query",
-        fields: Object.fromEntries(
-          parsed.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsed.error.issues),
       });
       return;
     }
@@ -277,12 +276,7 @@ router.patch(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid body",
-        fields: Object.fromEntries(
-          parsedBody.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedBody.error.issues),
       });
       return;
     }
@@ -320,16 +314,24 @@ router.patch(
         });
         return;
       }
-      if (
-        (field === "currentBalance" || field === "interestRate") &&
-        coerceFieldValue(field, newValue) === null
-      ) {
-        res.status(400).json({
-          code: "BAD_REQUEST",
-          error: `Invalid numeric value for ${field}`,
-          fields: { [field]: "Must be a valid number" },
-        });
-        return;
+      if (field === "currentBalance" || field === "interestRate") {
+        const coerced = coerceFieldValue(field, newValue);
+        if (coerced === null) {
+          res.status(400).json({
+            code: "BAD_REQUEST",
+            error: `Invalid numeric value for ${field}`,
+            fields: { [field]: "Must be a valid non-negative number" },
+          });
+          return;
+        }
+        if (Number(coerced as string) < 0) {
+          res.status(400).json({
+            code: "BAD_REQUEST",
+            error: `Invalid numeric value for ${field}`,
+            fields: { [field]: "Must be a valid non-negative number" },
+          });
+          return;
+        }
       }
       const oldRaw = (loan as unknown as Record<string, unknown>)[dbField];
       const oldValue =
@@ -348,21 +350,19 @@ router.patch(
         where: { id: loanId },
       })) as unknown as { updatedAt: Date; id: string };
 
-      for (const edit of editsForAudit) {
-        await tx.auditLog.create({
-          data: {
-            actorId: user.id,
-            eventType: "FIELD_EDITED",
-            loanId,
-            metadata: {
-              field: edit.field,
-              newValue: edit.newValue,
-              oldValue: edit.oldValue,
-              reason,
-            },
+      await tx.auditLog.createMany({
+        data: editsForAudit.map((edit) => ({
+          actorId: user.id,
+          eventType: "FIELD_EDITED",
+          loanId,
+          metadata: {
+            field: edit.field,
+            newValue: edit.newValue,
+            oldValue: edit.oldValue,
+            reason,
           },
-        });
-      }
+        })),
+      });
 
       return result;
     })) as unknown as { updatedAt: Date; id: string };

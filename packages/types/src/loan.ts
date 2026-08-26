@@ -96,24 +96,11 @@ export const loanDetailSchema = z.object({
 export type LoanDetail = z.infer<typeof loanDetailSchema>;
 
 export const loanFieldsPatchBodySchema = z.object({
-  fields: z.record(z.string(), z.string()).superRefine((fields, ctx) => {
-    if (Object.keys(fields).length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        message: "At least one field must be provided",
-        path: [],
-      });
-    }
-    for (const key of Object.keys(fields)) {
-      if (!loanEditableFieldSchema.safeParse(key).success) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Field ${key} is not editable`,
-          path: [key],
-        });
-      }
-    }
-  }),
+  fields: z
+    .partialRecord(loanEditableFieldSchema.or(z.never()), z.string())
+    .refine((fields) => Object.keys(fields).length > 0, {
+      message: "At least one field must be provided",
+    }),
   reason: z.string().min(1, "Reason is required").max(500),
 });
 export type LoanFieldsPatchBody = z.infer<typeof loanFieldsPatchBodySchema>;

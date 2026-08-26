@@ -9,8 +9,13 @@ export class VerificationError extends Error {
   statusCode: number;
   code: string;
 
-  constructor(message: string, statusCode: number, code: string) {
-    super(message);
+  constructor(
+    message: string,
+    statusCode: number,
+    code: string,
+    options?: { cause?: unknown }
+  ) {
+    super(message, options);
     this.statusCode = statusCode;
     this.code = code;
   }
@@ -112,36 +117,55 @@ export const verifyLoan = async (
   );
   const sourceBatchRef = `${loan.sourceBatch.fileName} (${loan.sourceBatch.id})`;
 
-  const result = await prisma.$transaction(async (tx) => {
-    const verified = await tx.verifiedLoan.create({
-      data: {
-        aiRecommendationUsed,
-        canonicalData: canonicalData as never,
-        loanId: loan.id,
-        recordHash,
-        reviewerDecision,
-        sourceBatchRef,
-        validationResult,
-        verifiedById: userId,
-      },
-    });
-
-    await tx.auditLog.create({
-      data: {
-        actorId: userId,
-        eventType: "VERIFIED_RECORD_CREATED",
-        loanId: loan.id,
-        metadata: {
+  let result: Awaited<ReturnType<typeof prisma.verifiedLoan.create>>;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const verified = await tx.verifiedLoan.create({
+        data: {
+          aiRecommendationUsed,
+          canonicalData: canonicalData as never,
+          loanId: loan.id,
           recordHash,
+          reviewerDecision,
+          sourceBatchRef,
           validationResult,
+          verifiedById: userId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: userId,
+          eventType: "VERIFIED_RECORD_CREATED",
+          loanId: loan.id,
+          metadata: {
+            recordHash,
+            validationResult,
+            verifiedLoanId: verified.id,
+          },
           verifiedLoanId: verified.id,
         },
-        verifiedLoanId: verified.id,
-      },
-    });
+      });
 
-    return verified;
-  });
+      return verified;
+    });
+  } catch (error) {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      // biome-ignore lint/style/useErrorCause: cause is forwarded via VerificationError options
+      throw new VerificationError(
+        "Verified record already exists for this loan",
+        409,
+        "CONFLICT",
+        { cause: error }
+      );
+    }
+    throw error as Error;
+  }
 
   return {
     id: result.id,

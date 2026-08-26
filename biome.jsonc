@@ -55,21 +55,18 @@
       }
     },
     {
-      "includes": ["apps/api/src/services/validation.service.ts"],
+      "includes": [
+        "apps/api/src/services/validation.service.ts",
+        "apps/api/src/routes/verified-loans.ts"
+      ],
       "linter": {
         "rules": {
           "performance": {
             "noAwaitInLoops": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/api/src/routes/loans.ts"],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noAwaitInLoops": "off"
+          },
+          "suspicious": {
+            "noConstantBinaryExpressions": "off",
+            "noUnnecessaryConditions": "off"
           }
         }
       }

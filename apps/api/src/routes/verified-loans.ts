@@ -1,13 +1,13 @@
 import { verifiedLoanListQuerySchema } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 const CSV_COLUMNS: string[] = [
   "id",
@@ -46,7 +46,18 @@ const escapeCsvField = (value: string | null | undefined): string => {
   if (value === null || value === undefined) {
     return "";
   }
-  const str = String(value);
+  let str = String(value);
+  if (
+    str.length > 0 &&
+    (str[0] === "=" ||
+      str[0] === "+" ||
+      str[0] === "-" ||
+      str[0] === "@" ||
+      str[0] === "\t" ||
+      str[0] === "\r")
+  ) {
+    str = `'${str}`;
+  }
   if (
     str.includes(",") ||
     str.includes('"') ||
@@ -140,31 +151,22 @@ router.get(
       where.loan = { sourceBatchId: batchId };
     }
 
-    const verified = await prisma.$transaction(async (tx) => {
-      const rows = await tx.verifiedLoan.findMany({
-        include: {
-          loan: {
-            select: { borrowerId: true, loanId: true, sourceBatchId: true },
-          },
+    const EXPORT_PAGE_SIZE = 5000;
+    const whereForExport = { ...where } as Record<string, unknown>;
+    const firstPage = await prisma.verifiedLoan.findMany({
+      include: {
+        loan: {
+          select: { borrowerId: true, loanId: true, sourceBatchId: true },
         },
-        orderBy: { verifiedAt: "desc" },
-        where: where as never,
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorId: user.id,
-          batchId: batchId ?? null,
-          eventType: "RECORD_EXPORTED",
-          metadata: {
-            batchId: batchId ?? null,
-            count: rows.length,
-          },
-        },
-      });
-
-      return rows;
+      },
+      orderBy: { verifiedAt: "desc" },
+      skip: 0,
+      take: EXPORT_PAGE_SIZE,
+      where: whereForExport as never,
     });
+
+    let totalExported = firstPage.length;
+    const hasMore = firstPage.length === EXPORT_PAGE_SIZE;
 
     const dateStr = new Date().toISOString().slice(0, 10);
     res.setHeader("Content-Type", "text/csv");
@@ -173,14 +175,56 @@ router.get(
       `attachment; filename="verified_loans_${dateStr}.csv"`
     );
 
-    const header = CSV_COLUMNS.join(",");
-    const rows = verified.map((vl) =>
-      flattenVerifiedLoanForCsv(
-        vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0]
-      )
-    );
+    res.write(`${CSV_COLUMNS.join(",")}\n`);
+    for (const vl of firstPage) {
+      res.write(
+        `${flattenVerifiedLoanForCsv(vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0])}\n`
+      );
+    }
 
-    res.send([header, ...rows].join("\n"));
+    if (hasMore) {
+      let offset = EXPORT_PAGE_SIZE;
+      while (true) {
+        const page = await prisma.verifiedLoan.findMany({
+          include: {
+            loan: {
+              select: { borrowerId: true, loanId: true, sourceBatchId: true },
+            },
+          },
+          orderBy: { verifiedAt: "desc" },
+          skip: offset,
+          take: EXPORT_PAGE_SIZE,
+          where: whereForExport as never,
+        });
+        if (page.length === 0) {
+          break;
+        }
+        for (const vl of page) {
+          res.write(
+            `${flattenVerifiedLoanForCsv(vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0])}\n`
+          );
+        }
+        totalExported += page.length;
+        if (page.length < EXPORT_PAGE_SIZE) {
+          break;
+        }
+        offset += EXPORT_PAGE_SIZE;
+      }
+    }
+
+    res.end();
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        batchId: batchId ?? null,
+        eventType: "RECORD_EXPORTED",
+        metadata: {
+          batchId: batchId ?? null,
+          count: totalExported,
+        },
+      },
+    });
   }
 );
 
@@ -194,12 +238,7 @@ router.get(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid query",
-        fields: Object.fromEntries(
-          parsed.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsed.error.issues),
       });
       return;
     }

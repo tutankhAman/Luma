@@ -1,14 +1,14 @@
 import { auditListQuerySchema } from "@repo/types";
 import express, { type Request, type Response } from "express";
-import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { normalizeRole } from "../lib/roles.js";
+import { cuidSchema, mapZodIssuesToFields } from "../lib/validation.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
-const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
+const CUID_SCHEMA = cuidSchema;
 
 router.get(
   "/:loanId",
@@ -31,12 +31,7 @@ router.get(
       res.status(400).json({
         code: "BAD_REQUEST",
         error: "Invalid query",
-        fields: Object.fromEntries(
-          parsedQuery.error.issues.map((issue) => [
-            issue.path.join("."),
-            issue.message,
-          ])
-        ),
+        fields: mapZodIssuesToFields(parsedQuery.error.issues),
       });
       return;
     }
@@ -72,7 +67,7 @@ router.get(
           ? {
               id: log.actor.id,
               name: log.actor.name,
-              role: actorRole ?? "data_consumer",
+              role: actorRole,
             }
           : null,
         createdAt: log.createdAt.toISOString(),
