@@ -46,7 +46,18 @@ const escapeCsvField = (value: string | null | undefined): string => {
   if (value === null || value === undefined) {
     return "";
   }
-  const str = String(value);
+  let str = String(value);
+  if (
+    str.length > 0 &&
+    (str[0] === "=" ||
+      str[0] === "+" ||
+      str[0] === "-" ||
+      str[0] === "@" ||
+      str[0] === "\t" ||
+      str[0] === "\r")
+  ) {
+    str = `'${str}`;
+  }
   if (
     str.includes(",") ||
     str.includes('"') ||
