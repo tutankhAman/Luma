@@ -10,6 +10,31 @@
   },
   "overrides": [
     {
+      // React event handlers and fire-and-forget invalidations read better inline;
+      // memoization here is noise for a demo-scale SPA.
+      "includes": ["apps/web/src/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noVoid": "off"
+          },
+          "performance": {
+            "noJsxPropsBind": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/hooks/use-uploads.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noAwaitInLoops": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["apps/api/src/seed.ts"],
       "linter": {
         "rules": {
@@ -20,7 +45,7 @@
       }
     },
     {
-      "includes": ["apps/web/components/ui/**"],
+      "includes": ["apps/web/src/components/ui/**"],
       "linter": {
         "rules": {
           "a11y": {
