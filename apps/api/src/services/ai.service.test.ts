@@ -378,6 +378,25 @@ describe("ai.service", () => {
     const res = await suggestRule("Flag something");
     expect(res.rule.exceptionType).toBe("rate_out_of_range");
     expect(res.model).toContain("mock");
+    // mock condition is structured (field/operator/value), not empty
+    expect((res.rule.condition as { field?: string }).field).toBe(
+      "interestRate"
+    );
+  });
+
+  it("suggestRule treats schema-invalid condition as AiUnavailableError", async () => {
+    // generateObject enforces suggestRuleGenerationSchema; an empty condition
+    // fails the structured ruleComparatorSchema, so the SDK throws -> service degrades gracefully.
+    (
+      generateObjectMock as unknown as {
+        mockImplementation: (fn: unknown) => void;
+      }
+    ).mockImplementation(() =>
+      Promise.reject(new Error("NoObjectGeneratedError: condition is invalid"))
+    );
+    await expect(suggestRule("Flag something")).rejects.toBeInstanceOf(
+      AiUnavailableError
+    );
   });
 
   it("suggestRule propagates AiUnavailableError when no key", async () => {

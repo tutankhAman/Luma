@@ -34,15 +34,22 @@ const classifyGenerationSchema = z.object({
   suggestedSeverity: severitySchema,
 });
 
-const suggestRuleConditionSchema = z
-  .record(z.string(), z.unknown())
-  .refine(
-    (obj) =>
-      !Object.keys(obj).some(
-        (k) => k === "__proto__" || k === "constructor" || k === "prototype"
-      ),
-    { message: "condition contains forbidden key" }
-  );
+const ruleValueSchema = z.union([
+  z.number(),
+  z.string(),
+  z.boolean(),
+  z.array(z.string()),
+]);
+
+const ruleComparatorSchema = z.object({
+  field: z.string().min(1),
+  operator: z.enum(["gt", "gte", "lt", "lte", "eq", "ne", "in", "not_in"]),
+  value: ruleValueSchema,
+});
+
+const suggestRuleConditionSchema = ruleComparatorSchema.extend({
+  when: ruleComparatorSchema.optional(),
+});
 
 const suggestRuleGenerationSchema = z.object({
   condition: suggestRuleConditionSchema,
@@ -545,7 +552,12 @@ export const suggestRule = async (
   if (isMockAi()) {
     modelId = `mock-${AI_MODEL_ID}`;
     rulePayload = {
-      condition: { field: "interestRate", operator: "gt", value: 12 },
+      condition: {
+        field: "interestRate",
+        operator: "gt",
+        value: 12,
+        when: { field: "creditGrade", operator: "in", value: ["A", "B"] },
+      },
       description: promptText,
       exceptionType: "rate_out_of_range",
       name: "ai_generated_rule",
