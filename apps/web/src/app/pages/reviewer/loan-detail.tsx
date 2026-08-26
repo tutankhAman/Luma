@@ -6,6 +6,7 @@ import { AiPanel } from "@/components/loan/ai-panel";
 import { ExceptionList } from "@/components/loan/exception-list";
 import { LoanFieldsPanel } from "@/components/loan/loan-fields-panel";
 import { ReviewerActions } from "@/components/loan/reviewer-actions";
+import { VerificationStatus } from "@/components/loan/verification-status";
 import { ValidationStatusBadge } from "@/components/ui/badges";
 import {
   Card,
@@ -15,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAiDecision } from "@/hooks/use-exceptions";
+import { useAiDecision } from "@/hooks/use-ai";
 import { useLoan } from "@/hooks/use-loans";
 
 export default function LoanDetailPage() {
@@ -73,11 +74,7 @@ export default function LoanDetailPage() {
           </span>
         </h1>
         <ValidationStatusBadge status={loan.validationStatus} />
-        {loan.verifiedRecord ? (
-          <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-emerald-400 text-xs">
-            Verified · {loan.verifiedRecord.recordHash.slice(0, 12)}…
-          </span>
-        ) : null}
+        <VerificationStatus verifiedRecord={loan.verifiedRecord} />
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_380px]">
@@ -104,9 +101,10 @@ export default function LoanDetailPage() {
                 <>
                   <AiPanel
                     exceptionId={activeException.id}
-                    onDecision={(decision) =>
+                    onDecision={(type, editedValue) =>
                       aiDecision.mutate({
-                        decision,
+                        decision: type,
+                        editedValue,
                         exceptionId: activeException.id,
                       })
                     }

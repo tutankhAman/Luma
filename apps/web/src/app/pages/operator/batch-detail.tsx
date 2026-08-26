@@ -1,5 +1,6 @@
 import type { FailedRow } from "@repo/types";
 import { useParams } from "react-router-dom";
+import { AiSummaryPanel } from "@/components/batch/ai-summary-panel";
 import { BatchStatusBadge } from "@/components/ui/badges";
 import {
   Card,
@@ -151,6 +152,10 @@ export default function BatchDetailPage() {
       {processing || summaryPending ? null : (
         <ValidationSummaryCard summary={summary ?? null} />
       )}
+
+      {batch && batch.status === "done" ? (
+        <AiSummaryPanel batchId={batch.id} />
+      ) : null}
     </div>
   );
 }
