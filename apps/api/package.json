@@ -9,7 +9,9 @@
     "dev": "bun --watch src/index.ts",
     "lint": "biome check .",
     "seed": "bun src/seed.ts",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "test": "bun test src/middleware",
+    "test:integration": "bun test src/auth-flow.integration.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

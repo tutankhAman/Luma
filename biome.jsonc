@@ -5,6 +5,9 @@
     "ultracite/biome/tanstack"
   ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "javascript": {
+    "globals": ["Bun"]
+  },
   "overrides": [
     {
       "includes": ["apps/api/src/seed.ts"],
