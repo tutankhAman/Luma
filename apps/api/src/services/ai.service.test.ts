@@ -207,7 +207,7 @@ describe("ai.service", () => {
     expect(res.exceptionId).toBe("exc_1");
     expect(res.recommendation.suggestion).toContain("340000");
     expect(res.recommendation.confidence).toBe(0.9);
-    expect(res.recommendation.model).toBe("gemini-2.0-flash");
+    expect(res.recommendation.model).toBe("gemini-3.5-flash-lite");
     expect(res.recommendation.promptSummary).toContain("balance_error");
     expect(res.recommendation.timestamp).toBeDefined();
     expect(generateObjectMock).toHaveBeenCalled();

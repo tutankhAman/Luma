@@ -15,7 +15,7 @@ export class NotFoundError extends Error {
   }
 }
 
-export const AI_MODEL_ID = process.env.AI_MODEL_ID ?? "gemini-2.0-flash";
+export const AI_MODEL_ID = process.env.AI_MODEL_ID ?? "gemini-3.5-flash-lite";
 
 export const isMockAi = (): boolean => process.env.MOCK_AI === "true";
 
