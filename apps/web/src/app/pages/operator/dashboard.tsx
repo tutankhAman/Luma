@@ -62,26 +62,31 @@ export default function OperatorDashboard() {
           <StatCard
             icon="ri-stack-line"
             label="Loans imported"
-            trend="+12% this week"
             value={summary.overview.totalLoansImported.toLocaleString()}
           />
           <StatCard
             icon="ri-alert-line"
             label="Open exceptions"
-            trend="-5 since yesterday"
             value={summary.overview.openExceptions.toLocaleString()}
           />
           <StatCard
             icon="ri-shield-check-line"
             label="Quality score"
-            trend="Needs attention"
-            trendClassName="text-amber-400"
+            trend={
+              summary.overview.qualityScore >= 80
+                ? "Healthy"
+                : "Needs attention"
+            }
+            trendClassName={
+              summary.overview.qualityScore >= 80
+                ? "text-emerald-400"
+                : "text-amber-400"
+            }
             value={`${summary.overview.qualityScore}%`}
           />
           <StatCard
             icon="ri-database-2-line"
             label="Verified loans"
-            trend="+8% this week"
             value={summary.overview.verifiedLoans.toLocaleString()}
           />
         </div>
