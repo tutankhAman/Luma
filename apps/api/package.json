@@ -12,11 +12,13 @@
     "start": "bun src/index.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "7",
     "@repo/types": "workspace:*",
     "better-auth": "^1.7.1",
     "cors": "^2.8.5",
     "express": "^5.2.1",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -24,7 +26,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^26.3.0",
-    "prisma": "^6.16.0",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^17.4.2",
+    "prisma": "7",
     "typescript": "7.0.2"
   }
 }
