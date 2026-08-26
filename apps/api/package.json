@@ -19,7 +19,9 @@
     "@repo/types": "workspace:*",
     "better-auth": "^1.7.1",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.1",
     "express": "^5.2.1",
+    "multer": "^2.2.0",
     "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
@@ -27,6 +29,7 @@
     "@repo/typescript-config": "*",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.3.0",
     "@types/pg": "^8.23.1",
     "bun-types": "^1.4.0",
