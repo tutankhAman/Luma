@@ -82,12 +82,12 @@ export function CsvDropzone() {
   };
 
   return (
-    <Card className="rounded-[24px] border border-zinc-200/60 bg-[#18181B] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
+    <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
       <CardHeader className="p-8 pb-0">
-        <CardTitle className="font-medium text-lg text-zinc-900 tracking-tight">
+        <CardTitle className="font-medium text-lg text-white tracking-tight">
           Upload loan data
         </CardTitle>
-        <CardDescription className="mt-1 text-zinc-500">
+        <CardDescription className="mt-1 text-[#A1A1AA]">
           Max size 500 MB — ingestion runs in the background and you can track
           progress per batch.
         </CardDescription>
@@ -96,10 +96,10 @@ export function CsvDropzone() {
         <button
           aria-label="Upload CSV file"
           className={cn(
-            "group flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-[16px] border border-dashed p-8 text-center transition-all duration-200",
+            "group flex h-[240px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200",
             dragging
-              ? "border-zinc-400 bg-zinc-100"
-              : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 hover:bg-zinc-50"
+              ? "border-[#8B5CF6]/50 bg-[#27272A]/30"
+              : "border-[#27272A] bg-[#09090B]/50 hover:border-[#8B5CF6]/50 hover:bg-[#27272A]/30"
           )}
           onClick={openPicker}
           onDragLeave={() => setDragging(false)}
@@ -116,21 +116,21 @@ export function CsvDropzone() {
         >
           <i
             aria-hidden="true"
-            className="ri-upload-cloud-2-line mb-3 text-4xl text-zinc-400 transition-colors group-hover:text-zinc-600"
+            className="ri-upload-cloud-2-line mb-3 text-4xl text-[#52525B] transition-colors group-hover:text-white"
           />
           {file ? (
             <>
-              <p className="font-medium text-sm text-zinc-900">{file.name}</p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="font-medium text-sm text-white">{file.name}</p>
+              <p className="mt-1 text-[#A1A1AA] text-xs">
                 {(file.size / 1024 / 1024).toFixed(2)} MB — click to replace
               </p>
             </>
           ) : (
             <>
-              <p className="font-medium text-sm text-zinc-600">
+              <p className="font-medium text-[#A1A1AA] text-sm">
                 Drag &amp; drop your CSV here, or click to browse
               </p>
-              <p className="mt-1 text-xs text-zinc-400">.csv files only</p>
+              <p className="mt-1 text-[#52525B] text-xs">.csv files only</p>
             </>
           )}
           <input
@@ -143,10 +143,10 @@ export function CsvDropzone() {
           />
         </button>
 
-        <div className="mt-6 flex items-center justify-between gap-3 border-zinc-100 border-t pt-6">
+        <div className="mt-6 flex items-center justify-between gap-3 border-[#27272A] border-t pt-6">
           <div className="flex flex-col justify-center space-y-1.5">
             <Label
-              className="font-medium text-xs text-zinc-500 uppercase tracking-wider"
+              className="font-medium text-[#A1A1AA] text-xs uppercase tracking-wider"
               htmlFor="file-type"
             >
               File type
@@ -156,7 +156,7 @@ export function CsvDropzone() {
               value={fileType}
             >
               <SelectTrigger
-                className="w-52 rounded-lg border-zinc-200 shadow-sm"
+                className="w-52 rounded-lg border-[#27272A]"
                 id="file-type"
                 size="sm"
               >
@@ -172,7 +172,7 @@ export function CsvDropzone() {
             </Select>
           </div>
           <Button
-            className="ml-auto rounded-lg bg-zinc-900 px-8 font-medium text-white shadow-sm transition-all hover:bg-zinc-800"
+            className="ml-auto rounded-xl bg-white px-6 py-2.5 font-medium text-[14px] text-black transition-all hover:bg-zinc-800"
             disabled={!file || createUpload.isPending}
             onClick={startUpload}
           >

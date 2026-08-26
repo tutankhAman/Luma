@@ -289,7 +289,7 @@ export function PipelineTracker({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-5 text-card-foreground shadow-sm transition-all",
+        "rounded-xl border bg-card p-5 text-card-foreground transition-all",
         isFailed && "border-destructive/30 bg-destructive/5",
         isDone && "border-emerald-500/20 bg-emerald-500/100/[0.02]",
         className

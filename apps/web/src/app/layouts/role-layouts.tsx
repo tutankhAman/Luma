@@ -21,7 +21,7 @@ function RoleShell({
         )}
       >
         <Sidebar />
-        <main className="overflow-y-auto">
+        <main className="custom-scrollbar-hide flex-1 overflow-y-auto">
           <Outlet />
         </main>
         {withCopilot ? <CopilotPanel /> : null}
