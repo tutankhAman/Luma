@@ -729,12 +729,6 @@ export const processStreamAndNormalize = async (
           // ignore
         }
       }
-    } else if (fileType === "document_manifest") {
-      // Deferred validation (Phase 4): document manifests update documentStatus
-      // and are validated later. Mark the pipeline complete after ingestion.
-      await setPipelineCompleted(
-        "Ingestion completed. Document-manifest validation is deferred."
-      );
     } else if (fileType === "loan_tape") {
       try {
         await validateBatch(batchId);
@@ -760,7 +754,6 @@ export const processStreamAndNormalize = async (
         }
       }
     }
-    // fileType === 'document_manifest': no validation yet (Phase 4 handles it)
   } catch (err) {
     await markFailed(err);
     destroyStreams();

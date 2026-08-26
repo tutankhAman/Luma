@@ -14,6 +14,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
+import { processDocumentManifest } from "../services/document-manifest.service.js";
 import { processStreamAndNormalize } from "../services/ingestion.service.js";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -147,6 +148,17 @@ router.post(
     );
 
     res.status(202).json(response);
+
+    // Document manifests bypass the loan pipeline entirely: they stream
+    // their own format and apply documentStatus onto existing tape loans.
+    if (batch.fileType === "document_manifest") {
+      processDocumentManifest(file.path, batch.id).catch((err) => {
+        process.stderr.write(
+          `[Upload] Manifest processing uncaught error for batch ${batch.id}: ${err}\n`
+        );
+      });
+      return;
+    }
 
     processStreamAndNormalize(file.path, batch.id).catch((err) => {
       process.stderr.write(
