@@ -25,11 +25,15 @@ const LOAN_FIELD_MAP: Record<string, string> = {
 
 const coerceFieldValue = (field: string, value: string): unknown => {
   if (field === "currentBalance" || field === "interestRate") {
-    const num = Number(value);
-    if (Number.isNaN(num) || !Number.isFinite(num)) {
+    const trimmed = value.trim();
+    if (trimmed === "") {
       return null;
     }
-    return num;
+    const num = Number(trimmed);
+    if (Number.isNaN(num) || !Number.isFinite(num) || num < 0) {
+      return null;
+    }
+    return trimmed;
   }
   return value;
 };
@@ -320,16 +324,24 @@ router.patch(
         });
         return;
       }
-      if (
-        (field === "currentBalance" || field === "interestRate") &&
-        coerceFieldValue(field, newValue) === null
-      ) {
-        res.status(400).json({
-          code: "BAD_REQUEST",
-          error: `Invalid numeric value for ${field}`,
-          fields: { [field]: "Must be a valid number" },
-        });
-        return;
+      if (field === "currentBalance" || field === "interestRate") {
+        const coerced = coerceFieldValue(field, newValue);
+        if (coerced === null) {
+          res.status(400).json({
+            code: "BAD_REQUEST",
+            error: `Invalid numeric value for ${field}`,
+            fields: { [field]: "Must be a valid non-negative number" },
+          });
+          return;
+        }
+        if (Number(coerced as string) < 0) {
+          res.status(400).json({
+            code: "BAD_REQUEST",
+            error: `Invalid numeric value for ${field}`,
+            fields: { [field]: "Must be a valid non-negative number" },
+          });
+          return;
+        }
       }
       const oldRaw = (loan as unknown as Record<string, unknown>)[dbField];
       const oldValue =
