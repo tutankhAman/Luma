@@ -2,16 +2,6 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
@@ -22,16 +12,12 @@ const ROLE_HOME: Record<Role, string> = {
   reviewer: "/reviewer/dashboard",
 };
 
-export function roleHome(role: string): string {
-  return ROLE_HOME[role as Role] ?? "/login";
-}
-
 export function RoleRedirect() {
   const { isPending, user } = useSession();
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-black">
         <Skeleton className="h-10 w-56" />
       </div>
     );
@@ -39,32 +25,107 @@ export function RoleRedirect() {
   if (!user) {
     return <Navigate replace to="/login" />;
   }
-  return <Navigate replace to={roleHome(user.role)} />;
+  return <Navigate replace to={ROLE_HOME[user.role as Role] ?? "/login"} />;
+}
+
+const STEPS = [
+  { description: "Create your operator account", title: "Create an account" },
+  { description: "Confirm your email address", title: "Verify your email" },
+  {
+    description: "Upload tapes and resolve exceptions",
+    title: "Start verifying loans",
+  },
+];
+
+function AuthInput({
+  autoComplete,
+  id,
+  label,
+  onChange,
+  placeholder,
+  type,
+  value,
+}: {
+  autoComplete?: string;
+  id: string;
+  label: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-[#A1A1AA] text-[12px]" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        autoComplete={autoComplete}
+        className="w-full rounded-xl border-transparent bg-[#18181B] px-4 py-3 text-[14px] text-white transition-colors [color-scheme:dark] placeholder:text-[#52525B] focus:border-[#27272A] focus:outline-none focus:ring-1 focus:ring-[#27272A]"
+        id={id}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        required={true}
+        type={type}
+        value={value}
+      />
+    </div>
+  );
+}
+
+function submitLabel(submitting: boolean, mode: "signin" | "register"): string {
+  if (submitting) {
+    return "Please wait...";
+  }
+  if (mode === "register") {
+    return "Create account";
+  }
+  return "Sign in";
 }
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const navigateByRole = async () => {
+    const session = await authClient.getSession();
+    const role = (session?.data?.user as { role?: string } | undefined)?.role;
+    navigate(ROLE_HOME[(role ?? "data_consumer") as Role] ?? "/login", {
+      replace: true,
+    });
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const { error } = await authClient.signIn.email({ email, password });
-      if (error) {
-        toast.error("Invalid credentials", {
-          description: "Check your email and password, then try again.",
+      if (mode === "register") {
+        const { error } = await authClient.signUp.email({
+          email,
+          name,
+          password,
         });
-        return;
+        if (error) {
+          toast.error("Sign up failed", { description: error.message });
+          return;
+        }
+        await authClient.signIn.email({ email, password });
+      } else {
+        const { error } = await authClient.signIn.email({ email, password });
+        if (error) {
+          toast.error("Invalid credentials", {
+            description: "Check your email and password, then try again.",
+          });
+          return;
+        }
       }
-      const session = await authClient.getSession();
-      const rawRole = (session?.data?.user as { role?: string } | undefined)
-        ?.role;
-      navigate(roleHome(rawRole ?? "data_consumer"), { replace: true });
+      await navigateByRole();
     } catch {
-      toast.error("Sign in failed", {
+      toast.error("Authentication failed", {
         description: "Could not reach the auth server. Is the API running?",
       });
     } finally {
@@ -72,69 +133,170 @@ export default function LoginPage() {
     }
   };
 
+  const handleSocial = (provider: string) => {
+    toast.info(`${provider} sign-in is not configured`, {
+      description: "Use the email form with the seeded demo accounts.",
+    });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
+    <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
+      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-gradient-to-b from-[#8B5CF6] via-[#2E1065] to-black p-12 lg:flex">
+        <div className="mb-10 flex items-center gap-2 font-medium text-white">
           <span
             aria-hidden="true"
-            className="mx-auto mb-1 flex size-10 items-center justify-center rounded-xl bg-primary font-bold text-primary-foreground"
-          >
-            L
-          </span>
-          <CardTitle className="font-heading text-xl">Luma Copilot</CardTitle>
-          <CardDescription>
-            Loan Data Verification — sign in to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+            className="size-5 rounded-full border border-white"
+          />
+          Luma
+        </div>
+        <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
+          Loan data verification,
+          <br />
+          made trustworthy
+        </h1>
+        <p className="mb-12 max-w-[280px] text-center text-[#A1A1AA] text-[15px] leading-snug">
+          Turn messy loan tapes into validated, traceable records with AI
+          assistance at every step.
+        </p>
+        <ol className="w-full max-w-[340px] space-y-3">
+          {STEPS.map((step, index) => {
+            const active = index === 0;
+            return (
+              <li
+                className={`flex items-center gap-4 rounded-xl p-4 ${
+                  active
+                    ? "bg-white font-medium text-black"
+                    : "bg-[#18181B]/60 text-[#A1A1AA]"
+                } text-[14px]`}
+                key={step.title}
+              >
+                <span
+                  className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
+                    active ? "bg-black text-white" : "border border-[#A1A1AA]"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span>
+                  <span className="block">{step.title}</span>
+                  <span
+                    className={`block text-[12px] ${active ? "text-black/60" : "text-[#52525B]"}`}
+                  >
+                    {step.description}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <section className="flex w-full flex-col items-center justify-center bg-black lg:w-1/2">
+        <div className="w-full max-w-[380px]">
+          <h2 className="mb-1.5 font-semibold text-[22px] text-white">
+            {mode === "register" ? "Create your account" : "Welcome back"}
+          </h2>
+          <p className="mb-8 text-[#A1A1AA] text-[13px]">
+            {mode === "register"
+              ? "Start turning messy loan data into trusted records."
+              : "Sign in to continue to Luma Copilot."}
+          </p>
+
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <button
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#27272A] text-[13px] text-white transition-colors hover:bg-[#18181B]"
+              onClick={() => handleSocial("Google")}
+              type="button"
+            >
+              <i aria-hidden="true" className="ri-google-line text-base" />
+              Google
+            </button>
+            <button
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#27272A] text-[13px] text-white transition-colors hover:bg-[#18181B]"
+              onClick={() => handleSocial("GitHub")}
+              type="button"
+            >
+              <i aria-hidden="true" className="ri-github-line text-base" />
+              GitHub
+            </button>
+          </div>
+
+          <div className="mb-6 flex items-center gap-3">
+            <span aria-hidden="true" className="h-px flex-1 bg-[#27272A]" />
+            <span className="text-[#A1A1AA] text-[11px]">
+              or continue with email
+            </span>
+            <span aria-hidden="true" className="h-px flex-1 bg-[#27272A]" />
+          </div>
+
           <form
             className="space-y-4"
             onSubmit={(event) => void handleSubmit(event)}
           >
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                autoComplete="email"
-                id="email"
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@luma.dev"
-                required={true}
-                type="email"
-                value={email}
+            {mode === "register" ? (
+              <AuthInput
+                autoComplete="name"
+                id="name"
+                label="Full name"
+                onChange={setName}
+                placeholder="Jane Operator"
+                type="text"
+                value={name}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                autoComplete="current-password"
+            ) : null}
+            <AuthInput
+              autoComplete="email"
+              id="email"
+              label="Email address"
+              onChange={setEmail}
+              placeholder="operator@luma.dev"
+              type="email"
+              value={email}
+            />
+            <div>
+              <AuthInput
+                autoComplete={
+                  mode === "register" ? "new-password" : "current-password"
+                }
                 id="password"
-                onChange={(e) => setPassword(e.target.value)}
+                label="Password"
+                onChange={setPassword}
                 placeholder="••••••••"
-                required={true}
                 type="password"
                 value={password}
               />
+              <span className="mt-2 block text-[#A1A1AA] text-[12px]">
+                {mode === "register"
+                  ? "Must be at least 8 characters."
+                  : "Demo accounts: operator / reviewer / consumer @luma.dev"}
+              </span>
             </div>
-            <Button className="w-full" disabled={submitting} type="submit">
-              {submitting ? (
-                <>
-                  <i
-                    aria-hidden="true"
-                    className="ri-loader-4-line animate-spin text-base"
-                  />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
+
+            <button
+              className="mt-8 w-full rounded-xl bg-white py-3 font-medium text-[14px] text-black transition-colors hover:bg-gray-200 disabled:opacity-50"
+              disabled={submitting}
+              type="submit"
+            >
+              {submitLabel(submitting, mode)}{" "}
+            </button>
           </form>
-          <p className="mt-4 text-center text-muted-foreground text-xs">
-            Demo accounts: operator / reviewer / consumer @luma.dev · password
+
+          <p className="mt-8 text-center text-[#A1A1AA] text-[13px]">
+            {mode === "register"
+              ? "Already have an account?"
+              : "Don't have an account?"}
+            <button
+              className="ml-1 font-medium text-white hover:underline"
+              onClick={() =>
+                setMode(mode === "register" ? "signin" : "register")
+              }
+              type="button"
+            >
+              {mode === "register" ? "Sign in" : "Create one"}
+            </button>
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }
