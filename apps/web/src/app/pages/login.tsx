@@ -134,7 +134,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
-      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient p-12 lg:flex">
+      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient pt-40 pr-12 pb-12 pl-12 lg:flex">
         <div className="mb-10 flex items-center gap-2 font-medium text-white">
           <span
             aria-hidden="true"
