@@ -3,6 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+mock.module("./validation.service.js", () => ({
+  validateBatch: mock(() => Promise.resolve()),
+}));
+
 const fakePrisma: {
   $transaction: ReturnType<typeof mock>;
   auditLog: { create: ReturnType<typeof mock> };

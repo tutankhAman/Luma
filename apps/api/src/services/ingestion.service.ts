@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import csv from "csv-parser";
 import { prisma } from "../lib/prisma.js";
+import { validateBatch } from "./validation.service.js";
 
 export const CHUNK_SIZE = 5000;
 export const MAX_FAILED_ROWS_STORED = 1000;
@@ -551,6 +552,13 @@ export const processStreamAndNormalize = async (
     }
 
     await finalizeSuccess();
+
+    // Auto-trigger validation (Hour 7-10)
+    try {
+      await validateBatch(batchId);
+    } catch {
+      // validation errors are handled inside validateBatch; swallow here so ingestion still succeeds
+    }
   } catch (err) {
     await markFailed(err);
     destroyStreams();
