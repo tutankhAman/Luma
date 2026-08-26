@@ -3,7 +3,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { aiApi } from "@/lib/api";
-import { mockApi, USE_MOCKS } from "@/lib/mocks";
 
 export function AiPanel({
   exceptionId,
@@ -23,9 +22,7 @@ export function AiPanel({
     }
     setLoading(true);
     try {
-      const result = USE_MOCKS
-        ? await mockApi.aiExplain()
-        : await aiApi.explain(exceptionId);
+      const result = await aiApi.explain(exceptionId);
       setExplanation(result);
     } catch (error) {
       toast.error("AI unavailable", {

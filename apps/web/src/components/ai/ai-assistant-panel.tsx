@@ -19,7 +19,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAiDecision, useExceptionReview } from "@/hooks/use-exceptions";
 import { aiApi } from "@/lib/api";
-import { mockApi, USE_MOCKS } from "@/lib/mocks";
 
 interface AiAssistantPanelProps {
   exception: ExceptionListItem | null;
@@ -46,9 +45,7 @@ export function AiAssistantPanel({
   const runExplain = async (exceptionId: string) => {
     setExplaining(true);
     try {
-      const result = USE_MOCKS
-        ? await mockApi.aiExplain()
-        : await aiApi.explain(exceptionId);
+      const result = await aiApi.explain(exceptionId);
       setExplanation(result);
     } catch (error) {
       toast.error("AI unavailable", {
