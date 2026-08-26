@@ -5,6 +5,7 @@ import express, { type Express } from "express";
 import { auth } from "./lib/auth.js";
 import { assertBootEnv } from "./lib/env.js";
 import { requireAuth } from "./middleware/require-auth.js";
+import aiRouter from "./routes/ai.js";
 import auditRouter from "./routes/audit.js";
 import exceptionsRouter from "./routes/exceptions.js";
 import loansRouter from "./routes/loans.js";
@@ -37,6 +38,7 @@ export const createApp = (): Express => {
   app.use("/api/verified-loans", verifiedLoansRouter);
   app.use("/api/audit", auditRouter);
   app.use("/api/summary", summaryRouter);
+  app.use("/api/ai", aiRouter);
 
   app.get("/api/health", (_req, res) => {
     const body: HealthResponse = {
