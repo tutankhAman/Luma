@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from "express";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const SEVERITIES: string[] = ["critical", "high", "medium", "low"];
 router.get(
   "/",
   requireAuth,
+  requireRole("data_operator", "reviewer", "data_consumer"),
   async (_req: Request, res: Response): Promise<void> => {
     const [
       totalBatches,

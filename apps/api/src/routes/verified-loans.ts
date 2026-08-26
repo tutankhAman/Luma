@@ -140,26 +140,30 @@ router.get(
       where.loan = { sourceBatchId: batchId };
     }
 
-    const verified = await prisma.verifiedLoan.findMany({
-      include: {
-        loan: {
-          select: { borrowerId: true, loanId: true, sourceBatchId: true },
+    const verified = await prisma.$transaction(async (tx) => {
+      const rows = await tx.verifiedLoan.findMany({
+        include: {
+          loan: {
+            select: { borrowerId: true, loanId: true, sourceBatchId: true },
+          },
         },
-      },
-      orderBy: { verifiedAt: "desc" },
-      where: where as never,
-    });
+        orderBy: { verifiedAt: "desc" },
+        where: where as never,
+      });
 
-    await prisma.auditLog.create({
-      data: {
-        actorId: user.id,
-        batchId: batchId ?? null,
-        eventType: "RECORD_EXPORTED",
-        metadata: {
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
           batchId: batchId ?? null,
-          count: verified.length,
+          eventType: "RECORD_EXPORTED",
+          metadata: {
+            batchId: batchId ?? null,
+            count: rows.length,
+          },
         },
-      },
+      });
+
+      return rows;
     });
 
     const dateStr = new Date().toISOString().slice(0, 10);

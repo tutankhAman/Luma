@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { normalizeRole } from "../lib/roles.js";
 import { requireAuth } from "../middleware/require-auth.js";
+import { requireRole } from "../middleware/require-role.js";
 
 const router = express.Router();
 
@@ -12,6 +13,7 @@ const CUID_SCHEMA = z.string().cuid2().or(z.string().cuid());
 router.get(
   "/:loanId",
   requireAuth,
+  requireRole("data_operator", "reviewer", "data_consumer"),
   async (req: Request, res: Response): Promise<void> => {
     const rawLoanId = (req.params as { loanId: string }).loanId;
     const parsedId = CUID_SCHEMA.safeParse(rawLoanId);

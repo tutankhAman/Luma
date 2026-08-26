@@ -26,8 +26,8 @@ const LOAN_FIELD_MAP: Record<string, string> = {
 const coerceFieldValue = (field: string, value: string): unknown => {
   if (field === "currentBalance" || field === "interestRate") {
     const num = Number(value);
-    if (Number.isNaN(num)) {
-      return value;
+    if (Number.isNaN(num) || !Number.isFinite(num)) {
+      return null;
     }
     return num;
   }
@@ -145,6 +145,7 @@ router.get(
 router.get(
   "/:id",
   requireAuth,
+  requireRole("data_operator", "reviewer", "data_consumer"),
   async (req: Request, res: Response): Promise<void> => {
     const rawId = (req.params as { id: string }).id;
     const parsedId = CUID_SCHEMA.safeParse(rawId);
@@ -184,16 +185,6 @@ router.get(
 
     if (!loan) {
       res.status(404).json({ code: "NOT_FOUND", error: "Loan not found" });
-      return;
-    }
-
-    const allowedRolesForDetail = new Set([
-      "data_operator",
-      "reviewer",
-      "data_consumer",
-    ]);
-    if (!allowedRolesForDetail.has(user.role)) {
-      res.status(403).json({ code: "FORBIDDEN", error: "Forbidden" });
       return;
     }
 
@@ -326,6 +317,17 @@ router.patch(
           code: "BAD_REQUEST",
           error: `Field ${field} is not editable`,
           fields: { [field]: "Not editable" },
+        });
+        return;
+      }
+      if (
+        (field === "currentBalance" || field === "interestRate") &&
+        coerceFieldValue(field, newValue) === null
+      ) {
+        res.status(400).json({
+          code: "BAD_REQUEST",
+          error: `Invalid numeric value for ${field}`,
+          fields: { [field]: "Must be a valid number" },
         });
         return;
       }
