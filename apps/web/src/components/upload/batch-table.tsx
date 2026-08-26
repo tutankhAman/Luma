@@ -56,19 +56,31 @@ export function BatchTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>File Name</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead className="text-right">Records</TableHead>
-          <TableHead className="text-right">Failed</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Uploaded At</TableHead>
+        <TableRow className="border-zinc-100 border-b bg-zinc-50/50 hover:bg-zinc-50/50">
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            File Name
+          </TableHead>
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            Type
+          </TableHead>
+          <TableHead className="px-6 py-4 text-right font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            Records
+          </TableHead>
+          <TableHead className="px-6 py-4 text-right font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            Failed
+          </TableHead>
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            Status
+          </TableHead>
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-zinc-500 uppercase tracking-widest">
+            Uploaded At
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {batches.map((batch) => (
           <TableRow
-            className="cursor-pointer"
+            className="cursor-pointer border-zinc-100/50 border-b transition-colors hover:bg-zinc-50/50"
             key={batch.id}
             onClick={() => navigate(`/operator/uploads/${batch.id}`)}
             onKeyDown={(event) => {
@@ -78,30 +90,34 @@ export function BatchTable({
             }}
             tabIndex={0}
           >
-            <TableCell className="font-medium">
+            <TableCell className="flex items-center gap-3 px-6 py-4 font-medium text-zinc-900">
               <i
                 aria-hidden="true"
-                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} mr-2 text-muted-foreground`}
+                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} text-base text-zinc-400`}
               />
               {batch.fileName}
             </TableCell>
-            <TableCell className="capitalize">
+            <TableCell className="px-6 py-4 text-zinc-500">
               {batch.fileType.replace(/_/g, " ")}
             </TableCell>
-            <TableCell className="text-right tabular-nums">
+            <TableCell className="px-6 py-4 text-right font-mono text-zinc-600 tabular-nums">
               {batch.recordCount.toLocaleString()}
             </TableCell>
-            <TableCell className="text-right tabular-nums">
+            <TableCell className="px-6 py-4 text-right tabular-nums">
               {batch.failedCount > 0 ? (
-                <span className="text-destructive">{batch.failedCount}</span>
+                <div className="flex justify-end">
+                  <span className="rounded bg-rose-50 px-2 py-0.5 font-medium text-rose-600 text-xs">
+                    {batch.failedCount}
+                  </span>
+                </div>
               ) : (
-                "0"
+                <span className="font-mono text-xs text-zinc-400">0</span>
               )}
             </TableCell>
-            <TableCell>
+            <TableCell className="px-6 py-4">
               <BatchStatusBadge status={batch.status} />
             </TableCell>
-            <TableCell className="text-muted-foreground">
+            <TableCell className="px-6 py-4 text-sm text-zinc-400 tabular-nums">
               {formatDate(batch.createdAt)}
             </TableCell>
           </TableRow>

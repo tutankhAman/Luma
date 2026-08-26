@@ -2,6 +2,7 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
@@ -75,32 +76,32 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
-      <div className="flex h-14 items-center gap-2 border-b px-4">
+    <aside className="sticky top-0 flex h-screen w-[240px] shrink-0 flex-col border-zinc-200/60 border-r bg-[#FAFAFA] p-4">
+      <div className="mb-6 flex items-center gap-3 px-2">
         <span
           aria-hidden="true"
-          className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-sm"
+          className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 font-bold text-sm text-white"
         >
           L
         </span>
-        <span className="font-semibold">Luma</span>
-        <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[0.65rem] text-muted-foreground">
-          Copilot
-        </span>
+        <span className="font-semibold text-zinc-900 tracking-tight">Luma</span>
+        <Badge
+          className="ml-auto rounded-full border border-zinc-200 bg-white px-2 py-0.5 font-medium text-[10px] text-zinc-600 uppercase tracking-widest shadow-sm"
+          variant="ghost"
+        >
+          Premium
+        </Badge>
       </div>
 
-      <nav
-        aria-label="Primary"
-        className="flex-1 space-y-1 overflow-y-auto p-3"
-      >
+      <nav aria-label="Primary" className="flex-1 space-y-1">
         {items.map((item) => (
           <NavLink
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-[13px] transition-all duration-200",
                 isActive
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "border border-zinc-200/50 bg-white text-zinc-900 shadow-sm"
+                  : "border border-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
               )
             }
             end={true}
@@ -113,33 +114,37 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="mb-2 flex items-center gap-2 px-1">
-          <span
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground text-xs uppercase"
-          >
-            {user?.name?.slice(0, 2) ?? "?"}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-sm">{user?.name}</p>
-            <p className="truncate text-muted-foreground text-xs">
-              {user ? ROLE_LABELS[user.role as Role] : ""}
-            </p>
+      <div className="mt-auto border-zinc-200/60 border-t pt-4">
+        <div className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-zinc-100">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-semibold text-[10px] text-zinc-700 uppercase tracking-wider"
+            >
+              {user?.name?.slice(0, 2) ?? "?"}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-xs text-zinc-900">
+                {user?.name}
+              </p>
+              <p className="truncate text-[11px] text-zinc-500">
+                {user ? ROLE_LABELS[user.role as Role] : ""}
+              </p>
+            </div>
           </div>
+          <Button
+            className="h-8 w-8 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-900"
+            disabled={signingOut}
+            onClick={() => {
+              void handleSignOut();
+            }}
+            size="icon"
+            title={signingOut ? "Signing out..." : "Sign out"}
+            variant="ghost"
+          >
+            <i aria-hidden="true" className="ri-logout-box-r-line text-base" />
+          </Button>
         </div>
-        <Button
-          className="w-full justify-start"
-          disabled={signingOut}
-          onClick={() => {
-            void handleSignOut();
-          }}
-          size="sm"
-          variant="ghost"
-        >
-          <i aria-hidden="true" className="ri-logout-box-r-line text-base" />
-          {signingOut ? "Signing out..." : "Sign out"}
-        </Button>
       </div>
     </aside>
   );

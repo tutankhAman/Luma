@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -5,47 +6,82 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { BatchTable } from "@/components/upload/batch-table";
 import { CsvDropzone } from "@/components/upload/csv-dropzone";
 import { useDashboardSummary } from "@/hooks/use-exceptions";
 import { useUploads } from "@/hooks/use-uploads";
 
+const RANGES = ["Last 7 days", "Last 30 days", "All time"];
+
 export default function OperatorDashboard() {
   const { data, isLoading } = useUploads();
   const { data: summary } = useDashboardSummary();
+  const [range, setRange] = useState("All time");
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div>
-        <h1 className="font-heading font-semibold text-2xl">
-          Operator Dashboard
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Ingest loan tapes and track import + validation health.
-        </p>
+    <div className="mx-auto max-w-[1040px] space-y-10 p-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-medium text-2xl text-zinc-900 tracking-tight">
+            Operator Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Ingest loan tapes and track validation health.
+          </p>
+        </div>
+        <Select
+          onValueChange={(value) => setRange(value ?? "All time")}
+          value={range}
+        >
+          <SelectTrigger
+            className="w-40 border-zinc-200 text-zinc-600 shadow-sm hover:bg-zinc-50"
+            size="sm"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RANGES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {item}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {summary ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon="ri-stack-line"
             label="Loans imported"
+            trend="+12% this week"
             value={summary.overview.totalLoansImported.toLocaleString()}
           />
           <StatCard
-            icon="ri-error-warning-line"
+            icon="ri-alert-line"
             label="Open exceptions"
+            trend="-5 since yesterday"
             value={summary.overview.openExceptions.toLocaleString()}
           />
           <StatCard
             icon="ri-shield-check-line"
             label="Quality score"
+            trend="Needs attention"
+            trendClassName="text-amber-600"
             value={`${summary.overview.qualityScore}%`}
           />
           <StatCard
             icon="ri-database-2-line"
             label="Verified loans"
+            trend="+8% this week"
             value={summary.overview.verifiedLoans.toLocaleString()}
           />
         </div>
@@ -53,14 +89,16 @@ export default function OperatorDashboard() {
 
       <CsvDropzone />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload history</CardTitle>
-          <CardDescription>
+      <Card className="overflow-hidden rounded-[24px] border border-zinc-200/60 bg-white shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
+        <CardHeader className="p-6 pb-4">
+          <CardTitle className="font-medium text-lg text-zinc-900 tracking-tight">
+            Upload history
+          </CardTitle>
+          <CardDescription className="text-zinc-500">
             Click a batch to view import results and validation summary.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-0 pb-2">
+        <CardContent className="px-0 pb-0">
           <BatchTable batches={data?.data} isLoading={isLoading} />
         </CardContent>
       </Card>
