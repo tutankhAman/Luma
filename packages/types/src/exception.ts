@@ -142,8 +142,9 @@ export type AiSummarizeBatchRequest = z.infer<
 
 export const aiSummarizeBatchResponseSchema = z.object({
   batchId: z.string(),
+  error: z.string().optional(),
   model: z.string(),
-  summary: z.string(),
+  summary: z.string().nullable(),
   timestamp: z.string(),
 });
 export type AiSummarizeBatchResponse = z.infer<
@@ -159,10 +160,11 @@ export type AiClassifySeverityRequest = z.infer<
 
 export const aiClassifySeverityResponseSchema = z.object({
   currentSeverity: severitySchema,
+  error: z.string().optional(),
   exceptionId: z.string(),
   model: z.string(),
-  reasoning: z.string(),
-  suggestedSeverity: severitySchema,
+  reasoning: z.string().nullable(),
+  suggestedSeverity: severitySchema.nullable(),
   timestamp: z.string(),
 });
 export type AiClassifySeverityResponse = z.infer<
@@ -175,17 +177,20 @@ export const aiSuggestRuleRequestSchema = z.object({
 export type AiSuggestRuleRequest = z.infer<typeof aiSuggestRuleRequestSchema>;
 
 export const aiSuggestRuleResponseSchema = z.object({
+  error: z.string().optional(),
   model: z.string(),
   note: z.string().optional(),
   promptSummary: z.string(),
-  rule: z.object({
-    condition: z.unknown(),
-    description: z.string(),
-    exceptionType: exceptionTypeSchema,
-    id: z.string(),
-    name: z.string(),
-    severity: severitySchema,
-  }),
+  rule: z
+    .object({
+      condition: z.unknown(),
+      description: z.string(),
+      exceptionType: exceptionTypeSchema,
+      id: z.string(),
+      name: z.string(),
+      severity: severitySchema,
+    })
+    .nullable(),
   timestamp: z.string(),
 });
 export type AiSuggestRuleResponse = z.infer<typeof aiSuggestRuleResponseSchema>;
