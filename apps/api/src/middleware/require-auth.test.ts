@@ -115,10 +115,10 @@ describe("requireAuth", () => {
     expect(calledNext).toBe(false);
   });
 
-  it("falls back to data_consumer default for an unknown role string", async () => {
+  it("returns 401 for an unknown role string (fail-closed)", async () => {
     stubGetSession(() => Promise.resolve(sessionFixture("space_wizard")));
-    const { calledNext, req } = await runMiddleware(requireAuth);
-    expect(calledNext).toBe(true);
-    expect(req.user?.role).toBe("data_consumer");
+    const { calledNext, state } = await runMiddleware(requireAuth);
+    expect(state.statusCode).toBe(401);
+    expect(calledNext).toBe(false);
   });
 });

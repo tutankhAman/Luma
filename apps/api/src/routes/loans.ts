@@ -324,14 +324,6 @@ router.patch(
           });
           return;
         }
-        if (Number(coerced as string) < 0) {
-          res.status(400).json({
-            code: "BAD_REQUEST",
-            error: `Invalid numeric value for ${field}`,
-            fields: { [field]: "Must be a valid non-negative number" },
-          });
-          return;
-        }
       }
       const oldRaw = (loan as unknown as Record<string, unknown>)[dbField];
       const oldValue =
@@ -342,13 +334,10 @@ router.patch(
     }
 
     const updated = (await prisma.$transaction(async (tx) => {
-      const txLoan = (
-        tx.loan as unknown as { update: (args: unknown) => Promise<unknown> }
-      ).update;
-      const result = (await txLoan({
+      const result = await tx.loan.update({
         data: dataToUpdate,
         where: { id: loanId },
-      })) as unknown as { updatedAt: Date; id: string };
+      });
 
       await tx.auditLog.createMany({
         data: editsForAudit.map((edit) => ({
