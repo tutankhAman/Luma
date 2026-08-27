@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddComment, useExceptionReview } from "@/hooks/use-exceptions";
 import { useVerifyLoan } from "@/hooks/use-loans";
+import { cn } from "@/lib/utils";
 
 function confirmLabel(
   pending: boolean,
@@ -28,13 +29,20 @@ export function ReviewerActions({
   exceptionId,
   exceptionStatus,
   loanId,
+  note,
+  onNoteChange,
+  onNoteDrafted,
+  requestingDraft,
 }: {
   allResolved: boolean;
   exceptionId: string | null;
   exceptionStatus: string;
   loanId: string;
+  note: string;
+  onNoteChange: (note: string) => void;
+  onNoteDrafted?: () => void;
+  requestingDraft?: boolean;
 }) {
-  const [note, setNote] = useState("");
   const [correctedValue, setCorrectedValue] = useState("");
   const [confirmAction, setConfirmAction] = useState<
     "approve" | "reject" | null
@@ -75,11 +83,28 @@ export function ReviewerActions({
         </Label>
         <Textarea
           id="reviewer-note"
-          onChange={(event) => setNote(event.target.value)}
+          onChange={(event) => onNoteChange(event.target.value)}
           placeholder="Document your reasoning for the audit trail..."
           rows={2}
           value={note}
         />
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-primary transition-colors hover:bg-primary/8 disabled:opacity-50"
+            disabled={requestingDraft || !exceptionId}
+            onClick={() => onNoteDrafted?.()}
+            type="button"
+          >
+            <i
+              aria-hidden="true"
+              className={cn(
+                "ri-sparkling-2-line text-[12px]",
+                requestingDraft && "animate-pulse"
+              )}
+            />
+            {requestingDraft ? "Drafting…" : "Generate reviewer note (AI)"}
+          </button>
+        </div>
         <div className="flex gap-2">
           <Button
             disabled={!note.trim() || addComment.isPending || !exceptionId}
@@ -87,10 +112,9 @@ export function ReviewerActions({
               if (!exceptionId) {
                 return;
               }
-              addComment.mutate(
-                { exceptionId, note: note.trim() },
-                { onSuccess: () => setNote("") }
-              );
+              void addComment
+                .mutateAsync({ exceptionId, note: note.trim() })
+                .then(() => onNoteChange(""));
             }}
             size="sm"
             variant="outline"

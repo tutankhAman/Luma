@@ -1,8 +1,9 @@
-import type { LoanExceptionItem } from "@repo/types";
+import type { AiRecommendation, LoanExceptionItem } from "@repo/types";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AuditTimeline } from "@/components/audit/audit-timeline";
 import { AiPanel } from "@/components/loan/ai-panel";
+import { DiffViewer } from "@/components/loan/diff-viewer";
 import { ExceptionList } from "@/components/loan/exception-list";
 import { LoanFieldsPanel } from "@/components/loan/loan-fields-panel";
 import { ReviewerActions } from "@/components/loan/reviewer-actions";
@@ -16,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAiDecision } from "@/hooks/use-ai";
+import { useAiDecision, useDraftNote } from "@/hooks/use-ai";
 import { useLoan } from "@/hooks/use-loans";
 
 export default function LoanDetailPage() {
@@ -24,6 +25,9 @@ export default function LoanDetailPage() {
   const loanId = id ?? "";
   const { data: loan, isLoading } = useLoan(loanId);
   const aiDecision = useAiDecision();
+  const draftNote = useDraftNote();
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [note, setNote] = useState("");
 
   const exceptions = useMemo<LoanExceptionItem[]>(
     () => loan?.exceptions ?? [],
@@ -43,6 +47,22 @@ export default function LoanDetailPage() {
     (item) => item.id === activeExceptionId
   );
   const allResolved = exceptions.every((item) => item.status !== "open");
+  const conflicts = exceptions.filter(
+    (item) => item.exceptionType === "conflicting_source"
+  );
+
+  const handleNoteDraft = (exceptionId: string | null) => {
+    if (!exceptionId) {
+      return;
+    }
+    draftNote.mutate(exceptionId, {
+      onSuccess: (result) => {
+        if (result.note) {
+          setNote(result.note);
+        }
+      },
+    });
+  };
 
   if (isLoading || !loan) {
     return (
@@ -97,6 +117,40 @@ export default function LoanDetailPage() {
 
               {activeException ? (
                 <>
+                  {conflicts.length > 0 &&
+                  activeException.exceptionType === "conflicting_source" ? (
+                    <div className="space-y-2">
+                      <button
+                        aria-expanded={conflictOpen}
+                        className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/[0.05] px-3.5 py-2.5 text-left transition-colors hover:bg-primary/10"
+                        onClick={() => setConflictOpen(!conflictOpen)}
+                        type="button"
+                      >
+                        <span className="flex items-center gap-2">
+                          <i
+                            aria-hidden="true"
+                            className="ri-split-cells-vertical text-[15px] text-primary"
+                          />
+                          <span className="font-medium text-[13px]">
+                            Compare conflicting records
+                          </span>
+                        </span>
+                        <i
+                          aria-hidden="true"
+                          className={`ri-arrow-down-s-line text-muted-foreground transition-transform ${conflictOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {conflictOpen ? (
+                        <DiffViewer
+                          exception={activeException}
+                          recommendation={
+                            (activeException.aiRecommendation as AiRecommendation | null) ??
+                            null
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
                   <AiPanel
                     exceptionId={activeException.id}
                     onDecision={(type, editedValue) =>
@@ -112,6 +166,10 @@ export default function LoanDetailPage() {
                     exceptionId={activeException.id}
                     exceptionStatus={activeException.status}
                     loanId={loan.id}
+                    note={note}
+                    onNoteChange={setNote}
+                    onNoteDrafted={() => handleNoteDraft(activeException.id)}
+                    requestingDraft={draftNote.isPending}
                   />
                 </>
               ) : (

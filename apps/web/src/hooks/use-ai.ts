@@ -54,3 +54,17 @@ export function useSummarizeBatch() {
     },
   });
 }
+
+export function useDraftNote() {
+  return useMutation({
+    mutationFn: (exceptionId: string) => aiApi.draftNote(exceptionId),
+    onError: (error: Error) => {
+      toast.error("Note drafting unavailable", { description: error.message });
+    },
+    onSuccess: (result) => {
+      if (result.note) {
+        toast.success("Reviewer note drafted — edit before saving");
+      }
+    },
+  });
+}

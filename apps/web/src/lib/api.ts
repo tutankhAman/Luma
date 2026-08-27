@@ -1,5 +1,6 @@
 import type {
   AiClassifySeverityResponse,
+  AiDraftNoteResponse,
   AiExplainResponse,
   AiSuggestRuleResponse,
   AiSummarizeBatchResponse,
@@ -212,6 +213,12 @@ export const aiApi = {
       "/ai/classify-severity",
       { exceptionId }
     );
+    return data;
+  },
+  draftNote: async (exceptionId: string): Promise<AiDraftNoteResponse> => {
+    const { data } = await api.post<AiDraftNoteResponse>("/ai/draft-note", {
+      exceptionId,
+    });
     return data;
   },
   explain: async (exceptionId: string): Promise<AiExplainResponse> => {
