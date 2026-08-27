@@ -60,16 +60,16 @@ export default function LoanDetailPage() {
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <div className="flex flex-wrap items-center gap-3">
         <Link
-          className="flex items-center gap-1 text-[#A1A1AA] text-sm transition-colors hover:text-white"
+          className="flex items-center gap-1 text-muted-foreground text-sm transition-colors hover:text-foreground"
           to="/reviewer/exceptions"
         >
           <i aria-hidden="true" className="ri-arrow-left-line" />
           Back to queue
         </Link>
-        <span aria-hidden="true" className="h-4 w-px bg-[#27272A]" />
-        <h1 className="font-semibold text-[28px] text-white tracking-tight">
+        <span aria-hidden="true" className="h-4 w-px bg-border" />
+        <h1 className="font-semibold text-[28px] tracking-tight">
           Loan {loan.loanId ?? "—"}
-          <span className="ml-2 font-normal text-[#52525B] text-base">
+          <span className="ml-2 font-normal text-base text-muted-foreground/60">
             ({loan.borrowerId ?? "—"})
           </span>
         </h1>
@@ -81,12 +81,10 @@ export default function LoanDetailPage() {
         <LoanFieldsPanel loan={loan} />
 
         <div className="space-y-4">
-          <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
+          <Card className="rounded-xl border-border">
             <CardHeader>
-              <CardTitle className="text-white">
-                Exceptions ({exceptions.length})
-              </CardTitle>
-              <CardDescription className="text-[#A1A1AA]">
+              <CardTitle>Exceptions ({exceptions.length})</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Select an exception to review and act on it.
               </CardDescription>
             </CardHeader>
@@ -117,7 +115,7 @@ export default function LoanDetailPage() {
                   />
                 </>
               ) : (
-                <p className="rounded-lg bg-emerald-500/10 p-3 text-emerald-400 text-xs">
+                <p className="rounded-lg border border-success/25 bg-success/10 p-3 text-success text-xs">
                   No exceptions on this loan — it can be verified.
                 </p>
               )}
