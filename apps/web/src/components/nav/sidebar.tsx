@@ -114,15 +114,15 @@ const NAV_ITEMS: NavItem[] = [
 
 function Wordmark() {
   return (
-    <div className="flex items-center gap-2.5 px-1">
+    <div className="flex items-center justify-center gap-2.5">
       <img
         alt="Luma"
-        className="size-7 shrink-0 rounded-[9px]"
-        height={28}
+        className="size-6 shrink-0 rounded-[9px]"
+        height={24}
         src="/luma.svg"
-        width={28}
+        width={24}
       />
-      <p className="font-semibold text-[15px] tracking-tight">Luma</p>
+      <p className="font-bold text-xl tracking-tight">Luma</p>
     </div>
   );
 }
