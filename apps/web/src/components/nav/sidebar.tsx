@@ -232,25 +232,27 @@ export function Sidebar() {
           <NavLink
             className={({ isActive }) =>
               cn(
-                "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] font-medium text-[13.5px] transition-colors",
+                "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )
             }
             end={true}
             key={item.href}
             to={item.href}
           >
-            <i
-              aria-hidden="true"
-              className={cn(
-                item.icon,
-                "text-[15px]",
-                "group-aria-[current=page]:text-inherit"
-              )}
-            />
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <i
+                  aria-hidden="true"
+                  className={cn(item.icon, "font-normal text-[15px]")}
+                />
+                <span className={isActive ? "font-bold" : "font-medium"}>
+                  {item.label}
+                </span>
+              </>
+            )}
           </NavLink>
         ))}
 
@@ -259,16 +261,25 @@ export function Sidebar() {
         <NavLink
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] font-medium text-[13.5px] transition-colors",
+              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
               isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )
           }
           to="/ai-log"
         >
-          <i aria-hidden="true" className="ri-sparkling-2-line text-[15px]" />
-          AI Development Log
+          {({ isActive }) => (
+            <>
+              <i
+                aria-hidden="true"
+                className="ri-sparkling-2-line font-normal text-[15px]"
+              />
+              <span className={isActive ? "font-bold" : "font-medium"}>
+                AI Development Log
+              </span>
+            </>
+          )}
         </NavLink>
       </nav>
 
