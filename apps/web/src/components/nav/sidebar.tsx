@@ -2,11 +2,39 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+
+/* Spec §8 — sidebar nav scoped by role, plus the pinned AI Development Log. */
+
+const ROLE_LABELS: Record<Role, string> = {
+  data_consumer: "Data Consumer",
+  data_operator: "Data Operator",
+  reviewer: "Reviewer",
+};
+
+const ROLE_HOME: Record<Role, string> = {
+  data_consumer: "/consumer/dashboard",
+  data_operator: "/operator/dashboard",
+  reviewer: "/reviewer/dashboard",
+};
+
+/* Demo credential mapping — the role switcher re-authenticates as the seeded
+   user for the selected role so the 5-minute demo can move between roles fast. */
+const ROLE_DEMO_EMAIL: Record<Role, string> = {
+  data_consumer: "consumer@luma.dev",
+  data_operator: "operator@luma.dev",
+  reviewer: "reviewer@luma.dev",
+};
 
 interface NavItem {
   href: string;
@@ -23,6 +51,24 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["data_operator"],
   },
   {
+    href: "/operator/upload",
+    icon: "ri-upload-cloud-2-line",
+    label: "Upload Data",
+    roles: ["data_operator"],
+  },
+  {
+    href: "/operator/imports",
+    icon: "ri-archive-drawer-line",
+    label: "Import History",
+    roles: ["data_operator"],
+  },
+  {
+    href: "/operator/loans",
+    icon: "ri-database-2-line",
+    label: "Loan Records",
+    roles: ["data_operator"],
+  },
+  {
     href: "/reviewer/dashboard",
     icon: "ri-dashboard-2-line",
     label: "Dashboard",
@@ -35,32 +81,126 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["reviewer"],
   },
   {
+    href: "/reviewer/rules",
+    icon: "ri-braces-line",
+    label: "Rule Builder",
+    roles: ["reviewer"],
+  },
+  {
     href: "/consumer/dashboard",
-    icon: "ri-database-2-line",
+    icon: "ri-dashboard-2-line",
+    label: "Dashboard",
+    roles: ["data_consumer"],
+  },
+  {
+    href: "/consumer/verified",
+    icon: "ri-shield-check-line",
     label: "Verified Records",
     roles: ["data_consumer"],
   },
   {
-    href: "/consumer/export",
-    icon: "ri-download-2-line",
-    label: "Export",
+    href: "/consumer/audit",
+    icon: "ri-history-line",
+    label: "Audit Trail",
+    roles: ["data_consumer"],
+  },
+  {
+    href: "/consumer/api",
+    icon: "ri-terminal-box-line",
+    label: "API Explorer",
     roles: ["data_consumer"],
   },
 ];
 
-const ROLE_LABELS: Record<Role, string> = {
-  data_consumer: "Data Consumer",
-  data_operator: "Data Operator",
-  reviewer: "Reviewer",
-};
+function Wordmark() {
+  return (
+    <div className="flex items-center gap-2.5 px-1">
+      <span
+        aria-hidden="true"
+        className="flex size-7 items-center justify-center rounded-[9px] bg-primary text-primary-foreground"
+      >
+        <i className="ri-shield-check-line text-[15px]" />
+      </span>
+      <div className="min-w-0 leading-tight">
+        <p className="font-semibold text-[15px] tracking-tight">
+          Intain Verify
+        </p>
+        <p className="truncate text-[10.5px] text-muted-foreground">
+          Loan Data Verification Copilot
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RoleSwitcher({ current }: { current: Role }) {
+  const navigate = useNavigate();
+  const [switching, setSwitching] = useState(false);
+
+  const handleSwitch = async (role: Role) => {
+    if (role === current) {
+      return;
+    }
+    setSwitching(true);
+    try {
+      const { error } = await authClient.signIn.email({
+        email: ROLE_DEMO_EMAIL[role],
+        password: "password",
+      });
+      if (error) {
+        toast.error("Role switch failed", { description: error.message });
+        return;
+      }
+      navigate(ROLE_HOME[role], { replace: true });
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  return (
+    <Select
+      disabled={switching}
+      onValueChange={(value) => {
+        void handleSwitch(value as Role);
+      }}
+      value={current}
+    >
+      <SelectTrigger
+        aria-label="Switch role"
+        className="w-full justify-between gap-2 rounded-lg border-border bg-card px-2.5 data-[size=sm]:h-8"
+        size="sm"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <i
+            aria-hidden="true"
+            className="ri-user-settings-line text-[13px] text-muted-foreground"
+          />
+          <SelectValue />
+        </span>
+      </SelectTrigger>
+      <SelectContent align="start">
+        {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
+          <SelectItem
+            className="data-[highlighted]:text-accent-foreground"
+            key={role}
+            value={role}
+          >
+            {ROLE_LABELS[role]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function Sidebar() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
 
+  const role = (user?.role as Role | undefined) ?? null;
   const items = NAV_ITEMS.filter((item) =>
-    user ? item.roles.includes(user.role as Role) : false
+    role ? item.roles.includes(role) : false
   );
 
   const handleSignOut = async () => {
@@ -76,70 +216,102 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col border-[#27272A] border-r bg-[#09090B] p-4">
-      <div className="mb-6 flex items-center gap-2 px-1">
-        <span
-          aria-hidden="true"
-          className="flex size-8 items-center justify-center rounded-lg bg-white font-bold text-black text-sm"
-        >
-          L
-        </span>
-        <span className="font-semibold text-white">Luma</span>
-        <Badge className="ml-auto rounded-full border border-[#27272A] bg-[#2E1065]/30 text-[#8B5CF6] text-[11px]">
-          Copilot
-        </Badge>
+    <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col border-sidebar-border border-r bg-sidebar">
+      <div className="px-5 pt-5 pb-4">
+        <Wordmark />
       </div>
 
-      <nav aria-label="Primary" className="flex-1 space-y-1">
+      {role ? (
+        <div className="px-4 pb-1">
+          <p className="mb-1.5 font-medium text-[10px] text-muted-foreground uppercase tracking-widest">
+            Viewing as
+          </p>
+          <RoleSwitcher current={role} />
+        </div>
+      ) : null}
+
+      <nav
+        aria-label="Primary"
+        className="mt-3 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-4"
+      >
         {items.map((item) => (
           <NavLink
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                "group flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
                 isActive
-                  ? "rounded-xl border border-[#27272A] bg-[#18181B] font-medium text-white shadow-[0_0_15px_rgba(139,92,246,0.1)]"
-                  : "text-[#A1A1AA] hover:bg-[#27272A]/20 hover:text-white"
+                  ? "bg-primary/10 font-medium text-primary"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )
             }
             end={true}
             key={item.href}
             to={item.href}
           >
-            <i aria-hidden="true" className={cn(item.icon, "text-base")} />
+            <i
+              aria-hidden="true"
+              className={cn(
+                item.icon,
+                "text-[15px]",
+                "group-aria-[current=page]:text-inherit"
+              )}
+            />
             {item.label}
           </NavLink>
         ))}
+
+        <Separator className="my-3 opacity-70" />
+
+        <NavLink
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
+              isActive
+                ? "bg-primary/10 font-medium text-primary"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )
+          }
+          to="/ai-log"
+        >
+          <i aria-hidden="true" className="ri-sparkling-2-line text-[15px]" />
+          AI Development Log
+        </NavLink>
       </nav>
 
-      <div className="border-[#27272A] border-t pt-4">
-        <div className="mb-3 flex items-center gap-2.5 px-1">
+      <div className="border-sidebar-border border-t p-4">
+        <div className="mb-3 flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6] text-[11px] uppercase"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card font-semibold text-[11px] text-muted-foreground uppercase"
           >
-            {user?.name?.slice(0, 2) ?? "?"}
+            {user?.name?.slice(0, 2) ?? "??"}
           </span>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-sm text-white">
-              {user?.name}
-            </p>
-            <p className="truncate text-[#A1A1AA] text-xs">
-              {user ? ROLE_LABELS[user.role as Role] : ""}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium text-[13px]">{user?.name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {role ? ROLE_LABELS[role] : ""}
             </p>
           </div>
         </div>
-        <Button
-          className="w-full justify-start text-[#A1A1AA] hover:text-white"
-          disabled={signingOut}
-          onClick={() => {
-            void handleSignOut();
-          }}
-          size="sm"
-          variant="ghost"
-        >
-          <i aria-hidden="true" className="ri-logout-box-r-line text-base" />
-          {signingOut ? "Signing out..." : "Sign out"}
-        </Button>
+        <div className="flex items-center gap-1">
+          <button
+            className="flex-1 rounded-md px-2 py-1.5 text-left text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={() => navigate("/login")}
+            type="button"
+          >
+            Test Credentials
+          </button>
+          <button
+            className="flex-1 rounded-md px-2 py-1.5 text-right text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            disabled={signingOut}
+            onClick={() => {
+              void handleSignOut();
+            }}
+            type="button"
+          >
+            {signingOut ? "Signing out…" : "Logout"}
+          </button>
+        </div>
       </div>
     </aside>
   );
