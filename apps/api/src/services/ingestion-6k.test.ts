@@ -4,7 +4,15 @@ import path from "node:path";
 import { normalizeRow } from "./ingestion.service.js";
 
 describe("6k Loan Tape CSV verification", () => {
-  const csvPath = path.resolve(process.cwd(), "../../loan_tape_6k.csv");
+  const candidatePaths = [
+    path.resolve(process.cwd(), "loan_tape_6k.csv"),
+    path.resolve(process.cwd(), "../../loan_tape_6k.csv"),
+    path.resolve(import.meta.dirname, "../../../../../loan_tape_6k.csv"),
+    path.resolve(import.meta.dirname, "../../../../loan_tape_6k.csv"),
+    path.resolve(import.meta.dirname, "../../../loan_tape_6k.csv"),
+  ];
+  const csvPath =
+    candidatePaths.find((p) => fs.existsSync(p)) ?? candidatePaths[0] ?? "";
 
   it("exists and has exactly 6001 lines with 21 columns", () => {
     expect(fs.existsSync(csvPath)).toBe(true);
