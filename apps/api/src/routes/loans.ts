@@ -225,6 +225,7 @@ router.get(
         field: exc.field,
         id: exc.id,
         message: exc.message,
+        metadata: (exc.metadata as unknown) ?? null,
         severity: exc.severity,
         status: exc.status,
       })),

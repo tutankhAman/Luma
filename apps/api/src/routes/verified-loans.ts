@@ -121,12 +121,134 @@ const flattenVerifiedLoanForCsv = (vl: {
   return fields.map((v) => escapeCsvField(v as string)).join(",");
 };
 
+const flattenVerifiedLoanForJson = (vl: {
+  aiRecommendationUsed: boolean;
+  canonicalData: unknown;
+  id: string;
+  loan: { borrowerId: string | null; loanId: string | null };
+  loanId: string;
+  recordHash: string;
+  reviewerDecision: string | null;
+  sourceBatchRef: string;
+  validationResult: string;
+  verifiedAt: Date;
+  verifiedById: string;
+}): Record<string, unknown> => ({
+  aiRecommendationUsed: vl.aiRecommendationUsed,
+  canonicalData: vl.canonicalData,
+  id: vl.id,
+  loan: { borrowerId: vl.loan.borrowerId, loanId: vl.loan.loanId },
+  loanId: vl.loanId,
+  recordHash: vl.recordHash,
+  reviewerDecision: vl.reviewerDecision,
+  sourceBatchRef: vl.sourceBatchRef,
+  validationResult: vl.validationResult,
+  verifiedAt: vl.verifiedAt.toISOString(),
+  verifiedById: vl.verifiedById,
+});
+
+const EXPORT_PAGE_SIZE = 5000;
+
+const EXPORT_INCLUDE = {
+  loan: {
+    select: { borrowerId: true, loanId: true, sourceBatchId: true },
+  },
+} as const;
+
+async function streamVerifiedLoanExport(
+  res: Response,
+  options: { batchId?: string; exportFormat: "csv" | "json" },
+  where: Record<string, unknown>
+): Promise<number> {
+  const { exportFormat } = options;
+  const whereForExport = { ...where } as Record<string, unknown>;
+  const firstPage = await prisma.verifiedLoan.findMany({
+    include: EXPORT_INCLUDE,
+    orderBy: { verifiedAt: "desc" },
+    skip: 0,
+    take: EXPORT_PAGE_SIZE,
+    where: whereForExport as never,
+  });
+
+  let totalExported = firstPage.length;
+  const hasMore = firstPage.length === EXPORT_PAGE_SIZE;
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  if (exportFormat === "json") {
+    res.setHeader("Content-Type", "application/json");
+  } else {
+    res.setHeader("Content-Type", "text/csv");
+  }
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="verified_loans_${dateStr}.${exportFormat}"`
+  );
+
+  let first = true;
+  const writeItem = (vl: unknown) => {
+    if (exportFormat === "json") {
+      if (!first) {
+        res.write(",");
+      }
+      first = false;
+      res.write(JSON.stringify(flattenVerifiedLoanForJson(vl as never)));
+    } else {
+      res.write(
+        `${flattenVerifiedLoanForCsv(vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0])}\n`
+      );
+    }
+  };
+
+  if (exportFormat === "json") {
+    res.write("[");
+  } else {
+    res.write(`${CSV_COLUMNS.join(",")}\n`);
+  }
+  for (const vl of firstPage) {
+    writeItem(vl);
+  }
+
+  if (hasMore) {
+    let offset = EXPORT_PAGE_SIZE;
+    while (true) {
+      const page = await prisma.verifiedLoan.findMany({
+        include: EXPORT_INCLUDE,
+        orderBy: { verifiedAt: "desc" },
+        skip: offset,
+        take: EXPORT_PAGE_SIZE,
+        where: whereForExport as never,
+      });
+      if (page.length === 0) {
+        break;
+      }
+      for (const vl of page) {
+        writeItem(vl);
+      }
+      totalExported += page.length;
+      if (page.length < EXPORT_PAGE_SIZE) {
+        break;
+      }
+      offset += EXPORT_PAGE_SIZE;
+    }
+  }
+
+  if (exportFormat === "json") {
+    res.write("]");
+  }
+  res.end();
+  return totalExported;
+}
+
 router.get(
   "/export",
   requireAuth,
   requireRole("data_consumer", "reviewer"),
   async (req: Request, res: Response): Promise<void> => {
-    const { batchId } = req.query as { batchId?: string };
+    const { batchId, format } = req.query as {
+      batchId?: string;
+      format?: string;
+    };
+    const exportFormat = format === "json" ? "json" : "csv";
 
     if (batchId) {
       const parsed = CUID_SCHEMA.safeParse(batchId);
@@ -151,68 +273,11 @@ router.get(
       where.loan = { sourceBatchId: batchId };
     }
 
-    const EXPORT_PAGE_SIZE = 5000;
-    const whereForExport = { ...where } as Record<string, unknown>;
-    const firstPage = await prisma.verifiedLoan.findMany({
-      include: {
-        loan: {
-          select: { borrowerId: true, loanId: true, sourceBatchId: true },
-        },
-      },
-      orderBy: { verifiedAt: "desc" },
-      skip: 0,
-      take: EXPORT_PAGE_SIZE,
-      where: whereForExport as never,
-    });
-
-    let totalExported = firstPage.length;
-    const hasMore = firstPage.length === EXPORT_PAGE_SIZE;
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="verified_loans_${dateStr}.csv"`
+    const totalExported = await streamVerifiedLoanExport(
+      res,
+      { batchId, exportFormat },
+      where
     );
-
-    res.write(`${CSV_COLUMNS.join(",")}\n`);
-    for (const vl of firstPage) {
-      res.write(
-        `${flattenVerifiedLoanForCsv(vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0])}\n`
-      );
-    }
-
-    if (hasMore) {
-      let offset = EXPORT_PAGE_SIZE;
-      while (true) {
-        const page = await prisma.verifiedLoan.findMany({
-          include: {
-            loan: {
-              select: { borrowerId: true, loanId: true, sourceBatchId: true },
-            },
-          },
-          orderBy: { verifiedAt: "desc" },
-          skip: offset,
-          take: EXPORT_PAGE_SIZE,
-          where: whereForExport as never,
-        });
-        if (page.length === 0) {
-          break;
-        }
-        for (const vl of page) {
-          res.write(
-            `${flattenVerifiedLoanForCsv(vl as unknown as Parameters<typeof flattenVerifiedLoanForCsv>[0])}\n`
-          );
-        }
-        totalExported += page.length;
-        if (page.length < EXPORT_PAGE_SIZE) {
-          break;
-        }
-        offset += EXPORT_PAGE_SIZE;
-      }
-    }
-
-    res.end();
 
     await prisma.auditLog.create({
       data: {
@@ -222,6 +287,7 @@ router.get(
         metadata: {
           batchId: batchId ?? null,
           count: totalExported,
+          format: exportFormat,
         },
       },
     });
@@ -340,6 +406,9 @@ router.get(
     }
 
     const verified = await prisma.verifiedLoan.findUnique({
+      include: {
+        verifiedBy: { select: { name: true } },
+      },
       where: { id: parsedId.data },
     });
 
@@ -350,17 +419,60 @@ router.get(
       return;
     }
 
+    // Reviewer decision context + AI recommendation outcome come from the
+    // loan's audit trail (same source as the audit viewer) — newest first.
+    const decisionLogs = await prisma.auditLog.findMany({
+      include: { actor: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      where: {
+        eventType: {
+          in: ["LOAN_APPROVED", "LOAN_REJECTED", "AI_RECOMMENDATION"],
+        },
+        loanId: verified.loanId,
+      },
+    });
+
+    const decisionLog = decisionLogs.find(
+      (log) =>
+        log.eventType === "LOAN_APPROVED" || log.eventType === "LOAN_REJECTED"
+    );
+    const aiLog = decisionLogs.find(
+      (log) => log.eventType === "AI_RECOMMENDATION"
+    );
+    const aiMeta = (aiLog?.metadata ?? {}) as {
+      aiDecision?: "accepted" | "edited" | "rejected";
+    };
+
+    // Original suggestion: latest AI_RECOMMENDATION recommendation stored on
+    // the loan's exceptions, matched to the audit decision when present.
+    const exceptionWithRec = await prisma.exception.findFirst({
+      orderBy: { updatedAt: "desc" },
+      where: {
+        aiRecommendation: { not: {} },
+        loanId: verified.loanId,
+      },
+    });
+
     res.json({
+      aiDecision: aiMeta.aiDecision ?? null,
+      aiRecommendation: (exceptionWithRec?.aiRecommendation as unknown) ?? null,
       aiRecommendationUsed: verified.aiRecommendationUsed,
       canonicalData: verified.canonicalData as unknown,
       id: verified.id,
       loanId: verified.loanId,
       recordHash: verified.recordHash,
       reviewerDecision: verified.reviewerDecision,
+      reviewerNote: decisionLog
+        ? String(
+            (decisionLog.metadata as { note?: unknown } | null)?.note ?? ""
+          ) || null
+        : null,
       sourceBatchRef: verified.sourceBatchRef,
       validationResult: verified.validationResult,
       verifiedAt: verified.verifiedAt.toISOString(),
       verifiedById: verified.verifiedById,
+      verifiedByName: verified.verifiedBy?.name ?? null,
     });
   }
 );
