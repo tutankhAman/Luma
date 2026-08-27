@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import lumaLogo from "@/luma.svg";
 
 /* Spec §8 — sidebar nav scoped by role, plus the pinned AI Development Log. */
 
@@ -115,20 +116,14 @@ const NAV_ITEMS: NavItem[] = [
 function Wordmark() {
   return (
     <div className="flex items-center gap-2.5 px-1">
-      <span
-        aria-hidden="true"
-        className="flex size-7 items-center justify-center rounded-[9px] bg-primary text-primary-foreground"
-      >
-        <i className="ri-shield-check-line text-[15px]" />
-      </span>
-      <div className="min-w-0 leading-tight">
-        <p className="font-semibold text-[15px] tracking-tight">
-          Intain Verify
-        </p>
-        <p className="truncate text-[10.5px] text-muted-foreground">
-          Loan Data Verification Copilot
-        </p>
-      </div>
+      <img
+        alt="Luma"
+        className="size-7 shrink-0 rounded-[9px]"
+        height={28}
+        src={lumaLogo}
+        width={28}
+      />
+      <p className="font-semibold text-[15px] tracking-tight">Luma</p>
     </div>
   );
 }

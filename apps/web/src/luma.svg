@@ -1,0 +1,54 @@
+<svg
+  fill="none"
+  height="32"
+  viewBox="0 0 32 32"
+  width="32"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <title>Luma Logo</title>
+  <defs>
+    <linearGradient id="luma-bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="luma-glow" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.3" />
+    </linearGradient>
+    <linearGradient id="luma-spark" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#DBEAFE" />
+    </linearGradient>
+    <filter height="140%" id="luma-shadow" width="140%" x="-20%" y="-20%">
+      <feDropShadow
+        dx="0"
+        dy="1.5"
+        flood-color="#1E3A8A"
+        flood-opacity="0.25"
+        stdDeviation="1.5"
+      />
+    </filter>
+  </defs>
+
+  <rect fill="url(#luma-bg)" height="32" rx="8" width="32" />
+  <rect
+    height="30"
+    rx="7"
+    stroke="url(#luma-glow)"
+    stroke-width="0.8"
+    width="30"
+    x="1"
+    y="1"
+  />
+
+  <g filter="url(#luma-shadow)">
+    <path d="M16 6.5L23.5 16L16 25.5L8.5 16L16 6.5Z" fill="url(#luma-spark)" />
+    <path d="M16 6.5L8.5 16L16 16Z" fill="#93C5FD" fill-opacity="0.6" />
+    <path d="M16 16L23.5 16L16 25.5Z" fill="#BFDBFE" fill-opacity="0.7" />
+    <path
+      d="M16 11.5L17.2 14.8L20.5 16L17.2 17.2L16 20.5L14.8 17.2L11.5 16L14.8 14.8L16 11.5Z"
+      fill="#2563EB"
+    />
+  </g>
+</svg>
