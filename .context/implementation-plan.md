@@ -301,11 +301,11 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
 ### A — Hours 10–22
 
 #### Hour 10–14: Reviewer Dashboard + Exception Queue Table
-- [ ] Build `app/(reviewer)/dashboard/page.tsx`:
+- [x] Build `app/(reviewer)/dashboard/page.tsx`:
   - Stat cards: Open Exceptions | Pending AI Review | Approved Today | Rejected Today
   - Recent exceptions list (last 5, click → exception detail)
   - Quick-navigate to full exception queue
-- [ ] Build `app/(reviewer)/exceptions/page.tsx` — the main reviewer workhorse:
+- [x] Build `app/(reviewer)/exceptions/page.tsx` — the main reviewer workhorse:
   - **Filter bar** (`components/exceptions/filter-bar.tsx`):
     - Status tabs: All | Open | Approved | Rejected
     - Severity multi-select: critical / high / medium / low
@@ -320,14 +320,14 @@ Hour 45 ──── Phase 6: Demo Prep, README, Submission      (Both, 45–48h
     - Loading skeleton (shimmer rows)
     - Empty state when no exceptions
   - **Counts summary bar** — show total open/critical count above table
-- [ ] TanStack Query hooks: `hooks/use-exceptions.ts`
+- [x] TanStack Query hooks: `hooks/use-exceptions.ts`
   - `useExceptions(filters)` — `GET /api/exceptions` — refetch on filter change
   - `useException(id)` — single exception
 
 #### Hour 14–19: Loan Detail Page (Reviewer)
 This is the **most complex page** in the app. Build it methodically.
 
-- [ ] Build `app/(reviewer)/loans/[id]/page.tsx` — layout:
+- [x] Build `app/(reviewer)/loans/[id]/page.tsx` — layout:
   ```
   ┌──────────────────────────────────────────────────────┐
   │  ← Back to Queue    Loan L-10001 (B-5001)  [status]  │
@@ -345,23 +345,23 @@ This is the **most complex page** in the app. Build it methodically.
   └──────────────────────────────────────────────────────┘
   ```
 
-- [ ] `components/loan/loan-fields-panel.tsx`:
+- [x] `components/loan/loan-fields-panel.tsx`:
   - Display all loan fields in a grid (label + value)
   - Editable fields highlighted with pencil icon
   - Inline edit: pencil icon → input field + Save/Cancel
   - On save → `PATCH /api/loans/:id/fields` mutation
   - Optimistic update via TanStack Query
 
-- [ ] `components/loan/exception-list.tsx`:
+- [x] `components/loan/exception-list.tsx`:
   - Tab bar: one tab per exception (badge with severity color)
   - Each tab shows: type, field, message, status badge
   - Active exception highlighted
 
-- [ ] `components/loan/ai-panel.tsx` — **stub for now**:
+- [x] `components/loan/ai-panel.tsx` — **stub for now**:
   - "Get AI Explanation" button (shows spinner and placeholder card)
   - Wire real AI call in Phase 3
 
-- [ ] `components/loan/reviewer-actions.tsx`:
+- [x] `components/loan/reviewer-actions.tsx`:
   - "Approve Exception" → `POST /api/exceptions/:id/approve`
   - "Reject Exception" → `POST /api/exceptions/:id/reject`
   - Comment textarea + "Add Note" → `POST /api/exceptions/:id/comment`
@@ -369,7 +369,7 @@ This is the **most complex page** in the app. Build it methodically.
   - "Verify Loan" button (only enabled when all exceptions closed)
   - All mutations with loading states and toast feedback
 
-- [ ] TanStack Query hooks: `hooks/use-loans.ts`
+- [x] TanStack Query hooks: `hooks/use-loans.ts`
   - `useLoan(id)` — `GET /api/loans/:id`
   - `useUpdateLoanFields(id)` — mutation
   - `useApproveException(id)` — mutation
@@ -378,7 +378,7 @@ This is the **most complex page** in the app. Build it methodically.
   - `useVerifyLoan(id)` — mutation
 
 #### Hour 19–22: Audit Timeline + Loan Detail Polish
-- [ ] `components/audit/audit-timeline.tsx`:
+- [x] `components/audit/audit-timeline.tsx`:
   - Vertical timeline, chronological (oldest top)
   - Per entry: icon (based on eventType) + actor name + description + timestamp
   - Event type → icon map (Remix Icon — `<i className="ri-*-line">`, never emojis):
@@ -392,15 +392,15 @@ This is the **most complex page** in the app. Build it methodically.
     - `VERIFIED_RECORD_CREATED` → `ri-shield-check-line`
     - `RECORD_EXPORTED` → `ri-share-box-line`
   - Load more pagination
-- [ ] `hooks/use-audit.ts` — `GET /api/audit/:loanId`
-- [ ] Wire audit timeline into loan detail page (bottom section)
+- [x] `hooks/use-audit.ts` — `GET /api/audit/:loanId`
+- [x] Wire audit timeline into loan detail page (bottom section)
 
 ### Phase 2 Checkpoint (Hour 22)
-- [ ] Reviewer can: log in → open exception queue → filter by severity/type → open loan detail → edit fields → add comments → approve/reject exceptions
-- [ ] Operator can: view batch detail → see validation summary with real exception counts
-- [ ] Audit timeline shows real events on loan detail page
-- [ ] Verified loan creation tested via curl (A hasn't wired button yet — that's fine)
-- [ ] B confirms: all loan, exception, verified-loan, audit, summary routes deployed
+- [x] Reviewer can: log in → open exception queue → filter by severity/type → open loan detail → edit fields → add comments → approve/reject exceptions
+- [x] Operator can: view batch detail → see validation summary with real exception counts
+- [x] Audit timeline shows real events on loan detail page
+- [x] Verified loan creation tested via curl (A hasn't wired button yet — that's fine)
+- [x] B confirms: all loan, exception, verified-loan, audit, summary routes deployed
 
 ---
 
@@ -412,8 +412,8 @@ This is the **most complex page** in the app. Build it methodically.
 ### B — Hours 22–28
 
 #### Hour 22–25: AI Service Core
-- [ ] Install: `bun add @ai-sdk/google ai`
-- [ ] Create `lib/ai.ts`:
+- [x] Install: `bun add @ai-sdk/google ai`
+- [x] Create `lib/ai.ts`:
   ```typescript
   // Packages: ai@7.0.79, @ai-sdk/google@4.0.51 (peer zod ^3.25 || ^4.1 — we use 4.4.3)
   // Model ID configurable via AI_MODEL_ID env; default gemini-3.5-flash-lite.
@@ -422,7 +422,7 @@ This is the **most complex page** in the app. Build it methodically.
   export const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
   export const model = google(process.env.AI_MODEL_ID ?? 'gemini-3.5-flash-lite');
   ```
-- [ ] Create `services/ai.service.ts`:
+- [x] Create `services/ai.service.ts`:
   - `explainException(exceptionId)`:
     1. Load exception + loan + any servicer_update conflict data
     2. Build structured prompt
@@ -435,22 +435,22 @@ This is the **most complex page** in the app. Build it methodically.
     1. Load aggregate exception data for batch
     2. Build summary prompt
     3. `generateText({ model, prompt })` → return text + model + timestamp
-- [ ] Create `routes/ai.ts`:
+- [x] Create `routes/ai.ts`:
   - `POST /api/ai/explain` — role: reviewer
   - `POST /api/ai/summarize-batch` — role: reviewer
   - Graceful error: if Gemini fails → `{ recommendation: null, error: "AI unavailable" }` with `200`
-- [ ] Zod request body validators
+- [x] Zod request body validators
 
 **→ Deliverable to A (Hour 25):** `/api/ai/explain` and `/api/ai/summarize-batch` working
 
 #### Hour 25–28: AI Classify + Suggest Rule + Servicer Conflict Detection
-- [ ] Add to `services/ai.service.ts`:
+- [x] Add to `services/ai.service.ts`:
   - `classifySeverity(exceptionId)` → `{ currentSeverity, suggestedSeverity, reasoning }`
   - `suggestRule(prompt)` → `generateObject` with `RuleSchema`, returns structured rule JSON
-- [ ] Add routes:
+- [x] Add routes:
   - `POST /api/ai/classify-severity`
   - `POST /api/ai/suggest-rule`
-- [ ] **Servicer conflict detection** in ingestion service:
+- [x] **Servicer conflict detection** in ingestion service:
   - When `fileType === 'servicer_update'`: match rows by `loanId`
   - Batch-match against existing loans via chunked `IN` queries over 5k-row windows — never one indexed query per row (1 query/row × 1M rows = death by latency)
   - For each field that differs → create `conflicting_source` exception with both values in metadata
@@ -463,7 +463,7 @@ This is the **most complex page** in the app. Build it methodically.
 ### A — Hours 22–33
 
 #### Hour 22–26: AI Panel (Full Implementation)
-- [ ] Build `components/loan/ai-panel.tsx` — full implementation:
+- [x] Build `components/loan/ai-panel.tsx` — full implementation:
   - **States:** idle → loading → recommendation received → decision made
   - "Get AI Explanation" button → calls `POST /api/ai/explain`
   - Loading: skeleton shimmer card
@@ -494,39 +494,39 @@ This is the **most complex page** in the app. Build it methodically.
   - **AI metadata always visible:** model, timestamp, prompt summary — never collapsible/hidden
   - **Error state:** if `recommendation === null` → "AI is unavailable. Please review manually."
 
-- [ ] `hooks/use-ai.ts`:
+- [x] `hooks/use-ai.ts`:
   - `useExplainException()` — mutation for `POST /api/ai/explain`
   - `useAIDecision()` — mutation for `POST /api/exceptions/:id/decision`
   - `useSummarizeBatch()` — mutation for `POST /api/ai/summarize-batch`
 
 #### Hour 26–29: Batch AI Summary Panel
-- [ ] Build `components/batch/ai-summary-panel.tsx`:
+- [x] Build `components/batch/ai-summary-panel.tsx`:
   - "Generate AI Summary" button on batch detail page
   - Collapsible card with generated summary text
   - Shows model + timestamp metadata
   - Loading skeleton while generating
-- [ ] Wire into `app/(operator)/uploads/[batchId]/page.tsx`
+- [x] Wire into `app/(operator)/uploads/[batchId]/page.tsx`
 
 #### Hour 29–33: Reviewer Dashboard Completion + Verify Loan Flow
-- [ ] **Reviewer Dashboard** full implementation:
+- [x] **Reviewer Dashboard** full implementation:
   - **Stats cards:** Open Exceptions | AI Reviewed | Pending Verify | Verified Today
   - **Priority queue:** Top 5 critical open exceptions → quick-link to each
   - **AI Summary panel** for most recent batch (widget form)
   - **Recent activity:** last 10 audit events across reviewer's loans
-- [ ] **Verify Loan flow** on loan detail page:
+- [x] **Verify Loan flow** on loan detail page:
   - "Verify Loan" button only enabled when all exceptions `status ∈ {approved, rejected, corrected}`
   - If any open → tooltip: "2 exceptions still open"
   - On click → `POST /api/loans/:id/verify`
   - Success → toast "Loan L-10001 verified. Hash: e3b0c4..." → optimistic state update
   - Show verification badge on loan page: lock icon + "Verified" + verifiedAt
-- [ ] `components/loan/verification-status.tsx` — verified badge, hash preview, verified-by, timestamp
+- [x] `components/loan/verification-status.tsx` — verified badge, hash preview, verified-by, timestamp
 
 ### Phase 3 Checkpoint (Hour 33)
-- [ ] Complete reviewer flow: queue → loan detail → AI explain → accept/edit/reject AI → approve exception → verify loan
-- [ ] AI panel shows model metadata, is read-only, requires explicit action to apply
-- [ ] AI output appears in audit trail (AI_RECOMMENDATION event visible)
-- [ ] Batch AI summary works on operator upload detail page
-- [ ] "Verify Loan" button correctly guarded by open exception count
+- [x] Complete reviewer flow: queue → loan detail → AI explain → accept/edit/reject AI → approve exception → verify loan
+- [x] AI panel shows model metadata, is read-only, requires explicit action to apply
+- [x] AI output appears in audit trail (AI_RECOMMENDATION event visible)
+- [x] Batch AI summary works on operator upload detail page
+- [x] "Verify Loan" button correctly guarded by open exception count
 
 ---
 
@@ -538,33 +538,33 @@ This is the **most complex page** in the app. Build it methodically.
 ### B — Hours 33–37
 
 #### Hour 33–35: Ingestion Edge Cases + Harden Routes
-- [ ] Handle **servicer update file** conflict detection properly (full field-by-field comparison)
-- [ ] Handle **document manifest file**:
+- [x] Handle **servicer update file** conflict detection properly (full field-by-field comparison)
+- [x] Handle **document manifest file**:
   - Parse rows: `loanId`, `documentType`, `available`
   - Update `Loan.documentStatus` from manifest
   - Create `missing_field` exception if `documentStatus` missing
-- [ ] `GET /api/loans` for `data_consumer` role — returns only loans with `verifiedRecord != null`
-- [ ] Harden `PATCH /api/loans/:id/fields`:
+- [x] `GET /api/loans` for `data_consumer` role — returns only loans with `verifiedRecord != null`
+- [x] Harden `PATCH /api/loans/:id/fields`:
   - Strict allow-list enforcement (400 for any non-editable field)
   - Record old value in `FIELD_EDITED` audit log metadata
-- [ ] Rate limiting on AI endpoints: simple in-memory counter (20 calls/min per user)
-- [ ] Global error handler pass — ensure all errors return `{ error, code }` JSON
+- [x] Rate limiting on AI endpoints: simple in-memory counter (20 calls/min per user)
+- [x] Global error handler pass — ensure all errors return `{ error, code }` JSON
 
 #### Hour 35–37: CSV Export + Final API Polish
-- [ ] `GET /api/verified-loans/export`:
+- [x] `GET /api/verified-loans/export`:
   - Stream CSV using `fast-csv`
   - All `canonicalData` fields + `verifiedAt`, `recordHash`, `validationResult`, `reviewerDecision`
   - Write `AuditLog: RECORD_EXPORTED`
   - Headers: `Content-Type: text/csv`, `Content-Disposition: attachment; filename="verified_loans_<date>.csv"`
-- [ ] `GET /api/health` → `{ status: 'ok', timestamp }` (for deployment check)
-- [ ] Final Zod validation pass: every route body/query has a schema
+- [x] `GET /api/health` → `{ status: 'ok', timestamp }` (for deployment check)
+- [x] Final Zod validation pass: every route body/query has a schema
 
 ---
 
 ### A — Hours 33–41
 
 #### Hour 33–37: Consumer Dashboard
-- [ ] Build `app/(consumer)/dashboard/page.tsx`:
+- [x] Build `app/(consumer)/dashboard/page.tsx`:
   - **Quality Score card** — large number (e.g., "75.1%"), progress ring, label "Data Quality Score"
   - **Summary stats row:** Total Verified | Passed Clean | Passed With Review | AI Assisted
   - **Verified Loans table** (`components/verified-loans/verified-loans-table.tsx`):
@@ -575,12 +575,12 @@ This is the **most complex page** in the app. Build it methodically.
     - Search by loan ID
     - Pagination
   - **Export button** → `GET /api/verified-loans/export` → browser download
-- [ ] `hooks/use-verified-loans.ts`:
+- [x] `hooks/use-verified-loans.ts`:
   - `useVerifiedLoans(filters)` — `GET /api/verified-loans`
   - `useExportVerifiedLoans()` — fetches blob, triggers download via `URL.createObjectURL`
 
 #### Hour 37–39: Consumer Loan Detail + Full Audit Trail
-- [ ] Build `app/(consumer)/loans/[id]/page.tsx`:
+- [x] Build `app/(consumer)/loans/[id]/page.tsx`:
   - **Verified record banner:** green "Verified" badge, hash, verified-by, timestamp
   - **Canonical Data panel** — all fields displayed (read-only, no edit UI)
   - **Record Integrity section:**
@@ -590,22 +590,22 @@ This is the **most complex page** in the app. Build it methodically.
   - **Full audit timeline** (all events, read-only, chronological)
 
 #### Hour 39–41: Operator Dashboard Completion + Global Polish
-- [ ] Complete `app/(operator)/dashboard/page.tsx`:
+- [x] Complete `app/(operator)/dashboard/page.tsx`:
   - **Quick Upload card** (drag-and-drop, prominent, hero element)
   - **Import History table** — all batches, status badges, click → batch detail
   - **Live processing indicator** — if any batch is `processing`, show animated progress indicator
   - **Summary stats** from `/api/summary`
-- [ ] Shared `components/layout/page-header.tsx` — consistent title + breadcrumbs
-- [ ] Shared `components/layout/empty-state.tsx` — illustration + message for empty tables
-- [ ] All tables responsive (horizontal scroll on small screens)
-- [ ] Consistent loading skeletons on every data-fetching page
+- [x] Shared `components/layout/page-header.tsx` — consistent title + breadcrumbs
+- [x] Shared `components/layout/empty-state.tsx` — illustration + message for empty tables
+- [x] All tables responsive (horizontal scroll on small screens)
+- [x] Consistent loading skeletons on every data-fetching page
 
 ### Phase 4 Checkpoint (Hour 41)
-- [ ] All 3 role dashboards complete and functional
-- [ ] Consumer can: view verified loans, open loan detail with full audit trail, download CSV export
-- [ ] Operator can: upload all 3 file types, see batch processing states, view validation summary with AI summary
-- [ ] Quality score appears on consumer dashboard
-- [ ] CSV export downloads a real file with correct columns
+- [x] All 3 role dashboards complete and functional
+- [x] Consumer can: view verified loans, open loan detail with full audit trail, download CSV export
+- [x] Operator can: upload all 3 file types, see batch processing states, view validation summary with AI summary
+- [x] Quality score appears on consumer dashboard
+- [x] CSV export downloads a real file with correct columns
 
 ---
 
