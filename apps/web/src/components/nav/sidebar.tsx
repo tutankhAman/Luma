@@ -210,7 +210,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col border-sidebar-border border-r bg-sidebar">
+    <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col rounded-tr-3xl rounded-br-3xl border-sidebar-border border-r bg-sidebar">
       <div className="px-5 pt-5 pb-4">
         <Wordmark />
       </div>
