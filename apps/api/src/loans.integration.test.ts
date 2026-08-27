@@ -139,7 +139,7 @@ afterAll(async () => {
       OR: [
         { loanId: { in: loanIds } },
         { batchId: { in: batchIds } },
-        { verifiedLoanId: { not: null } },
+        { verifiedLoan: { loanId: { in: loanIds } } },
         {
           actorId: {
             in: await prisma.user

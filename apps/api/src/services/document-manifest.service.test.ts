@@ -46,6 +46,21 @@ describe("normalizeManifestRow", () => {
     }
   });
 
+  it("normalizes Title Case / spaced headers the same way as the header gate", () => {
+    // validateManifestHeaders accepts "Loan Id, Document Type, Available";
+    // row parsing must agree or the batch would complete with all rows failed.
+    const result = normalizeManifestRow(
+      { "Loan Id": "L-3", "Document Type": "deed", Available: "no" },
+      4
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.row.loanId).toBe("L-3");
+      expect(result.row.documentType).toBe("deed");
+      expect(result.row.available).toBe(false);
+    }
+  });
+
   it("coerces the full boolean matrix", () => {
     const trueValues = ["1", "true", "TRUE", "Y", "yes"];
     for (const v of trueValues) {

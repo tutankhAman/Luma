@@ -434,4 +434,54 @@ describe("document manifest pipeline (integration)", () => {
     expect(completedAfter).toBe(completedBefore);
     await fs.promises.unlink(filePath).catch(() => {});
   });
+
+  it("re-invoking a soft-failed batch cleans orphans and recreates exactly one exception", async () => {
+    const manifestContent = [
+      "loan_id,document_type,available",
+      `L-${RUN_TAG}-1,deed,false`,
+    ].join("\n");
+
+    const batchId = await uploadCsv(
+      operatorCookie,
+      "document_manifest",
+      manifestContent,
+      `orphan_${RUN_TAG}.csv`
+    );
+    expect((await pollBatch(operatorCookie, batchId)).status).toBe("done");
+
+    // Simulate a mid-run crash: stage left "applying" with an orphan
+    // open/unreviewed exception from the aborted attempt.
+    const batch = await prisma.uploadBatch.findUnique({ where: { id: batchId } });
+    const meta = (batch?.metadata as Record<string, unknown>) ?? {};
+    await prisma.uploadBatch.update({
+      data: {
+        metadata: { ...meta, manifestStage: "applying" },
+        status: "processing",
+      },
+      where: { id: batchId },
+    });
+
+    const { processDocumentManifest } = await import(
+      "./services/document-manifest.service.js"
+    );
+    const filePath = `/tmp/opencode/crash_${Date.now()}.csv`;
+    await Bun.write(filePath, manifestContent);
+    await processDocumentManifest(filePath, batchId);
+    await fs.promises.unlink(filePath).catch(() => {});
+
+    const finalBatch = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    expect(finalBatch?.status).toBe("done");
+
+    // Orphan deleted, re-ensured exactly once — no duplicates.
+    const exceptions = await prisma.exception.findMany({
+      where: {
+        exceptionType: "missing_field",
+        metadata: { equals: batchId, path: ["manifestBatchId"] } as never,
+      },
+    });
+    expect(exceptions.length).toBe(1);
+    expect(exceptions[0]?.status).toBe("open");
+  });
 });

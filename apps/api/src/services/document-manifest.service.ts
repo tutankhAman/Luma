@@ -101,9 +101,19 @@ export const normalizeManifestRow = (
   raw: Record<string, string>,
   rowNumber: number
 ): NormalizeManifestResult => {
+  // Normalize row keys the same way validateManifestHeaders normalizes
+  // header names (review Warn fix): a file passing the header gate with
+  // "Loan Id,Document Type,Available" must not fail every row because
+  // get() compared against raw BOM-stripped keys only.
+  const norm = Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [
+      normalizeHeaderKey(key),
+      value,
+    ])
+  );
   const get = (...keys: string[]): string => {
     for (const key of keys) {
-      const value = raw[key];
+      const value = norm[key];
       if (value !== undefined && value !== "") {
         return value;
       }
@@ -111,11 +121,9 @@ export const normalizeManifestRow = (
     return "";
   };
 
-  const rawLoanId = cleanString(get("loan_id", "loanid", "loanId"));
-  const documentType = cleanString(
-    get("document_type", "documentType", "document")
-  );
-  const availableRaw = get("available", "is_available", "availability");
+  const rawLoanId = cleanString(get("loanid"));
+  const documentType = cleanString(get("documenttype", "document"));
+  const availableRaw = get("available", "isavailable", "availability");
   const available = parseAvailable(availableRaw);
 
   const fail = (reason: string): NormalizeManifestResult => ({
@@ -159,8 +167,10 @@ export const validateManifestHeaders = (headers: string[]): string | null => {
 
 interface ApplyOutcome {
   loansUpdated: number;
+  /** businessIds presented whose count minus matched tape rows (duplicates/single-row windows make these differ) */
   matchedLoanIds: number;
   missingLoansCreated: number;
+  unmatchedBusinessIds: number;
 }
 
 const applyChunk = async (
@@ -185,6 +195,7 @@ const applyChunk = async (
       loansUpdated: 0,
       matchedLoanIds: 0,
       missingLoansCreated: 0,
+      unmatchedBusinessIds: 0,
     };
   }
 
@@ -306,6 +317,7 @@ const applyChunk = async (
     loansUpdated,
     matchedLoanIds: tapeByLoanId.size,
     missingLoansCreated,
+    unmatchedBusinessIds: businessIds.length - tapeByLoanId.size,
   };
 };
 
@@ -384,7 +396,16 @@ export const processDocumentManifest = async (
     }
 
     // Replay guard: wipe orphans left behind by an interrupted previous run.
-    if (existingMeta.manifestStage === "applying") {
+    // Replay guard (review Warn fix): "applying" catches hard crashes;
+    // "failed" catches soft failures (markFailed overwrites the stage), so
+    // a re-invoked failed batch also cleans its orphans before re-applying.
+    // buildOrphanCleanupWhere is idempotent and scoped to open + unreviewed
+    // same-batch exceptions (S3), and missing-exceptions are re-ensured
+    // every run, so cleanup on "failed" cannot lose reviewed state.
+    if (
+      existingMeta.manifestStage === "applying" ||
+      existingMeta.manifestStage === "failed"
+    ) {
       try {
         await prisma.exception.deleteMany({
           where: buildOrphanCleanupWhere(batchId) as never,
@@ -413,15 +434,7 @@ export const processDocumentManifest = async (
     let totalRows = 0;
     let totalApplied = 0;
     let totalMissingExceptioned = 0;
-
-    const flushChunk = async (manifestChunk: ManifestRow[]): Promise<void> => {
-      if (manifestChunk.length === 0) {
-        return;
-      }
-      const outcome = await applyChunk(batchId, manifestChunk);
-      totalApplied += outcome.loansUpdated;
-      totalMissingExceptioned += outcome.missingLoansCreated;
-    };
+    let totalUnmatched = 0;
 
     readStream = fs.createReadStream(filePath);
     csvStream = readStream.pipe(
@@ -460,7 +473,13 @@ export const processDocumentManifest = async (
       ).on("error", reject);
     });
 
-    let chunk: ManifestRow[] = [];
+    // Whole-file per-loanId accumulation (review Block fix): the verdict for
+    // a loan must be decided from ALL its manifest rows. A size-triggered
+    // chunk flush could split one loanId's rows across two windows and flip
+    // documentStatus based on a partial group. Rows are tiny triples, so the
+    // O(distinct-loan rows) buffer is bounded and safe; only applyChunk
+    // windows stay capped at MANIFEST_CHUNK_SIZE.
+    const rowsByLoanId = new Map<string, ManifestRow[]>();
     let currentRowNumber = 1;
 
     const processRows = async (): Promise<void> => {
@@ -489,21 +508,51 @@ export const processDocumentManifest = async (
           continue;
         }
 
-        chunk.push(result.row);
-        if (chunk.length >= MANIFEST_CHUNK_SIZE) {
-          await flushChunk(chunk);
-          chunk = [];
+        const loanRows = rowsByLoanId.get(result.row.loanId);
+        if (loanRows) {
+          loanRows.push(result.row);
+        } else {
+          rowsByLoanId.set(result.row.loanId, [result.row]);
         }
       }
     };
 
     await Promise.race([processRows(), streamErrorPromise]);
+    // Contain a late stream rejection: if processRows wins the race the
+    // rejected streamErrorPromise would otherwise surface as an unhandled
+    // process-level rejection.
+    streamErrorPromise.catch(() => {
+      // already handled by the race above
+    });
 
     if (headerValidationError) {
       throw new Error(headerValidationError);
     }
 
-    await flushChunk(chunk);
+    // Apply complete per-loan groups in capped windows (E3): feed applyChunk
+    // batches of whole loanId groups whose combined rows stay under
+    // MANIFEST_CHUNK_SIZE.
+    const allGroups = [...rowsByLoanId.values()];
+    for (let start = 0; start < allGroups.length; start += 1) {
+      const window: ManifestRow[] = [];
+      while (start < allGroups.length) {
+        const group = allGroups[start] as ManifestRow[];
+        if (window.length > 0 && window.length + group.length > MANIFEST_CHUNK_SIZE) {
+          break;
+        }
+        for (const row of group) {
+          window.push(row);
+        }
+        start += 1;
+      }
+      if (window.length === 0) {
+        break;
+      }
+      const outcome = await applyChunk(batchId, window);
+      totalApplied += outcome.loansUpdated;
+      totalMissingExceptioned += outcome.missingLoansCreated;
+      totalUnmatched += outcome.unmatchedBusinessIds;
+    }
 
     const finalMetaSource = await prisma.uploadBatch.findUnique({
       where: { id: batchId },
@@ -522,7 +571,7 @@ export const processDocumentManifest = async (
             manifestMissingExceptioned: totalMissingExceptioned,
             manifestStage: "done",
             manifestTotalRows: totalRows,
-            manifestUnmatchedBusinessIds: 0,
+            manifestUnmatchedBusinessIds: totalUnmatched,
             pipelineStage: "completed",
             stageMessage: "Document manifest processed successfully.",
           },
