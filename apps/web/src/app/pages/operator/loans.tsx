@@ -4,8 +4,8 @@ import type {
   LoanListQuery,
   ValidationStatus,
 } from "@repo/types";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ValidationStatusBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
@@ -299,11 +299,19 @@ function DrawerBody({
 }
 
 export default function LoanRecordsPage() {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [status, setStatus] = useState<ValidationStatus | "">("");
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [drawerId, setDrawerId] = useState<string | null>(id ?? null);
+
+  useEffect(() => {
+    if (id) {
+      setDrawerId(id);
+    }
+  }, [id]);
 
   const query: LoanListQuery = {
     limit: 20,
@@ -458,7 +466,15 @@ export default function LoanRecordsPage() {
         ) : null}
       </section>
 
-      <LoanDetailDrawer loanId={drawerId} onClose={() => setDrawerId(null)} />
+      <LoanDetailDrawer
+        loanId={drawerId}
+        onClose={() => {
+          setDrawerId(null);
+          if (id) {
+            navigate("/operator/loans", { replace: true });
+          }
+        }}
+      />
     </div>
   );
 }

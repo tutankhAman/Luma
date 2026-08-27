@@ -69,8 +69,10 @@ router.get(
     }
     if (search) {
       where.OR = [
+        { id: { equals: search } },
         { loanId: { contains: search, mode: "insensitive" } },
         { borrowerId: { contains: search, mode: "insensitive" } },
+        { servicerName: { contains: search, mode: "insensitive" } },
       ];
     }
     // Data consumers only ever see verified loans — deny-by-default scoping.

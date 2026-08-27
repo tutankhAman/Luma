@@ -34,6 +34,61 @@ interface SearchHit {
   loanId: string | null;
 }
 
+function SearchResultsContent({
+  searching,
+  hits,
+  onSelect,
+}: {
+  searching: boolean;
+  hits: SearchHit[];
+  onSelect: (hit: SearchHit) => void;
+}) {
+  if (searching) {
+    return (
+      <div className="space-y-2 p-2.5">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    );
+  }
+
+  if (hits.length === 0) {
+    return (
+      <div className="px-3.5 py-3 text-center text-[12.5px] text-muted-foreground">
+        No matching loans found
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {hits.map((hit) => (
+        <button
+          className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-accent"
+          key={hit.id}
+          onClick={() => onSelect(hit)}
+          type="button"
+        >
+          <div className="flex items-center gap-2">
+            <i
+              aria-hidden="true"
+              className="ri-file-list-3-line text-[13px] text-muted-foreground"
+            />
+            <span className="font-medium font-mono text-[12.5px]">
+              {hit.loanId ?? hit.id}
+            </span>
+          </div>
+          {hit.borrowerId ? (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {hit.borrowerId}
+            </span>
+          ) : null}
+        </button>
+      ))}
+    </>
+  );
+}
+
 function GlobalSearch({ role }: { role: Role }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -44,10 +99,12 @@ function GlobalSearch({ role }: { role: Role }) {
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
+    if (!trimmed) {
       setHits([]);
+      setOpen(false);
       return;
     }
+    setOpen(true);
     const timer = setTimeout(() => {
       setSearching(true);
       loansApi
@@ -60,7 +117,6 @@ function GlobalSearch({ role }: { role: Role }) {
               loanId: item.loanId,
             }))
           );
-          setOpen(true);
         })
         .catch(() => {
           setHits([]);
@@ -68,7 +124,7 @@ function GlobalSearch({ role }: { role: Role }) {
         .finally(() => {
           setSearching(false);
         });
-    }, 250);
+    }, 200);
     return () => {
       clearTimeout(timer);
     };
@@ -102,51 +158,42 @@ function GlobalSearch({ role }: { role: Role }) {
     navigate(`${SEARCH_ROUTES[role]}/${hit.id}`);
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && hits.length > 0 && hits[0]) {
+      event.preventDefault();
+      go(hits[0]);
+    } else if (event.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
   return (
-    <div className="relative w-full max-w-sm" ref={boxRef}>
+    <div className="relative w-full max-w-md" ref={boxRef}>
       <i
         aria-hidden="true"
-        className="ri-search-line pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground text-sm"
+        className="ri-search-line pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground text-sm"
       />
       <input
         aria-label="Search loans"
-        className="h-8 w-full rounded-lg border border-input bg-card pr-3 pl-8.5 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+        className="h-8 w-full rounded-full border border-input bg-card pr-3.5 pl-9 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
         onChange={(event) => setQuery(event.target.value)}
         onFocus={() => {
-          if (hits.length > 0) {
+          if (query.trim()) {
             setOpen(true);
           }
         }}
+        onKeyDown={handleKeyDown}
         placeholder="Search loan ID or borrower ID…"
         type="search"
         value={query}
       />
-      {open && (hits.length > 0 || searching) ? (
-        <div className="absolute top-9 z-50 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-black/5 shadow-lg">
-          {searching && hits.length === 0 ? (
-            <div className="space-y-2 p-2.5">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ) : (
-            hits.map((hit) => (
-              <button
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
-                key={hit.id}
-                onClick={() => go(hit)}
-                type="button"
-              >
-                <span className="font-mono text-[12.5px]">
-                  {hit.loanId ?? hit.id}
-                </span>
-                {hit.borrowerId ? (
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {hit.borrowerId}
-                  </span>
-                ) : null}
-              </button>
-            ))
-          )}
+      {open && query.trim() ? (
+        <div className="absolute top-9.5 z-50 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-black/5 shadow-lg">
+          <SearchResultsContent
+            hits={hits}
+            onSelect={go}
+            searching={searching}
+          />
         </div>
       ) : null}
     </div>
@@ -242,14 +289,18 @@ export function Topbar({ title }: { title: string }) {
   const badgeCount = summary?.overview.openExceptions ?? 0;
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-4 border-border border-b bg-background/85 px-6 backdrop-blur">
-      <h1 className="font-semibold text-[15px] tracking-tight">{title}</h1>
-      <div className="ml-auto flex flex-1 items-center justify-end gap-2">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-4 border-border border-b bg-background/85 px-6 backdrop-blur">
+      <div className="flex min-w-[140px] items-center">
+        <h1 className="font-semibold text-[15px] tracking-tight">{title}</h1>
+      </div>
+      <div className="flex flex-1 items-center justify-center px-4">
         <GlobalSearch role={role ?? "data_operator"} />
+      </div>
+      <div className="flex min-w-[140px] items-center justify-end gap-2">
         <button
           aria-label={`Notifications${badgeCount ? `, ${badgeCount} unread` : ""}`}
           className={cn(
-            "relative flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            "relative flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground active:translate-y-[0.5px]"
           )}
           onClick={() => setNotificationsOpen(true)}
           type="button"
@@ -261,7 +312,7 @@ export function Topbar({ title }: { title: string }) {
         </button>
         {cta ? (
           <button
-            className="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 font-medium text-[13px] text-primary-foreground transition-colors hover:bg-primary/90"
+            className="flex h-8 items-center gap-1.5 rounded-full border border-primary/30 bg-gradient-to-b from-primary via-primary to-primary/85 px-3.5 font-medium text-[13px] text-primary-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25),0_1px_2px_0_rgba(15,23,42,0.12)] transition-all hover:brightness-105 active:translate-y-[0.5px] active:shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.18)]"
             onClick={() => navigate(cta.href)}
             type="button"
           >
