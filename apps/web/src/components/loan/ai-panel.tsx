@@ -9,17 +9,20 @@ import { useAiDecision, useExplainException } from "@/hooks/use-ai";
 
 function FieldDiff({ item }: { item: AiRecommendationFieldChange }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-2 text-[12px]">
-      <span className="shrink-0 font-medium text-[#A1A1AA]">{item.field}</span>
-      <span className="text-rose-400 line-through">
+    <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-[12px]">
+      <span className="shrink-0 font-medium text-muted-foreground">
+        {item.field}
+      </span>
+      <span className="text-destructive line-through">
         {item.currentValue ?? "—"}
       </span>
-      <i aria-hidden="true" className="ri-arrow-right-s-line text-[#52525B]" />
-      <span className="font-medium text-emerald-400">
-        {item.suggestedValue}
-      </span>
+      <i
+        aria-hidden="true"
+        className="ri-arrow-right-s-line text-muted-foreground/60"
+      />
+      <span className="font-medium text-success">{item.suggestedValue}</span>
       {item.source ? (
-        <span className="ml-auto rounded bg-[#27272A]/60 px-1.5 py-0.5 text-[#A1A1AA] text-[10px]">
+        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
           {item.source}
         </span>
       ) : null}
@@ -52,11 +55,9 @@ function RecommendationCard({
   return (
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-medium text-[13px] text-white">
-          {recommendation.suggestion}
-        </p>
+        <p className="font-medium text-[13px]">{recommendation.suggestion}</p>
         <button
-          className="shrink-0 text-[#52525B] transition-colors hover:text-[#A1A1AA]"
+          className="shrink-0 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
           onClick={onDismiss}
           type="button"
         >
@@ -64,25 +65,29 @@ function RecommendationCard({
         </button>
       </div>
 
-      <p className="text-[#A1A1AA] text-xs">{recommendation.reasoning}</p>
+      <p className="text-muted-foreground text-xs">
+        {recommendation.reasoning}
+      </p>
 
       {recommendation.fieldsToChange.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-[#52525B] text-[11px]">Fields to change:</p>
+          <p className="text-[11px] text-muted-foreground/60">
+            Fields to change:
+          </p>
           {recommendation.fieldsToChange.map((item) => (
             <FieldDiff item={item} key={item.field} />
           ))}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-x-3 text-[#52525B] text-[11px]">
+      <div className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground/60">
         <span>{recommendation.model}</span>
         <span>{Math.round(recommendation.confidence * 100)}% confidence</span>
         <span>{new Date(recommendation.timestamp).toLocaleString()}</span>
       </div>
 
       {recommendation.promptSummary ? (
-        <p className="border-[#27272A]/40 border-t pt-2 text-[#52525B] text-[11px] italic">
+        <p className="border-border/60 border-t pt-2 text-[11px] text-muted-foreground/60 italic">
           Prompt: {recommendation.promptSummary}
         </p>
       ) : null}
@@ -90,7 +95,7 @@ function RecommendationCard({
       {editing ? (
         <div className="space-y-2 pt-1">
           <input
-            className="w-full rounded-lg border border-[#8B5CF6]/40 bg-black px-3 py-2 text-[13px] text-white outline-none focus:ring-1 focus:ring-[#8B5CF6]"
+            className="w-full rounded-lg border border-primary/40 bg-background px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ring/40"
             onChange={(e) => setEditValue(e.target.value)}
             placeholder="Enter corrected value..."
             type="text"
@@ -146,7 +151,7 @@ function RecommendationCard({
         </div>
       )}
 
-      <p className="text-[#52525B] text-[10px] italic">
+      <p className="text-[10px] text-muted-foreground/60 italic">
         AI output is advisory only — it never changes data without a human
         decision.
       </p>
@@ -197,7 +202,7 @@ export function AiPanel({
 
   if (!exceptionId) {
     return (
-      <p className="rounded-lg bg-[#27272A]/20 p-3 text-[#A1A1AA] text-xs">
+      <p className="rounded-lg bg-muted/50 p-3 text-muted-foreground text-xs">
         Select an exception to get an AI explanation.
       </p>
     );
@@ -207,13 +212,10 @@ export function AiPanel({
   const showError = explanation && !recommendation;
 
   return (
-    <div className="space-y-2 rounded-lg border border-[#8B5CF6]/30 border-dashed bg-[#2E1065]/20 p-3">
+    <div className="space-y-2 rounded-lg border border-primary/30 border-dashed bg-primary/[0.05] p-3">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1.5 font-medium text-[13px] text-white">
-          <i
-            aria-hidden="true"
-            className="ri-sparkling-2-line text-[#8B5CF6]"
-          />
+        <p className="flex items-center gap-1.5 font-medium text-[13px]">
+          <i aria-hidden="true" className="ri-sparkling-2-line text-primary" />
           AI Copilot
         </p>
         <Button
@@ -237,7 +239,7 @@ export function AiPanel({
       </div>
 
       {showError ? (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-rose-400 text-xs">
+        <p className="rounded-lg border border-destructive/25 bg-destructive/8 p-3 text-destructive text-xs">
           <i aria-hidden="true" className="ri-error-warning-line mr-1" />
           {explanation.error || "AI is unavailable. Please review manually."}
         </p>
@@ -253,16 +255,16 @@ export function AiPanel({
       ) : null}
 
       {recommendation || showError || explain.isPending ? null : (
-        <p className="text-[#A1A1AA] text-xs">
+        <p className="text-muted-foreground text-xs">
           Ask the copilot why this record failed and what to correct.
         </p>
       )}
 
       {explain.isPending && !recommendation ? (
         <div className="space-y-2">
-          <div className="h-4 w-3/4 animate-pulse rounded bg-[#27272A]" />
-          <div className="h-3 w-full animate-pulse rounded bg-[#27272A]" />
-          <div className="h-3 w-2/3 animate-pulse rounded bg-[#27272A]" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-full animate-pulse rounded bg-muted" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
         </div>
       ) : null}
     </div>
