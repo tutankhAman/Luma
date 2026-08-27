@@ -49,6 +49,7 @@ export const loanExceptionItemSchema = z.object({
   field: z.string().nullable(),
   id: z.string(),
   message: z.string(),
+  metadata: z.unknown().nullable(),
   severity: severitySchema,
   status: exceptionStatusSchema,
 });
