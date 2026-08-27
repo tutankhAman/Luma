@@ -66,7 +66,7 @@ export function FilterBar({
       <div className="flex flex-wrap items-center gap-2">
         <div
           aria-label="Filter by status"
-          className="flex items-center gap-1 rounded-lg border border-[#27272A] bg-[#09090B] p-1"
+          className="flex items-center gap-1 rounded-lg border border-border bg-muted p-1"
           role="tablist"
         >
           {STATUS_TABS.map((tab) => (
@@ -75,8 +75,8 @@ export function FilterBar({
               className={cn(
                 "rounded-md px-3 py-1 text-[13px] transition-colors",
                 filters.status === tab.value
-                  ? "border border-[#8B5CF6]/30 bg-[#2E1065]/30 font-medium text-[#8B5CF6]"
-                  : "text-[#A1A1AA] hover:text-white"
+                  ? "border border-primary/30 bg-primary/10 font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
               key={tab.label}
               onClick={() => onChange({ status: tab.value })}
@@ -101,8 +101,8 @@ export function FilterBar({
               className={cn(
                 "rounded-full border px-2.5 py-1 text-xs capitalize transition-colors",
                 filters.severity === severity
-                  ? "border-[#8B5CF6]/30 bg-[#2E1065]/30 font-medium text-[#8B5CF6]"
-                  : "border-[#27272A] text-[#A1A1AA] hover:bg-[#27272A]/20"
+                  ? "border-primary/30 bg-primary/10 font-medium text-primary"
+                  : "border-border text-muted-foreground hover:bg-accent/50"
               )}
               key={severity}
               onClick={() =>
