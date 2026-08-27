@@ -106,10 +106,7 @@ export const normalizeManifestRow = (
   // "Loan Id,Document Type,Available" must not fail every row because
   // get() compared against raw BOM-stripped keys only.
   const norm = Object.fromEntries(
-    Object.entries(raw).map(([key, value]) => [
-      normalizeHeaderKey(key),
-      value,
-    ])
+    Object.entries(raw).map(([key, value]) => [normalizeHeaderKey(key), value])
   );
   const get = (...keys: string[]): string => {
     for (const key of keys) {
@@ -172,6 +169,32 @@ interface ApplyOutcome {
   missingLoansCreated: number;
   unmatchedBusinessIds: number;
 }
+
+/**
+ * Splits complete per-loanId groups into windows whose combined row count
+ * stays under MANIFEST_CHUNK_SIZE (E3). A loan's rows are never split:
+ * a single larger-than-window group occupies its own window intact.
+ */
+export const buildApplyWindows = (groups: ManifestRow[][]): ManifestRow[][] => {
+  const windows: ManifestRow[][] = [];
+  let current: ManifestRow[] = [];
+  for (const group of groups) {
+    if (
+      current.length > 0 &&
+      current.length + group.length > MANIFEST_CHUNK_SIZE
+    ) {
+      windows.push(current);
+      current = [];
+    }
+    for (const row of group) {
+      current.push(row);
+    }
+  }
+  if (current.length > 0) {
+    windows.push(current);
+  }
+  return windows;
+};
 
 const applyChunk = async (
   manifestBatchId: string,
@@ -532,22 +555,7 @@ export const processDocumentManifest = async (
     // Apply complete per-loan groups in capped windows (E3): feed applyChunk
     // batches of whole loanId groups whose combined rows stay under
     // MANIFEST_CHUNK_SIZE.
-    const allGroups = [...rowsByLoanId.values()];
-    for (let start = 0; start < allGroups.length; start += 1) {
-      const window: ManifestRow[] = [];
-      while (start < allGroups.length) {
-        const group = allGroups[start] as ManifestRow[];
-        if (window.length > 0 && window.length + group.length > MANIFEST_CHUNK_SIZE) {
-          break;
-        }
-        for (const row of group) {
-          window.push(row);
-        }
-        start += 1;
-      }
-      if (window.length === 0) {
-        break;
-      }
+    for (const window of buildApplyWindows([...rowsByLoanId.values()])) {
       const outcome = await applyChunk(batchId, window);
       totalApplied += outcome.loansUpdated;
       totalMissingExceptioned += outcome.missingLoansCreated;

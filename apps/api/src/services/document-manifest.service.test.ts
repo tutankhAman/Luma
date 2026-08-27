@@ -1,11 +1,49 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildApplyWindows,
   buildOrphanCleanupWhere,
   decideManifestStatus,
   type ManifestRow,
   normalizeManifestRow,
   validateManifestHeaders,
 } from "./document-manifest.service.js";
+
+describe("buildApplyWindows", () => {
+  it("keeps each loan's rows together and respects the window cap", () => {
+    const group = (loanId: string, count: number, startAt = 0): ManifestRow[] =>
+      Array.from({ length: count }, (_, i) => ({
+        available: true,
+        documentType: "deed",
+        loanId,
+        rowNumber: startAt + i + 1,
+      }));
+
+    // 3 + 2 + 9999 + 1 rows: cap is 5000 → [3,2] window, [9999] intact
+    // oversized single-group window, [1] window.
+    const groups = [
+      group("A", 3),
+      group("B", 2),
+      group("BIG", 9999),
+      group("C", 1),
+    ];
+    const windows = buildApplyWindows(groups);
+    expect(windows.length).toBe(3);
+    expect(windows[0]?.length).toBe(5);
+    expect(windows[1]?.length).toBe(9999);
+    expect(windows[2]?.length).toBe(1);
+    // Loan B's rows must never be split across windows.
+    const bRows = windows.flat().filter((r) => r.loanId === "B");
+    expect(bRows.length).toBe(2);
+  });
+
+  it("returns empty for no groups and single window for small input", () => {
+    expect(buildApplyWindows([])).toEqual([]);
+    const one = buildApplyWindows([
+      [{ available: true, documentType: "d", loanId: "L", rowNumber: 1 }],
+    ]);
+    expect(one.length).toBe(1);
+  });
+});
 
 const mkRow = (
   loanId: string,
@@ -50,7 +88,7 @@ describe("normalizeManifestRow", () => {
     // validateManifestHeaders accepts "Loan Id, Document Type, Available";
     // row parsing must agree or the batch would complete with all rows failed.
     const result = normalizeManifestRow(
-      { "Loan Id": "L-3", "Document Type": "deed", Available: "no" },
+      { Available: "no", "Document Type": "deed", "Loan Id": "L-3" },
       4
     );
     expect(result.success).toBe(true);

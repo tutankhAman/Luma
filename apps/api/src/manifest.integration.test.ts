@@ -451,7 +451,9 @@ describe("document manifest pipeline (integration)", () => {
 
     // Simulate a mid-run crash: stage left "applying" with an orphan
     // open/unreviewed exception from the aborted attempt.
-    const batch = await prisma.uploadBatch.findUnique({ where: { id: batchId } });
+    const batch = await prisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
     const meta = (batch?.metadata as Record<string, unknown>) ?? {};
     await prisma.uploadBatch.update({
       data: {
