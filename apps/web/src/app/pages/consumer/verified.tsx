@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -132,8 +133,25 @@ export default function VerifiedRecordsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-[12px] text-muted-foreground">
-                    <span className="font-mono">
-                      {shortHash(record.recordHash)}
+                    <span className="group/hash flex items-center gap-1.5">
+                      <span className="font-mono">
+                        {shortHash(record.recordHash)}
+                      </span>
+                      <button
+                        aria-label={`Copy record hash for ${record.loan.loanId ?? record.id}`}
+                        className="rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/hash:opacity-100"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void navigator.clipboard.writeText(record.recordHash);
+                          toast.success("Record hash copied");
+                        }}
+                        type="button"
+                      >
+                        <i
+                          aria-hidden="true"
+                          className="ri-file-copy-line text-[13px]"
+                        />
+                      </button>
                     </span>
                   </TableCell>
                   <TableCell>

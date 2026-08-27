@@ -1,6 +1,8 @@
+import type { AiRecommendation } from "@repo/types";
 import { Link, useParams } from "react-router-dom";
 import { AuditTimeline } from "@/components/audit/audit-timeline";
 import { VerificationStatus } from "@/components/loan/verification-status";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -48,6 +50,72 @@ function formatValue(key: string, value: unknown): string {
     return `${value}%`;
   }
   return String(value);
+}
+
+function AiRecommendationUsedCard({
+  aiDecision,
+  recommendation,
+}: {
+  aiDecision?: "accepted" | "edited" | "rejected" | null;
+  recommendation: AiRecommendation;
+}) {
+  return (
+    <Card className="rounded-xl border-primary/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <i aria-hidden="true" className="ri-sparkling-2-line text-primary" />
+          AI Recommendation Used
+        </CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Original suggestion — outcome recorded separately
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {recommendation.suggestion ? (
+          <p className="text-[13px] text-foreground/90 leading-relaxed">
+            {recommendation.suggestion}
+          </p>
+        ) : null}
+        {recommendation.fieldsToChange.length > 0 ? (
+          <ul className="space-y-1.5">
+            {recommendation.fieldsToChange.slice(0, 4).map((change) => (
+              <li
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12px]"
+                key={`${change.field}-${change.suggestedValue}`}
+              >
+                <span className="font-mono text-muted-foreground">
+                  {change.field}
+                </span>
+                {change.currentValue ? (
+                  <span className="text-destructive line-through">
+                    {change.currentValue}
+                  </span>
+                ) : null}
+                <i
+                  aria-hidden="true"
+                  className="ri-arrow-right-line text-[10px] text-muted-foreground"
+                />
+                <span className="font-medium text-success">
+                  {change.suggestedValue}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-border border-t pt-3 text-[11px] text-muted-foreground">
+          <span className="font-mono">{recommendation.model}</span>
+          <span>confidence {Math.round(recommendation.confidence * 100)}%</span>
+          {aiDecision ? (
+            <Badge
+              variant={aiDecision === "rejected" ? "destructive" : "secondary"}
+            >
+              {aiDecision}
+            </Badge>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function ConsumerLoanDetailPage() {
@@ -170,6 +238,61 @@ export default function ConsumerLoanDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {loan.reviewerDecision || loan.verifiedByName ? (
+        <Card className="rounded-xl border-border">
+          <CardHeader>
+            <CardTitle>Reviewer Decision</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Human sign-off recorded before verification
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-xs">Reviewer</span>
+              <span className="text-[13px]">
+                {loan.verifiedByName ?? "Unknown"}
+              </span>
+            </div>
+            {loan.reviewerDecision ? (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground text-xs">Action</span>
+                <span className="text-[13px] capitalize">
+                  {loan.reviewerDecision.replaceAll("_", " ")}
+                </span>
+              </div>
+            ) : null}
+            {loan.reviewerNote ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Note</span>
+                <p className="mt-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-foreground/90 leading-relaxed">
+                  {loan.reviewerNote}
+                </p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {loan.aiRecommendationUsed && loan.aiRecommendation ? (
+        <AiRecommendationUsedCard
+          aiDecision={loan.aiDecision}
+          recommendation={loan.aiRecommendation}
+        />
+      ) : null}
+
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3.5">
+        <p className="text-[13px] text-muted-foreground">
+          Every event on this record — ingests, validations, decisions, exports.
+        </p>
+        <Link
+          className="flex items-center gap-1 font-medium text-[13px] text-primary underline-offset-4 hover:underline"
+          to={`/consumer/audit/${loanId}`}
+        >
+          View Full Audit Trail
+          <i aria-hidden="true" className="ri-arrow-right-s-line" />
+        </Link>
+      </div>
 
       <AuditTimeline loanId={loanId} />
     </div>

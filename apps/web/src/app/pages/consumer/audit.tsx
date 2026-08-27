@@ -1,12 +1,14 @@
 import type { AuditEventType, AuditLogEntry } from "@repo/types";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuditTrail } from "@/hooks/use-audit";
 import { useVerifiedLoans } from "@/hooks/use-verified-loans";
+import { downloadAsCsv } from "@/lib/download";
 import { cn } from "@/lib/utils";
 
 /* Spec §6.4 — Audit Trail Viewer (Module F). Loan-scoped timeline with a
@@ -280,6 +282,26 @@ export default function AuditTrailPage() {
           >
             Open record
             <i aria-hidden="true" className="ri-arrow-right-s-line" />
+          </Button>
+          <Button
+            onClick={() => {
+              downloadAsCsv(
+                `audit_trail_${loanId}.csv`,
+                ["event_type", "actor", "timestamp", "detail"],
+                entries.map((entry) => [
+                  entry.eventType,
+                  entry.actor?.name ?? "System",
+                  entry.createdAt,
+                  describeEntry(entry),
+                ])
+              );
+              toast.success(`Downloaded ${entries.length} audit events`);
+            }}
+            size="sm"
+            variant="outline"
+          >
+            <i aria-hidden="true" className="ri-download-2-line" />
+            Export trail
           </Button>
         </header>
         <ol className="relative space-y-0">

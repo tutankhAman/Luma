@@ -2,8 +2,10 @@ import type { FailedRow } from "@repo/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { AiSummaryPanel } from "@/components/batch/ai-summary-panel";
 import { BatchStatusBadge } from "@/components/ui/badges";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -26,6 +28,7 @@ import {
   ValidationSummaryCard,
 } from "@/components/upload/validation-summary";
 import { useUploadBatch, useUploadBatchSummary } from "@/hooks/use-uploads";
+import { downloadAsCsv } from "@/lib/download";
 
 function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
   if (!rows?.length) {
@@ -148,11 +151,35 @@ export default function BatchDetailPage() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Failed rows</CardTitle>
-          <CardDescription>
-            Rows that could not be normalized (capped at first 1,000).
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Failed rows</CardTitle>
+            <CardDescription>
+              Rows that could not be normalized (capped at first 1,000).
+            </CardDescription>
+          </div>
+          {batch?.failedRows?.length ? (
+            <Button
+              onClick={() => {
+                const rows = batch.failedRows ?? [];
+                downloadAsCsv(
+                  `failed_rows_${batch.id}.csv`,
+                  ["row_number", "raw_data", "reason"],
+                  rows.map((row) => [
+                    String(row.rowNumber),
+                    row.rawData,
+                    row.reason,
+                  ])
+                );
+                toast.success(`Downloaded ${rows.length} failed rows`);
+              }}
+              size="sm"
+              variant="outline"
+            >
+              <i aria-hidden="true" className="ri-download-2-line" />
+              Download failed rows
+            </Button>
+          ) : null}
         </CardHeader>
         <FailedRowsTable rows={batch?.failedRows} />
       </Card>
