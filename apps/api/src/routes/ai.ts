@@ -5,6 +5,7 @@ import {
   aiSummarizeBatchRequestSchema,
 } from "@repo/types";
 import express, { type Request, type Response } from "express";
+import { z } from "zod";
 import { AiUnavailableError, NotFoundError } from "../lib/ai.js";
 import { prisma } from "../lib/prisma.js";
 import { mapZodIssuesToFields } from "../lib/validation.js";
@@ -13,6 +14,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import {
   classifySeverity,
+  draftReviewerNote,
   explainException,
   suggestRule,
   summarizeBatch,
@@ -173,6 +175,46 @@ router.post(
           promptSummary: parsed.data.prompt.slice(0, 80),
           rule: null,
           timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      throw err;
+    }
+  }
+);
+
+const aiDraftNoteRequestSchema = z.object({
+  exceptionId: z.string().min(1),
+});
+
+router.post(
+  "/draft-note",
+  requireRole("reviewer"),
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = aiDraftNoteRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        code: "BAD_REQUEST",
+        error: "Invalid body",
+        fields: mapZodIssuesToFields(parsed.error.issues),
+      });
+      return;
+    }
+    const actorId = req.user?.id;
+    try {
+      const result = await draftReviewerNote(parsed.data.exceptionId, actorId);
+      res.json(result);
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        res.status(404).json({ code: "NOT_FOUND", error: err.message });
+        return;
+      }
+      if (err instanceof AiUnavailableError) {
+        res.json({
+          code: "AI_UNAVAILABLE",
+          error: err.message,
+          exceptionId: parsed.data.exceptionId,
+          note: null,
         });
         return;
       }

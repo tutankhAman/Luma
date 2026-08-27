@@ -29,6 +29,10 @@ const explainGenerationSchema = z.object({
   suggestion: z.string().min(1),
 });
 
+const draftNoteGenerationSchema = z.object({
+  note: z.string().min(1).max(1000),
+});
+
 const classifyGenerationSchema = z.object({
   reasoning: z.string().min(1),
   suggestedSeverity: severitySchema,
@@ -154,6 +158,38 @@ const buildSuggestRulePrompt = (prompt: string): string =>
     `User request: "${prompt}"`,
     "Return a single structured validation rule as JSON with: name (snake_case), description, condition (JSON object describing the field/operator/value logic), severity (critical|high|medium|low), exceptionType (one of: missing_field, duplicate, date_error, balance_error, rate_out_of_range, status_inconsistency, stale_record, invalid_state, conflicting_source).",
   ].join("\n");
+
+const buildDraftNotePrompt = (params: {
+  conflictContext: string | null;
+  exception: {
+    exceptionType: string;
+    field: string | null;
+    message: string;
+    severity: string;
+  };
+  loan: Record<string, unknown>;
+}): string => {
+  const { exception, loan, conflictContext } = params;
+  const loanSnapshot = [
+    `loanId=${toSafeString(loan.loanId)}`,
+    `currentBalance=${decimalToString(loan.currentBalance) ?? "null"}`,
+    `interestRate=${decimalToString(loan.interestRate) ?? "null"}`,
+    `paymentStatus=${toSafeString(loan.paymentStatus)}`,
+    `servicerName=${toSafeString(loan.servicerName)}`,
+  ].join(", ");
+  const lines = [
+    "You are drafting a reviewer note for a loan data verification record in Luma.",
+    `Exception: type=${exception.exceptionType}, severity=${exception.severity}, field=${exception.field ?? "n/a"}, message="${exception.message}".`,
+    `Loan snapshot: ${loanSnapshot}.`,
+  ];
+  if (conflictContext) {
+    lines.push(`Servicer conflict context: ${conflictContext}`);
+  }
+  lines.push(
+    "Write a 2-4 sentence reviewer note documenting what was found and the resolution rationale. Plain prose, factual tone, no markdown, no signature."
+  );
+  return lines.join("\n");
+};
 
 // ── Mock helpers (MOCK_AI=true or no key) ──
 
@@ -610,4 +646,104 @@ export const suggestRule = async (
   }
 
   return { model: modelId, note, promptSummary, rule, timestamp };
+};
+
+export const draftReviewerNote = async (
+  exceptionId: string,
+  actorId?: string
+): Promise<{
+  exceptionId: string;
+  model: string;
+  note: string;
+  promptSummary: string;
+  timestamp: string;
+}> => {
+  const exception = await prisma.exception.findUnique({
+    include: {
+      loan: {
+        select: {
+          borrowerId: true,
+          borrowerState: true,
+          creditGrade: true,
+          currentBalance: true,
+          daysPastDue: true,
+          documentStatus: true,
+          id: true,
+          interestRate: true,
+          loanId: true,
+          originalPrincipal: true,
+          paymentStatus: true,
+          servicerName: true,
+        },
+      },
+    },
+    where: { id: exceptionId },
+  });
+
+  if (!exception) {
+    throw new NotFoundError("Exception not found");
+  }
+
+  const loanFields = exception.loan as unknown as Record<string, unknown>;
+  const metadata = exception.metadata as Record<string, unknown> | null;
+  let conflictContext: string | null = null;
+  if (metadata?.sourceValue !== undefined) {
+    conflictContext = `servicer_update=${toSafeString(metadata.sourceValue)} vs loan_tape=${toSafeString(metadata.targetValue)} on ${toSafeString(metadata.conflictField ?? exception.field)}`;
+  }
+
+  const promptSummary = `Draft reviewer note for ${exception.exceptionType} on ${exception.field ?? "n/a"} (loan ${exception.loan.loanId ?? exception.loan.id})`;
+  const prompt = buildDraftNotePrompt({
+    conflictContext,
+    exception: {
+      exceptionType: exception.exceptionType,
+      field: exception.field,
+      message: exception.message,
+      severity: exception.severity,
+    },
+    loan: loanFields,
+  });
+
+  let note: string;
+  let modelId = AI_MODEL_ID;
+
+  if (isMockAi()) {
+    modelId = `mock-${AI_MODEL_ID}`;
+    note = `Reviewed ${exception.exceptionType.replaceAll("_", " ")} on ${exception.field ?? "loan fields"}: ${exception.message}. ${conflictContext ? `Servicer value conflicts with loan tape (${conflictContext}).` : "Validated against source records."} Resolution recorded with this decision.`;
+  } else {
+    if (!isAiConfigured()) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG);
+    }
+    const model = getModel();
+    try {
+      const result = await generateObject({
+        model,
+        prompt,
+        schema: draftNoteGenerationSchema,
+      });
+      note = result.object.note;
+    } catch (err) {
+      throw new AiUnavailableError(AI_UNAVAILABLE_MSG, { cause: err });
+    }
+  }
+
+  const timestamp = new Date().toISOString();
+
+  if (actorId) {
+    await prisma.auditLog.create({
+      data: {
+        actorId,
+        eventType: "AI_RECOMMENDATION",
+        exceptionId,
+        loanId: exception.loanId,
+        metadata: {
+          kind: "draft_note",
+          model: modelId,
+          promptSummary,
+          timestamp,
+        },
+      },
+    });
+  }
+
+  return { exceptionId, model: modelId, note, promptSummary, timestamp };
 };
