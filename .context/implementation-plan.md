@@ -438,7 +438,7 @@ This is the **most complex page** in the app. Build it methodically.
 - [x] Create `routes/ai.ts`:
   - `POST /api/ai/explain` — role: reviewer
   - `POST /api/ai/summarize-batch` — role: reviewer
-  - Graceful error: if Gemini fails → `{ recommendation: null, error: "AI unavailable" }` with `200`
+  - Graceful error: if Gemini fails → `{ recommendation: null, code: "AI_UNAVAILABLE", error: "AI unavailable" }` with `200`
 - [x] Zod request body validators
 
 **→ Deliverable to A (Hour 25):** `/api/ai/explain` and `/api/ai/summarize-batch` working
