@@ -127,6 +127,7 @@ export const aiExplainRequestSchema = z.object({
 export type AiExplainRequest = z.infer<typeof aiExplainRequestSchema>;
 
 export const aiExplainResponseSchema = z.object({
+  code: z.string().optional(),
   error: z.string().optional(),
   exceptionId: z.string(),
   recommendation: aiRecommendationSchema.nullable(),
@@ -142,6 +143,7 @@ export type AiSummarizeBatchRequest = z.infer<
 
 export const aiSummarizeBatchResponseSchema = z.object({
   batchId: z.string(),
+  code: z.string().optional(),
   error: z.string().optional(),
   model: z.string(),
   summary: z.string().nullable(),
@@ -159,6 +161,7 @@ export type AiClassifySeverityRequest = z.infer<
 >;
 
 export const aiClassifySeverityResponseSchema = z.object({
+  code: z.string().optional(),
   currentSeverity: severitySchema,
   error: z.string().optional(),
   exceptionId: z.string(),
@@ -177,6 +180,7 @@ export const aiSuggestRuleRequestSchema = z.object({
 export type AiSuggestRuleRequest = z.infer<typeof aiSuggestRuleRequestSchema>;
 
 export const aiSuggestRuleResponseSchema = z.object({
+  code: z.string().optional(),
   error: z.string().optional(),
   model: z.string(),
   note: z.string().optional(),

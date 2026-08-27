@@ -47,6 +47,7 @@ router.post(
       }
       if (err instanceof AiUnavailableError) {
         res.json({
+          code: "AI_UNAVAILABLE",
           error: err.message,
           exceptionId: parsed.data.exceptionId,
           recommendation: null,
@@ -83,6 +84,7 @@ router.post(
       if (err instanceof AiUnavailableError) {
         res.json({
           batchId: parsed.data.batchId,
+          code: "AI_UNAVAILABLE",
           error: err.message,
           model: "unavailable",
           summary: null,
@@ -129,6 +131,7 @@ router.post(
           severity = null;
         }
         res.json({
+          code: "AI_UNAVAILABLE",
           currentSeverity: severity ?? "medium",
           error: err.message,
           exceptionId: parsed.data.exceptionId,
@@ -164,6 +167,7 @@ router.post(
     } catch (err) {
       if (err instanceof AiUnavailableError) {
         res.json({
+          code: "AI_UNAVAILABLE",
           error: err.message,
           model: "unavailable",
           promptSummary: parsed.data.prompt.slice(0, 80),

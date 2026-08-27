@@ -41,7 +41,7 @@ const coerceFieldValue = (field: string, value: string): unknown => {
 router.get(
   "/",
   requireAuth,
-  requireRole("data_operator", "reviewer"),
+  requireRole("data_operator", "reviewer", "data_consumer"),
   async (req: Request, res: Response): Promise<void> => {
     const parsed = loanListQuerySchema.safeParse(req.query);
     if (!parsed.success) {
@@ -50,6 +50,12 @@ router.get(
         error: "Invalid query",
         fields: mapZodIssuesToFields(parsed.error.issues),
       });
+      return;
+    }
+
+    const { user } = req;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
       return;
     }
 
@@ -66,6 +72,10 @@ router.get(
         { loanId: { contains: search, mode: "insensitive" } },
         { borrowerId: { contains: search, mode: "insensitive" } },
       ];
+    }
+    // Data consumers only ever see verified loans — deny-by-default scoping.
+    if (user.role === "data_consumer") {
+      where.verifiedRecord = { isNot: null };
     }
 
     const skip = (page - 1) * limit;
@@ -184,6 +194,16 @@ router.get(
 
     if (!loan) {
       res.status(404).json({ code: "NOT_FOUND", error: "Loan not found" });
+      return;
+    }
+
+    // Data consumers may only inspect loans that have been verified
+    // (api-contract.md: "data_consumer (verified only)").
+    if (user.role === "data_consumer" && !loan.verifiedRecord) {
+      res.status(403).json({
+        code: "FORBIDDEN",
+        error: "Loan has not been verified",
+      });
       return;
     }
 
@@ -324,14 +344,6 @@ router.patch(
           });
           return;
         }
-        if (Number(coerced as string) < 0) {
-          res.status(400).json({
-            code: "BAD_REQUEST",
-            error: `Invalid numeric value for ${field}`,
-            fields: { [field]: "Must be a valid non-negative number" },
-          });
-          return;
-        }
       }
       const oldRaw = (loan as unknown as Record<string, unknown>)[dbField];
       const oldValue =
@@ -342,13 +354,10 @@ router.patch(
     }
 
     const updated = (await prisma.$transaction(async (tx) => {
-      const txLoan = (
-        tx.loan as unknown as { update: (args: unknown) => Promise<unknown> }
-      ).update;
-      const result = (await txLoan({
+      const result = await tx.loan.update({
         data: dataToUpdate,
         where: { id: loanId },
-      })) as unknown as { updatedAt: Date; id: string };
+      });
 
       await tx.auditLog.createMany({
         data: editsForAudit.map((edit) => ({
