@@ -99,6 +99,44 @@
       }
     },
     {
+      // Vendored shadcn chart primitive: recharts interop requires the
+      // namespace import and inline HTML for CSS variable injection.
+      "includes": ["apps/web/src/components/ui/chart.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "performance": {
+            "noNamespaceImport": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "style": {
+            "useConsistentTypeDefinitions": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noEqualsToNull": "off",
+            "noShadow": "off"
+          }
+        }
+      }
+    },
+    {
+      // API Explorer JSON viewer: HTML is produced by escapeHtml() over
+      // JSON.stringify output before any span wrapping, so injection-safe.
+      "includes": ["apps/web/src/app/pages/consumer/api-explorer.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/protected-route.tsx", "**/ProtectedRoute.tsx"],
       "linter": {
         "rules": {
