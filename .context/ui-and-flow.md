@@ -1,223 +1,271 @@
-# Luma — Loan Data Verification Copilot
-## UI & Flow
+# Loan Data Verification Copilot — UI & Flow Spec
 
-> Companion to `architecture-flow.md` (system design) and `api-contract.md` (API shapes). This doc covers **what the user sees and does** — screens, navigation, and the three role-based journeys from messy CSV to verified, auditable loan record.
+Intain Campus FinTech Challenge 2026 · Full Stack Track
 
----
-
-## 1. Why the UI is shaped this way
-
-Per `problem.md`, the product exists to turn a messy loan tape into a **validated, traceable, trusted** dataset, and the judged demo flow (§15) is a straight line through three roles:
-
-```
-Data Operator  →  upload tape  →  see import/validation summary
-Reviewer       →  triage exception queue  →  consult AI  →  decide  →  verify loan
-Data Consumer  →  browse verified records  →  inspect audit trail  →  export CSV
-```
-
-The frontend is a single Vite SPA with **one shell, three role-scoped sections**, gated by `ProtectedRoute` + Better Auth session, not three separate apps. Nobody sees another role's nav items or routes.
+This spec defines every screen, its components, and how they map back to the problem
+statement's modules and judging criteria. Layout is a persistent left sidebar + topbar shell,
+with three role-scoped page sets (Data Operator, Reviewer, Data Consumer) plus a few shared
+screens.
 
 ---
 
-## 2. Navigation Map
+## 1. Design Tokens
 
-```
-/                          → RoleRedirect (session-aware: sends user to their role home, or /login)
-/login                     → LoginPage
-
-/operator                  [role: data_operator]
-  /operator/dashboard        (index → redirect here)
-  /operator/uploads/:batchId
-
-/reviewer                  [role: reviewer]
-  /reviewer/dashboard         (index → redirect to /reviewer/exceptions)
-  /reviewer/exceptions
-  /reviewer/loans/:id         (placeholder — see §7)
-
-/consumer                  [role: data_consumer]
-  /consumer/dashboard         (index → redirect here)
-  /consumer/loans/:id          (placeholder — see §7)
-  /consumer/export
-```
-
-Each `/operator`, `/reviewer`, `/consumer` subtree is wrapped by a `RoleShell`:
-`ProtectedRoute(requiredRole)` → `<Sidebar/>` + `<Outlet/>`. A user hitting a route outside their role gets bounced by the guard rather than a white screen.
+- **Palette base:** #3AA5F0 (primary accent — active nav, buttons, links), near-black (text,
+  headers), paper (background). Keep everything else on this palette.
+- **Semantic exceptions:** severity/status needs its own signal color that #3AA5F0 can't carry —
+  use a desaturated red (high severity / rejected), amber (medium severity / pending), green
+  (low severity / approved / verified), layered only on badges, pills, and status dots. Never
+  used as a page background or primary UI color.
+- **Typography:** DM Sans for all UI text and body copy. JetBrains Mono for loan IDs, borrower
+  IDs, record hashes, timestamps, and anything inside the API Explorer / JSON viewer.
 
 ---
 
-## 3. Global Shell
+## 2. Global Shell
 
-**Sidebar** (`components/nav/sidebar.tsx`) — persistent left rail, ~240px, dark-on-light card background:
-- Luma wordmark + "Copilot" pill at top
-- Nav links filtered to the signed-in user's role (Remix Icons, never emojis):
-  - Operator: Dashboard
-  - Reviewer: Dashboard, Exception Queue
-  - Consumer: Verified Records, Export
-- Footer: avatar initials, name, role label, **Sign out** button
+### Sidebar (persistent, left, collapsible to icon-only)
+- Wordmark: "Intain Verify" + small tagline "Loan Data Verification Copilot"
+- **Role switcher** — dropdown/pill showing current role (Data Operator / Reviewer / Data
+  Consumer). Switching re-scopes the nav below without a full logout. This exists specifically
+  so the 5-minute demo can move between roles fast (see §9 Demo Flow).
+- Role-scoped nav items (see §8 matrix)
+- Pinned shared link: **AI Development Log** (visible to all roles)
+- Bottom: avatar, user name, role badge, "Test Credentials" link, Logout
 
-**Layout** — flex row, `h-screen overflow-hidden`, sidebar fixed, main content `overflow-y-auto`. Every page content area is `mx-auto max-w-5xl` (or `max-w-6xl` for wide tables) with `p-6` padding, so screens stay centered and readable at desktop widths.
+### Topbar (per page)
+- Breadcrumb / page title
+- Global search — searches by `loan_id` or `borrower_id`, jumps straight to that loan's detail
+  view for the current role
+- Notification bell — badge count (new exceptions, stale records flagged); opens a slide-over
+  Notifications Panel
+- Context CTA button (e.g. "Upload File" on Operator pages, "New Rule" on Reviewer rules page)
 
-**Auth guard flow:**
-```
-mount → useSession() (Better Auth) → isPending? show skeleton
-                                    → no user? → redirect /login
-                                    → role mismatch? → Forbidden card (not a blank screen)
-                                    → render page
-```
-
----
-
-## 4. Screen-by-Screen
-
-### 4.1 Login (`/login`)
-Centered card, email + password, shadcn `Form`/`Input`/`Button`. On submit → `authClient.signIn.email()` → fetch session → route by role (`ROLE_HOME` map). Invalid creds and unreachable-API both surface as Sonner toasts, never a raw error. Footer hint lists the three demo accounts (`operator / reviewer / consumer @luma.dev`, password `password`) — intentional for hackathon judging speed.
-
-### 4.2 Operator Dashboard (`/operator/dashboard`)
-**Data Operator's home.** Top to bottom:
-1. **Stat row** (4 cards, from `GET /api/summary`): Loans imported · Open exceptions · Quality score · Verified loans
-2. **Upload dropzone** (`csv-dropzone.tsx`) — drag/drop or browse, file-type selector (loan_tape / servicer_update / document_manifest), client-side size/type guard, posts to `POST /api/uploads`, shows an upload progress bar, and on `202 Accepted` routes straight into the batch detail page
-3. **Upload history table** (`batch-table.tsx`) — File name, type, record count, failed count, status badge (pending/processing/done/failed, color-coded), uploaded-at; row click → `/operator/uploads/:batchId`
-
-### 4.3 Batch Detail (`/operator/uploads/:batchId`)
-Title = file name + status badge. Body branches on batch state:
-- **`processing`** → spinner card ("Processing ingestion... auto-refreshes every 2 seconds") — the page polls until the batch resolves, so the operator never has to manually refresh
-- **`done`/`failed`** → **Import Summary card** (total / imported / failed) → **Failed Rows table** (row number, truncated raw data, reason — capped at first 1,000 per the ingestion service) → **Validation Summary card** (pass/fail counts, exception breakdown by type and by severity)
-- Loading state → skeleton blocks instead of a blank page
-
-This screen is the operator's proof that ingestion + validation actually ran on their file — it's the "see import and validation summary" step of the demo script.
-
-### 4.4 Reviewer Dashboard (`/reviewer/dashboard`)
-Triage cockpit, not a worklist — the actual queue work happens on the Exception Queue page.
-1. **Stat row:** Open exceptions · Quality score · Verified loans · Total loans
-2. **By severity** — clickable rows (critical → low) that jump straight into `/reviewer/exceptions`, so a reviewer can go "show me the critical ones" in one click
-3. **Recent activity** — last audit events with type-specific icon (verified-record → shield, exception-created → warning, else → history), relative time
-
-### 4.5 Exception Queue (`/reviewer/exceptions`)
-The main reviewer workhorse, and the busiest screen in the app.
-- **Filter/search bar** built into the table header: status, severity, exception type, free-text search (loan/borrower ID) — all controlled, all reset pagination to page 1 on change
-- **Exception table** — severity badge, loan/borrower ID, type badge, field, message, status badge; row action opens the review panel
-- **AI Assistant panel** opens as a right-hand **Sheet** (not a full page navigation) when a row is selected — see §5 for the review flow inside it
-
-> **Note on architecture:** the implementation review pattern differs from the original phased plan (which routed to a dedicated `/reviewer/loans/:id` page). Instead, exception review happens **in-context via a slide-over Sheet** launched from the queue row — the reviewer never loses their place in the filtered list. `/reviewer/loans/:id` still exists as a route (see §7) for a future full loan-detail deep-dive (all fields + full audit history for one loan), but is not required for the core review loop.
-
-### 4.6 Consumer Dashboard (`/consumer/dashboard`)
-1. **Stat row:** Data quality score · Verified loans (total) · With AI assistance (count where an AI recommendation was used)
-2. **Progress bar** restating quality score as "% of imported loans passed verification on first pass"
-3. **Verified loan records table** — Loan, Borrower, Source batch, Result badge (passed / passed with review), AI used (yes/no), Record hash (truncated, monospace), Verified at
-
-### 4.7 Export (`/consumer/export`)
-Single card, one action: **Export verified loans (CSV)** — a plain anchor to `GET /api/verified-loans/export` opened in a new tab (so the browser handles the download and Content-Disposition natively; no custom blob/download JS needed). Copy under the button explains what's in the file and that the export itself is audit-logged.
+### Login / Role Select (`/login`)
+- Three role cards: Data Operator, Reviewer, Data Consumer, each with a mock username shown
+- Click a card to enter as that role (no real auth needed for a hackathon demo)
+- "View test credentials" expandable — satisfies the required deliverable of test credentials
+  for all three roles, and doubles as an on-screen judge reference
 
 ---
 
-## 5. The AI Review Flow (inside the Exception Queue Sheet)
+## 3. Shared Components (used across pages)
 
-This is the section judged directly against §9 "Required AI Controls" — every element in the panel exists to keep the AI **advisory, visible, and reversible**.
-
-```
-Reviewer clicks a row in the queue
-        │
-        ▼
-Sheet opens → exception summary (type/severity/status badges + message)
-        │
-        ▼
-[Explain] button  ──POST /api/ai/explain──▶  AI recommendation card:
-                                                 • suggestion + reasoning (plain text)
-                                                 • model · confidence % · prompt summary · generated-at
-                                                 • fields-to-change diff (old → new, with source)
-                                                 • disclaimer: "AI output is advisory only and never
-                                                   changes data until a human records a decision"
-        │
-        ▼
-Reviewer chooses one:  Accept │ Record edit (typed value) │ Reject
-                                     │
-                                     ▼
-                        POST /api/exceptions/:id/decision   (AI_RECOMMENDATION decision logged)
-        │
-        ▼
-Separate "Human decision" section (always present, independent of whether AI was consulted):
-   • Reviewer note (free text — required to reject)
-   • Corrected value (optional, applied on approve)
-   • [Approve]  or  [Reject loan]
-        │
-        ▼
-POST /api/exceptions/:id/approve  or  /reject   →  audit log entry  →  toast  →  sheet resets
-```
-
-Key UI guarantees this enforces:
-- The AI's recommendation and the reviewer's decision are **visually and functionally separate blocks** — accepting an AI suggestion is not the same action as approving the exception.
-- AI metadata (model, confidence, prompt summary, timestamp) is **always shown, never collapsed**.
-- Rejecting requires a note (button disabled until `note` is non-empty) — no silent rejections.
-- If `POST /api/ai/explain` fails, the panel shows "AI unavailable" via toast and the human-decision section still works — AI is never a blocker to reviewing.
-
----
-
-## 6. End-to-End Journey (maps to the 14-step demo script)
-
-```
-OPERATOR                    REVIEWER                        CONSUMER
-────────                    ────────                        ────────
-Log in                      Log in                          Log in
-Upload loan_tape.csv        Open Exception Queue             View Verified Records
-  → batch detail (polling)  Filter severity=critical          → quality score, table
-  → import summary            → open row → AI Explain        Open export page
-  → validation summary       → Accept / Edit / Reject AI      → download CSV
-                              → note + Approve/Reject
-                             (repeat until queue for a loan
-                              is clear)
-                             Verify happens once every
-                              exception on a loan is closed
-                              (server-side gate on
-                              POST /loans/:id/verify)
-```
-
-The operator and reviewer legs are fully wired against the live API today. The "Verify Loan" trigger and a dedicated per-loan detail view (fields + full audit timeline for one `loanId`) are the remaining pieces to close the loop end-to-end in the UI — see §7.
-
----
-
-## 7. Implementation Status
-
-| Screen / Flow | Status | Notes |
-|---|---|---|
-| Login + role redirect | ✅ Live | Better Auth email/password, role-based `ROLE_HOME` routing |
-| Route guards (`ProtectedRoute`) | ✅ Live | Skeleton → redirect → Forbidden → render |
-| Operator dashboard | ✅ Live | Stats, dropzone, upload history all wired to real hooks |
-| Batch detail (import + validation summary) | ✅ Live | Polls while `processing`; failed-rows table capped at 1,000 |
-| Reviewer dashboard | ✅ Live | Stats, severity breakdown, recent activity |
-| Exception queue (filter/search/table) | ✅ Live | `useExceptions(filters)`, pagination-safe filter patches |
-| AI assistant sheet (explain / accept / edit / reject / approve / reject-loan) | ✅ Live | `use-exceptions.ts` mutations + `aiApi.explain`; mock fallback via `lib/mocks.ts` when `USE_MOCKS` |
-| Consumer dashboard (verified records table + quality score) | ✅ Live | |
-| Export page | ✅ Live | Direct link to streaming CSV endpoint |
-| `/reviewer/loans/:id` — full loan detail (all fields, editable, full audit timeline) | 🚧 Placeholder | Currently renders "Loan detail view arrives in Phase 2 — the API contract and types are already in place." Route + types exist; page body doesn't. |
-| `/consumer/loans/:id` — verified record detail (canonical data + hash explanation + audit trail) | 🚧 Placeholder | Same placeholder component (`ComingSoon`), consumer-flavored. |
-| Explicit "Verify Loan" action + verification badge | 🚧 Not yet wired in UI | `POST /api/loans/:id/verify` exists per API contract; no button/UI trigger yet — needed to close the reviewer→consumer loop visibly. |
-| Batch AI summary panel (operator side) | 🚧 Not yet built | Planned as a collapsible card on batch detail using `POST /api/ai/summarize-batch`. |
-| Audit timeline component (`components/audit/`) | 🚧 Not yet built | No standalone timeline component in the current tree; needed for both loan-detail placeholders above. |
-
----
-
-## 8. Component Inventory (current tree)
-
-| Component | Used by |
+| Component | Purpose |
 |---|---|
-| `components/nav/sidebar.tsx` | Global shell, all roles |
-| `components/upload/csv-dropzone.tsx` | Operator dashboard |
-| `components/upload/batch-table.tsx` | Operator dashboard |
-| `components/upload/validation-summary.tsx` (`ImportSummaryCard`, `ValidationSummaryCard`) | Batch detail |
-| `components/exceptions/exception-table.tsx` (`ExceptionQueueTable`) | Exception queue |
-| `components/ai/ai-assistant-panel.tsx` | Exception queue (Sheet) |
-| `components/ui/stat-card.tsx` | All three dashboards |
-| `components/ui/badges.tsx` (`SeverityBadge`, `ExceptionTypeBadge`, `ExceptionStatusBadge`, `BatchStatusBadge`) | Exception table, AI panel, batch detail |
-| `components/ui/*` (shadcn primitives) | Card, Table, Sheet, Dialog, Tabs, Select, Textarea, Progress, Skeleton, Toast/Sonner, etc. — used throughout |
-
-Hooks: `use-session`, `use-uploads`, `use-exceptions` (+ `use-exceptions-filters`), `use-verified-loans` — each a thin TanStack Query wrapper around `lib/api.ts`. `lib/mocks.ts` provides a `USE_MOCKS` escape hatch so frontend work isn't blocked on the AI endpoint being live.
+| `DataTable` | Sortable, filterable, paginated, row-click-through, supports badge cells |
+| `KPICard` | Big number + label + optional delta, used in dashboards |
+| `Badge/Pill` | Status (Pending/Approved/Rejected), severity (Low/Med/High), exception type tags |
+| `FileDropzone` | Drag-drop CSV upload with progress bar and post-upload summary |
+| `Drawer` | Right-side slide-over for quick record detail without leaving a list page |
+| `Modal` | Confirmations (approve/reject/export) |
+| `Timeline` | Chronological event list for audit trails and reviewer action history |
+| `DiffViewer` | Side-by-side field comparison, highlights conflicts between two sources |
+| `AISuggestionCard` | AI output block: recommendation, confidence/severity tag, Accept / Edit / Reject actions, and a metadata footer (model, prompt, timestamp) — this shape is reused everywhere the AI Review Assistant appears |
+| `QualityScoreGauge` | Radial/donut gauge for the data-quality score |
+| `TrendChart` | Simple line/bar chart for import volume and exception trends |
+| `JSONViewer` | Syntax-highlighted, monospace response viewer |
+| `Toast` | Transient confirmations (upload complete, action saved) |
+| `EmptyState` | No-data placeholder for tables/panels |
 
 ---
 
-## 9. Design Notes
+## 4. Data Operator Pages
 
-- **Remix Icons only, never emojis** (`<i className="ri-*-line">`) — applies to nav, buttons, status indicators, timeline events.
-- **Every mutating action gets a toast** (success or failure) — no silent failures, per the plan's edge-case checklist.
-- **Every data-fetching screen has a skeleton state** — no blank-flash on load.
-- **Status is always a colored badge**, never plain text — batch status, exception severity/type/status, validation result.
-- Blue/indigo primary palette, dark sidebar, white content area — "trust/financial" feel called out in the implementation plan's branding pass.
+### 4.1 Dashboard — `/operator/dashboard`
+*(Module G — Data Operator dashboard)*
+- KPI row: Total records ingested, Files uploaded, Rows failed import, Corrections needed
+- Recent Uploads table (last 5) with status pill, links to Import History
+- Validation Summary `TrendChart` — count of issues by type across all imports
+- "Corrections Needed" list — failed-import rows still requiring operator action, with quick
+  links into the failing row
+- Primary CTA: **Upload New File**
+
+### 4.2 Upload Data — `/operator/upload`
+*(Module A — full ingestion flow)*
+- `FileDropzone` — accepts `loan_tape.csv`, `servicer_update.csv`, `document_manifest.csv`;
+  auto-detects type from headers or lets the operator pick
+- Live parse progress bar
+- Post-upload **Summary Card**: rows parsed, rows imported, rows failed, duplicates found,
+  source filename, upload timestamp, uploaded-by (this is the lineage record)
+- **Failed Rows Table**: row #, raw values, failure reason, "Download failed rows" button
+- Link: "View in Import History"
+
+### 4.3 Import History — `/operator/imports`
+- `DataTable`: filename, file type, uploaded by, timestamp, rows total/imported/failed, status
+- Row click → **Import Detail Drawer**: same summary + failed-rows breakdown scoped to that
+  single upload, showing source lineage
+
+### 4.4 Loan Records — `/operator/loans`
+- `DataTable` of all normalized records: `loan_id`, `borrower_id`, `source_system`,
+  `last_updated_at`, validation status badge (Valid / Exception / Pending)
+- Filters: source file, status, date range; search by loan/borrower ID
+- Row click → read-only **Loan Detail Drawer** (raw vs. normalized fields side by side) —
+  operators can inspect but not review/approve, that's the Reviewer's job
+
+---
+
+## 5. Reviewer Pages
+
+### 5.1 Dashboard — `/reviewer/dashboard`
+*(Module G — Reviewer dashboard)*
+- KPI row: Open exceptions, High-severity count, Pending my review, Reviewed today
+- Exception Queue preview (top 5 by severity) → "View All"
+- **AI Batch Summary** widget — AI-generated summary of the current exception batch (Module D:
+  "Summarize a batch of exceptions"), with a refresh button
+- Recent Decisions activity feed (approve/reject/correction, who, when)
+
+### 5.2 Exception Queue — `/reviewer/exceptions`
+*(Module C — queue, filter, search)*
+- Filter bar: exception type (multi-select), severity, status (Open / In Review / Resolved)
+- Search by loan ID / borrower ID
+- `DataTable`: loan_id, borrower_id, exception type tags, severity badge, date detected, status
+- Row click → Loan Review Workspace
+
+### 5.3 Loan Review Workspace — `/reviewer/exceptions/:loanId`
+*(Module C detail actions + Module D AI assistant + Required AI Controls — the core screen of the app)*
+
+**Left panel — Loan Record**
+- Editable form for allowed fields only, clearly marked vs. locked fields
+- Validation Results list — each failed rule in plain language (rule, field, expected vs.
+  actual)
+- `DiffViewer` when `loan_tape.csv` and `servicer_update.csv` conflict, with the AI's
+  recommended reliable value highlighted
+
+**Right panel — AI Review Assistant**
+- "Explain this exception" — plain-English `AISuggestionCard`
+- "Suggested Correction" — `AISuggestionCard` with proposed values, Accept / Edit / Reject
+  buttons (recommendation always shown separate from the final human decision)
+- Every AI card's metadata footer: model, prompt (expandable), timestamp — satisfies the
+  required AI controls
+- "Compare conflicting records" → triggers the `DiffViewer` + AI recommendation
+- Severity Classification badge (AI-assigned, reviewer can override)
+- "Generate reviewer note" → drafts editable comment text
+
+**Footer bar**
+- Comment box (required on Reject / Request Correction)
+- Reviewer Action History `Timeline` for this record
+- Action buttons: **Approve**, **Reject**, **Request Correction** — each opens a confirm
+  `Modal` and writes an audit-trail entry
+
+### 5.4 Rule Builder — `/reviewer/rules` *(stretch)*
+*(Module D — "generate validation rules or tests from natural language")*
+- Plain-English rule input → AI-generated JSON preview (matches `validation_rules.json` shape)
+- "Accept & Add to Ruleset" button
+- List of currently active rules
+
+---
+
+## 6. Data Consumer Pages
+
+### 6.1 Dashboard — `/consumer/dashboard`
+*(Module G — Data Consumer dashboard)*
+- KPI row: Total verified records, `QualityScoreGauge`, Records exported, Last export date
+- Verification History `TrendChart`
+- Quick links: Verified Records, Audit Trail, Export
+
+### 6.2 Verified Records — `/consumer/verified`
+*(Module E list view)*
+- `DataTable`: loan_id, verified-by, verification timestamp, record hash (mono, truncated +
+  copy button), quality flag
+- Filters: date range, verified-by; search bar
+- **Export** button (CSV/JSON) with confirm modal — logs a "Verified record exported" audit
+  event (Module F)
+- Row click → Verified Loan Detail
+
+### 6.3 Verified Loan Detail — `/consumer/verified/:loanId`
+*(Module E — full record)*
+- Canonical Loan Data card (all normalized fields)
+- Source File Reference (which upload, which row — lineage)
+- Validation Result summary
+- Reviewer Decision card (who, when, action, comment)
+- AI Recommendation Used card — original suggestion + whether accepted/edited/rejected
+- Verification metadata: timestamp, verified-by, Record Hash (mono, copy button)
+- "View Full Audit Trail" → scoped Audit Trail Viewer
+
+### 6.4 Audit Trail Viewer — `/consumer/audit` (or scoped `/consumer/audit/:loanId`)
+*(Module F — full event list)*
+- Loan selector/search if unscoped
+- `Timeline` of every event type: file uploaded, record imported, validation executed,
+  exception created, AI recommendation generated, comment added, field edited, approved/
+  rejected, verified record created, verified record exported — each entry expandable (e.g.
+  field-edit shows before/after)
+- Filter by event type; export trail (CSV/JSON)
+
+### 6.5 API Explorer — `/consumer/api`
+*(Module H — Verified Records API, and directly covers Demo Flow step "show API response for verified records")*
+- Endpoint tabs: `GET /loans`, `/loans/:id`, `/exceptions`, `/verified-loans`,
+  `/verified-loans/:id`, `/audit/:loanId`, `/summary`
+- Parameter inputs where applicable (e.g. loan ID)
+- "Send" → live call, response shown in `JSONViewer`
+- Auto-generated cURL snippet with copy button — cheap, high polish for judges
+
+---
+
+## 7. Shared / Cross-Role Screens
+
+### 7.1 AI Development Log — `/ai-log`
+*(Directly satisfies the required "AI Development Log" deliverable and the Agentic Coding
+Demonstration judging category — rendering it in-app means you can just click to it during
+the demo instead of switching to a separate doc.)*
+- Tools-used badges (Cursor, Claude Code, etc.)
+- Prompt Log table: 5–10 representative prompts, use case, outcome
+- Human Review Process write-up (rendered markdown)
+- AI-generated code % estimate (single stat)
+- "What Was Rejected" — at least 2 case cards: what AI produced, why it was rejected, what was
+  done instead
+- Lessons Learned section
+
+### 7.2 Notifications Panel (slide-over)
+- Recent events relevant to the logged-in role: new exceptions, stale records flagged, upload
+  completed, verification completed
+
+---
+
+## 8. Sidebar Nav by Role
+
+| Nav item | Data Operator | Reviewer | Data Consumer |
+|---|:---:|:---:|:---:|
+| Dashboard | ✅ | ✅ | ✅ |
+| Upload Data | ✅ | | |
+| Import History | ✅ | | |
+| Loan Records | ✅ | | |
+| Exception Queue | | ✅ | |
+| Rule Builder (stretch) | | ✅ | |
+| Verified Records | | | ✅ |
+| Audit Trail | | | ✅ |
+| API Explorer | | | ✅ |
+| AI Development Log | ✅ | ✅ | ✅ |
+
+---
+
+## 9. Traceability — Problem Statement → Screens
+
+| Problem statement item | Screen(s) |
+|---|---|
+| Module A: Data Ingestion | Upload Data, Import History |
+| Module B: Validation Engine | Upload summary, Loan Records status, Loan Review Workspace validation list |
+| Module C: Exception Queue | Exception Queue, Loan Review Workspace |
+| Module D: AI Review Assistant | Loan Review Workspace (AI panel), Reviewer Dashboard batch summary, Rule Builder |
+| Module E: Verified Loan Record | Verified Records, Verified Loan Detail |
+| Module F: Audit Trail | Audit Trail Viewer, every action modal that writes an entry |
+| Module G: Dashboards | Operator/Reviewer/Consumer dashboards |
+| Module H: Verified Records API | API Explorer |
+| Required AI Controls | `AISuggestionCard` metadata footer + Accept/Edit/Reject, used everywhere AI output appears |
+| Agentic Coding Requirement | AI Development Log |
+| 5-Minute Demo Flow (§15 of problem statement) | Role switcher + the exact page sequence above supports it end to end without leaving the app |
+
+---
+
+## 10. Suggested Build Priority
+
+**P0 — must exist for the demo flow to work:**
+Login/role select, Operator Upload + Dashboard, Exception Queue, Loan Review Workspace (AI
+panel + approve/reject/correct), Consumer Verified Records + Loan Detail, Audit Trail Viewer,
+AI Development Log.
+
+**P1 — strengthens judging scores, do next:**
+Import History, Loan Records browser, API Explorer, Notifications panel.
+
+**P2 — stretch, only if time remains:**
+Rule Builder, cURL snippets in API Explorer, gauge/chart polish, dark mode.
