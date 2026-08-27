@@ -99,7 +99,9 @@ export function ValidationSummaryCard({
             <div className="space-y-1" key={type}>
               <div className="flex justify-between text-sm">
                 <span className="capitalize">{type.replaceAll("_", " ")}</span>
-                <span className="text-[#A1A1AA] tabular-nums">{count}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {count}
+                </span>
               </div>
               <Progress value={maxType > 0 ? (count / maxType) * 100 : 0} />
             </div>

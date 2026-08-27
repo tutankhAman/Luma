@@ -162,22 +162,22 @@ function PipelineStepCard({
       className={cn(
         "relative flex items-start gap-3 rounded-lg border p-3 transition-colors",
         state === "completed" &&
-          "border-emerald-500/20 bg-emerald-500/[0.04] text-white",
-        state === "current" &&
-          "border-[#8B5CF6]/40 bg-[#2E1065]/20 shadow-[0_0_15px_rgba(139,92,246,0.1)]",
+          "border-success/30 bg-success/8 text-foreground",
+        state === "current" && "border-primary/40 bg-primary/8",
         state === "failed" &&
-          "border-destructive/40 bg-rose-500/10 text-rose-400",
+          "border-destructive/40 bg-destructive/8 text-destructive",
         state === "pending" &&
-          "border-[#27272A] bg-transparent text-[#A1A1AA] opacity-60"
+          "border-border bg-transparent text-muted-foreground opacity-70"
       )}
     >
       <div
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-semibold text-xs",
-          state === "completed" && "bg-emerald-500 text-black",
-          state === "current" && "animate-pulse bg-[#8B5CF6] text-white",
-          state === "failed" && "bg-rose-500 text-white",
-          state === "pending" && "bg-[#27272A] text-[#A1A1AA]"
+          state === "completed" && "bg-success text-success-foreground",
+          state === "current" &&
+            "animate-pulse bg-primary text-primary-foreground",
+          state === "failed" && "bg-destructive text-white",
+          state === "pending" && "bg-muted text-muted-foreground"
         )}
       >
         {renderStepIcon(state, step.id)}
@@ -185,7 +185,7 @@ function PipelineStepCard({
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-xs">{step.title}</p>
-        <p className="mt-0.5 truncate text-[#A1A1AA] text-[11px]">
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
           {getStepSubtitle(state, step.description)}
         </p>
       </div>
@@ -202,20 +202,20 @@ function HeaderStatusIcon({
 }) {
   if (isDone) {
     return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 font-semibold text-emerald-400 text-xs dark:text-emerald-400">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 font-semibold text-success text-xs">
         <i className="ri-checkbox-circle-line text-lg" />
       </div>
     );
   }
   if (isFailed) {
     return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 font-semibold text-rose-400 text-xs">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 font-semibold text-destructive text-xs">
         <i className="ri-error-warning-line text-lg" />
       </div>
     );
   }
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2E1065]/30 font-semibold text-[#8B5CF6] text-xs">
+    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-semibold text-accent-foreground text-xs">
       <i className="ri-loader-4-line animate-spin text-lg" />
     </div>
   );
@@ -243,16 +243,16 @@ function HeaderBadge({
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-medium text-xs",
-        isDone &&
-          "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-        isFailed && "border border-rose-500/30 bg-rose-500/10 text-rose-400",
-        isRunning && "border border-[#8B5CF6]/30 bg-[#2E1065]/30 text-[#8B5CF6]"
+        isDone && "border border-success/30 bg-success/10 text-success",
+        isFailed &&
+          "border border-destructive/30 bg-destructive/10 text-destructive",
+        isRunning && "border border-primary/30 bg-primary/10 text-primary"
       )}
     >
       {isRunning ? (
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#8B5CF6] opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#8B5CF6]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
         </span>
       ) : null}
       {text}
@@ -287,9 +287,9 @@ export function PipelineTracker({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-[#27272A] bg-[#18181B] p-5 transition-all",
-        isFailed && "border-rose-500/30 bg-rose-500/10",
-        isDone && "border-emerald-500/20 bg-emerald-500/[0.02]",
+        "rounded-xl border border-border bg-card p-5 transition-all",
+        isFailed && "border-destructive/30 bg-destructive/8",
+        isDone && "border-success/25 bg-success/[0.03]",
         className
       )}
     >
@@ -301,7 +301,9 @@ export function PipelineTracker({
             <p
               className={cn(
                 "text-xs",
-                isFailed ? "font-medium text-rose-400" : "text-[#A1A1AA]"
+                isFailed
+                  ? "font-medium text-destructive"
+                  : "text-muted-foreground"
               )}
             >
               {message}
@@ -319,13 +321,13 @@ export function PipelineTracker({
       </div>
 
       {/* Linear progress bar */}
-      <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-[#27272A]">
+      <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={cn(
             "h-full transition-all duration-500 ease-out",
-            isDone && "bg-emerald-500/100",
-            isFailed && "bg-rose-500",
-            !(isDone || isFailed) && "bg-[#8B5CF6]"
+            isDone && "bg-success",
+            isFailed && "bg-destructive",
+            !(isDone || isFailed) && "bg-primary"
           )}
           style={{ width: `${progressPercentage}%` }}
         />
