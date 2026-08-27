@@ -197,11 +197,19 @@ describe("PATCH /api/loans/:id/fields", () => {
 
   it("updates a field and writes FIELD_EDITED audit inside one transaction", async () => {
     let txArg: unknown;
+    const txLoanUpdate = mock(() =>
+      Promise.resolve({
+        id: "c8x9y2z1a2b3c4d5e6f7g8h9",
+        updatedAt: new Date("2026-08-26T10:00:00.000Z"),
+      })
+    );
+    const txAuditLogCreateMany = mock(() => Promise.resolve({ count: 1 }));
+
     fakePrisma.$transaction = mock((cb: (tx: unknown) => Promise<unknown>) => {
       txArg = cb;
       return cb({
-        auditLog: { createMany: fakePrisma.auditLog.createMany },
-        loan: { update: fakePrisma.loan.update },
+        auditLog: { createMany: txAuditLogCreateMany },
+        loan: { update: txLoanUpdate },
       }) as never;
     });
 
@@ -214,10 +222,13 @@ describe("PATCH /api/loans/:id/fields", () => {
     const json = (await res.json()) as { updatedFields: string[] };
     expect(json.updatedFields).toEqual(["currentBalance"]);
 
-    expect(fakePrisma.loan.update).toHaveBeenCalled();
+    expect(txLoanUpdate).toHaveBeenCalled();
+    expect(fakePrisma.loan.update).not.toHaveBeenCalled();
 
-    const calls = fakePrisma.auditLog.createMany.mock
-      .calls as unknown as Array<{
+    expect(txAuditLogCreateMany).toHaveBeenCalled();
+    expect(fakePrisma.auditLog.createMany).not.toHaveBeenCalled();
+
+    const calls = txAuditLogCreateMany.mock.calls as unknown as Array<{
       0: {
         data: Array<{ eventType: string; metadata: Record<string, unknown> }>;
       };
