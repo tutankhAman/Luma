@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import lumaLogo from "@/luma.svg";
 
 /* Spec §8 — sidebar nav scoped by role, plus the pinned AI Development Log. */
 
@@ -120,7 +119,7 @@ function Wordmark() {
         alt="Luma"
         className="size-7 shrink-0 rounded-[9px]"
         height={28}
-        src={lumaLogo}
+        src="/luma.svg"
         width={28}
       />
       <p className="font-semibold text-[15px] tracking-tight">Luma</p>
