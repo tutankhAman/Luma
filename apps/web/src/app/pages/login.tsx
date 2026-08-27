@@ -17,7 +17,7 @@ export function RoleRedirect() {
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Skeleton className="h-10 w-56" />
       </div>
     );
@@ -65,12 +65,15 @@ function AuthInput({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-[#A1A1AA] text-[12px]" htmlFor={id}>
+      <label
+        className="mb-2 block text-[12px] text-muted-foreground"
+        htmlFor={id}
+      >
         {label}
       </label>
       <input
         autoComplete={autoComplete}
-        className="w-full rounded-xl border-transparent bg-[#18181B] px-4 py-3 text-[14px] text-white transition-colors [color-scheme:dark] placeholder:text-[#52525B] focus:border-[#27272A] focus:outline-none focus:ring-1 focus:ring-[#27272A]"
+        className="w-full rounded-xl border border-input bg-background px-4 py-3 text-[14px] transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -151,21 +154,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
-      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient pt-40 pr-12 pb-12 pl-12 lg:flex">
-        <div className="mb-10 flex items-center gap-2 font-medium text-white">
+    <div className="flex min-h-screen gap-4 bg-background p-4 font-sans">
+      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-foreground pt-40 pr-12 pb-12 pl-12 text-background lg:flex">
+        <div className="mb-10 flex items-center gap-2 font-medium text-background">
           <span
             aria-hidden="true"
             className="size-5 rounded-full border border-white"
           />
           Luma
         </div>
-        <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
+        <h1 className="mb-3 text-center font-semibold text-[32px] text-background tracking-tight">
           Loan data verification,
           <br />
           made trustworthy
         </h1>
-        <p className="mb-12 max-w-[280px] text-center text-[#A1A1AA] text-[15px] leading-snug">
+        <p className="mb-12 max-w-[280px] text-center text-[15px] text-muted-foreground leading-snug">
           Turn messy loan tapes into validated, traceable records with AI
           assistance at every step.
         </p>
@@ -176,14 +179,16 @@ export default function LoginPage() {
               <li
                 className={`flex items-center gap-4 rounded-xl p-4 ${
                   active
-                    ? "bg-white font-medium text-black"
-                    : "bg-[#18181B]/60 text-[#A1A1AA]"
+                    ? "bg-background font-medium text-foreground"
+                    : "bg-muted/70 text-muted-foreground"
                 } text-[14px]`}
                 key={step.title}
               >
                 <span
                   className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
-                    active ? "bg-black text-white" : "border border-[#A1A1AA]"
+                    active
+                      ? "bg-foreground text-background"
+                      : "border border-muted-foreground/50"
                   }`}
                 >
                   {index + 1}
@@ -191,7 +196,7 @@ export default function LoginPage() {
                 <span>
                   <span className="block">{step.title}</span>
                   <span
-                    className={`block text-[12px] ${active ? "text-black/60" : "text-[#52525B]"}`}
+                    className={`block text-[12px] ${active ? "text-background/70" : "text-muted-foreground/70"}`}
                   >
                     {step.description}
                   </span>
@@ -202,12 +207,12 @@ export default function LoginPage() {
         </ol>
       </section>
 
-      <section className="flex w-full flex-col items-center justify-center bg-black lg:w-1/2">
+      <section className="flex w-full flex-col items-center justify-center bg-card lg:w-1/2">
         <div className="w-full max-w-[380px]">
-          <h2 className="mb-1.5 font-semibold text-[22px] text-white">
+          <h2 className="mb-1.5 font-semibold text-[22px]">
             {mode === "register" ? "Create your account" : "Welcome back"}
           </h2>
-          <p className="mb-8 text-[#A1A1AA] text-[13px]">
+          <p className="mb-8 text-[13px] text-muted-foreground">
             {mode === "register"
               ? "Start turning messy loan data into trusted records."
               : "Sign in to continue to Luma Copilot."}
@@ -249,7 +254,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
               />
-              <span className="mt-2 block text-[#A1A1AA] text-[12px]">
+              <span className="mt-2 block text-[12px] text-muted-foreground">
                 {mode === "register"
                   ? "Must be at least 8 characters."
                   : "Demo accounts: operator / reviewer / consumer @luma.dev"}
@@ -257,7 +262,7 @@ export default function LoginPage() {
             </div>
 
             <button
-              className="mt-8 w-full rounded-xl bg-white py-3 font-medium text-[14px] text-black transition-colors hover:bg-gray-200 disabled:opacity-50"
+              className="mt-8 w-full rounded-xl bg-primary py-3 font-medium text-[14px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               disabled={submitting}
               type="submit"
             >
@@ -265,12 +270,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-[#A1A1AA] text-[13px]">
+          <p className="mt-8 text-center text-[13px] text-muted-foreground">
             {mode === "register"
               ? "Already have an account?"
               : "Don't have an account?"}
             <button
-              className="ml-1 font-medium text-white hover:underline"
+              className="ml-1 font-medium text-primary hover:underline"
               onClick={() =>
                 setMode(mode === "register" ? "signin" : "register")
               }
