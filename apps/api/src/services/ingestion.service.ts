@@ -538,7 +538,7 @@ export const processStreamAndNormalize = async (
             metadata: nextMetadata as never,
             processedCount,
             recordCount,
-            status: "done",
+            status: "processing",
           },
           where: { id: batchId },
         });
@@ -689,8 +689,10 @@ export const processStreamAndNormalize = async (
             metadata: {
               ...existingMeta,
               pipelineStage: "completed",
+              pipelineStep: 5,
               stageMessage: metaMessage,
             },
+            status: "done",
           },
           where: { id: batchId },
         });
@@ -721,7 +723,10 @@ export const processStreamAndNormalize = async (
               metadata: {
                 ...existingMeta,
                 conflictError: message,
+                pipelineStage: "failed",
+                stageMessage: message,
               },
+              status: "failed",
             },
             where: { id: batchId },
           });
@@ -744,8 +749,11 @@ export const processStreamAndNormalize = async (
             data: {
               metadata: {
                 ...existingMeta,
+                pipelineStage: "completed",
+                pipelineStep: 5,
                 validationError: message,
               },
+              status: "done",
             },
             where: { id: batchId },
           });
@@ -753,6 +761,8 @@ export const processStreamAndNormalize = async (
           // ignore metadata update failure; ingestion itself remains done
         }
       }
+    } else {
+      await setPipelineCompleted("Ingestion completed successfully.");
     }
   } catch (err) {
     await markFailed(err);

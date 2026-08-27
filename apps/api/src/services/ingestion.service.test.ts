@@ -3,8 +3,30 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+let currentBatch: Record<string, unknown> = { metadata: {} };
+
+const actualValidation = await import("./validation.service.js");
 mock.module("./validation.service.js", () => ({
-  validateBatch: mock(() => Promise.resolve()),
+  ...actualValidation,
+  validateBatch: mock(async (batchId: string) => {
+    const existing = await fakePrisma.uploadBatch.findUnique({
+      where: { id: batchId },
+    });
+    const existingMeta =
+      (existing?.metadata as Record<string, unknown> | null) ?? {};
+    await fakePrisma.uploadBatch.update({
+      data: {
+        ...existing,
+        metadata: {
+          ...existingMeta,
+          pipelineStage: "completed",
+          pipelineStep: 5,
+        },
+        status: "done",
+      },
+      where: { id: batchId },
+    });
+  }),
 }));
 
 const fakePrisma: {
@@ -23,8 +45,13 @@ const fakePrisma: {
     createMany: mock(() => Promise.resolve({ count: 0 })),
   },
   uploadBatch: {
-    findUnique: mock(() => Promise.resolve({ metadata: {} } as never)),
-    update: mock(() => Promise.resolve({} as never)),
+    findUnique: mock(() => Promise.resolve(currentBatch as never)),
+    update: mock(
+      (args: { data: Record<string, unknown>; where: { id: string } }) => {
+        currentBatch = { ...currentBatch, ...args.data };
+        return Promise.resolve(currentBatch as never);
+      }
+    ),
   },
 } as unknown as {
   $transaction: ReturnType<typeof mock>;
@@ -64,12 +91,18 @@ const {
 } = await import("./ingestion.service.js");
 
 const resetMocks = () => {
+  currentBatch = { metadata: {} };
   fakePrisma.loan.createMany = mock(() =>
     Promise.resolve({ count: 0 } as never)
   );
-  fakePrisma.uploadBatch.update = mock(() => Promise.resolve({} as never));
+  fakePrisma.uploadBatch.update = mock(
+    (args: { data: Record<string, unknown>; where: { id: string } }) => {
+      currentBatch = { ...currentBatch, ...args.data };
+      return Promise.resolve(currentBatch as never);
+    }
+  );
   fakePrisma.uploadBatch.findUnique = mock(() =>
-    Promise.resolve({ metadata: {} } as never)
+    Promise.resolve(currentBatch as never)
   );
   fakePrisma.auditLog.create = mock(() => Promise.resolve({} as never));
   (
@@ -397,17 +430,25 @@ describe("processStreamAndNormalize end-to-end", () => {
           mock: { calls: unknown[][] };
         }
       ).mock;
-      // first call is processing, last call is done
-      const lastUpdateEntry = updateCalls.at(-1) as unknown as [
+      const doneCall = updateCalls.find(
+        (c) => (c[0] as { data: { status?: string } }).data.status === "done"
+      );
+      expect(doneCall).toBeDefined();
+
+      const countsCall = updateCalls.find(
+        (c) =>
+          (c[0] as { data: { recordCount?: number } }).data.recordCount !==
+          undefined
+      );
+      expect(countsCall).toBeDefined();
+      const [countsUpdate] = countsCall as unknown as [
         { where: { id: string }; data: Record<string, unknown> },
       ];
-      const [lastUpdate] = lastUpdateEntry;
-      expect(lastUpdate.where.id).toBe(batchId);
-      expect(lastUpdate.data.status).toBe("done");
-      expect(lastUpdate.data.failedCount).toBe(1);
-      expect(lastUpdate.data.recordCount).toBe(4);
-      expect(lastUpdate.data.processedCount).toBe(3);
-      const metadata = lastUpdate.data.metadata as Record<string, unknown>;
+      expect(countsUpdate.where.id).toBe(batchId);
+      expect(countsUpdate.data.failedCount).toBe(1);
+      expect(countsUpdate.data.recordCount).toBe(4);
+      expect(countsUpdate.data.processedCount).toBe(3);
+      const metadata = countsUpdate.data.metadata as Record<string, unknown>;
       expect(Array.isArray(metadata.failedRows)).toBe(true);
       expect((metadata.failedRows as unknown[]).length).toBe(1);
       const [failedEntry] = metadata.failedRows as Record<string, unknown>[];
@@ -501,12 +542,17 @@ describe("processStreamAndNormalize end-to-end", () => {
           mock: { calls: unknown[][] };
         }
       ).mock;
-      const lastEntry = updateCalls.at(-1) as unknown as [
+      const countsCall = updateCalls.find(
+        (c) =>
+          (c[0] as { data: { recordCount?: number } }).data.recordCount !==
+          undefined
+      );
+      expect(countsCall).toBeDefined();
+      const [countsUpdate] = countsCall as unknown as [
         { data: Record<string, unknown> },
       ];
-      const [last] = lastEntry;
-      expect(last.data.recordCount).toBe(2);
-      expect(last.data.failedCount).toBe(0);
+      expect(countsUpdate.data.recordCount).toBe(2);
+      expect(countsUpdate.data.failedCount).toBe(0);
     } finally {
       fs.rmSync(tmpDir, { force: true, recursive: true });
     }

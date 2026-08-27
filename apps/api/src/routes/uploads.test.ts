@@ -53,17 +53,6 @@ const fakeAuth = {
 
 mock.module("../lib/prisma.js", () => ({ prisma: fakePrisma }));
 mock.module("../lib/auth.js", () => ({ auth: fakeAuth }));
-mock.module("../services/ingestion.service.js", () => ({
-  MAX_FAILED_ROWS_STORED: 1000,
-  cleanString: (value: unknown): string | null => {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const s = String(value).trim();
-    return s === "" ? null : s;
-  },
-  processStreamAndNormalize: mock(() => Promise.resolve()),
-}));
 
 const { createApp } = await import("../app.js");
 

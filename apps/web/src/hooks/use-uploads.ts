@@ -12,10 +12,11 @@ export function useUploads(page = 1, status?: BatchStatus) {
 
 export function useUploadBatch(batchId: string) {
   return useQuery({
+    enabled: Boolean(batchId),
     queryFn: () => uploadsApi.detail(batchId),
     queryKey: ["uploads", batchId],
     refetchInterval: (query) =>
-      query.state.data?.status === "processing" ? 2000 : false,
+      query.state.data?.status === "processing" ? 1500 : false,
   });
 }
 
@@ -24,7 +25,7 @@ export function useUploadBatchSummary(batchId: string, isProcessing = false) {
     enabled: Boolean(batchId),
     queryFn: () => uploadsApi.summary(batchId),
     queryKey: ["uploads", batchId, "summary"],
-    refetchInterval: isProcessing ? 2000 : false,
+    refetchInterval: isProcessing ? 1500 : false,
   });
 }
 
@@ -46,6 +47,7 @@ export function useCreateUpload() {
       toast.success(result.message ?? "Upload started");
       void queryClient.invalidateQueries({ queryKey: ["uploads"] });
       void queryClient.invalidateQueries({ queryKey: ["summary"] });
+      void queryClient.invalidateQueries({ queryKey: ["exceptions"] });
     },
   });
 }
