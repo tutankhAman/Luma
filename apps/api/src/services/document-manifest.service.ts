@@ -82,8 +82,6 @@ const normalizeHeaderKey = (header: string): string =>
     .toLowerCase()
     .replace(/[\s_-]+/g, "");
 
-const KNOWN_HEADERS = new Set(["available", "documenttype", "loanid"]);
-
 const parseAvailable = (raw: unknown): boolean | null => {
   const v = String(raw ?? "")
     .trim()
@@ -153,11 +151,34 @@ export const normalizeManifestRow = (
   };
 };
 
+const REQUIRED_LOAN_ID_HEADERS = new Set(["loanid", "loan_id"]);
+const REQUIRED_AVAILABLE_HEADERS = new Set([
+  "available",
+  "isavailable",
+  "documentavailable",
+  "availability",
+]);
+
 export const validateManifestHeaders = (headers: string[]): string | null => {
+  if (headers.length === 0) {
+    return null;
+  }
   const normalized = headers.map(normalizeHeaderKey);
-  const hasRecognized = normalized.some((h) => KNOWN_HEADERS.has(h));
-  if (!hasRecognized && headers.length > 0) {
-    return `CSV header mismatch: file does not contain recognized manifest columns loan_id/document_type/available (found: ${headers.slice(0, 5).join(", ")})`;
+  const hasLoanId = normalized.some((h) => REQUIRED_LOAN_ID_HEADERS.has(h));
+  const hasAvailable = normalized.some((h) =>
+    REQUIRED_AVAILABLE_HEADERS.has(h)
+  );
+
+  const missingColumns: string[] = [];
+  if (!hasLoanId) {
+    missingColumns.push("loan_id");
+  }
+  if (!hasAvailable) {
+    missingColumns.push("available");
+  }
+
+  if (missingColumns.length > 0) {
+    return `CSV header mismatch: file is missing required manifest column(s): ${missingColumns.join(", ")} (found: ${headers.slice(0, 5).join(", ")})`;
   }
   return null;
 };
@@ -194,6 +215,91 @@ export const buildApplyWindows = (groups: ManifestRow[][]): ManifestRow[][] => {
     windows.push(current);
   }
   return windows;
+};
+
+interface ChunkOperations {
+  exceptionsToCreate: Array<{
+    exceptionType: string;
+    field: string;
+    loanId: string;
+    message: string;
+    metadata: Record<string, unknown>;
+    severity: string;
+    status: string;
+  }>;
+  fieldEditedAuditLogs: Array<{
+    eventType: string;
+    loanId: string;
+    metadata: Record<string, unknown>;
+  }>;
+  loansByTargetStatus: Map<string, string[]>;
+}
+
+const prepareChunkOperations = (
+  byLoanId: Map<string, ManifestRow[]>,
+  tapeByLoanId: Map<string, TapeLoanMatch>,
+  manifestBatchId: string
+): ChunkOperations => {
+  const exceptionsToCreate: ChunkOperations["exceptionsToCreate"] = [];
+  const loansByTargetStatus = new Map<string, string[]>();
+  const fieldEditedAuditLogs: ChunkOperations["fieldEditedAuditLogs"] = [];
+
+  for (const [businessId, rows] of byLoanId) {
+    const tapeRow = tapeByLoanId.get(businessId);
+    if (!tapeRow) {
+      continue;
+    }
+
+    const decision = decideManifestStatus(rows);
+
+    if (
+      decision.documentStatus === DOCUMENT_STATUS_MISSING &&
+      decision.missingDocumentTypes.length > 0
+    ) {
+      exceptionsToCreate.push({
+        exceptionType: "missing_field",
+        field: "documentStatus",
+        loanId: tapeRow.id,
+        message: `documents missing per manifest: ${decision.missingDocumentTypes.join(", ")}`,
+        metadata: {
+          manifestBatchId,
+          missingDocumentTypes: decision.missingDocumentTypes,
+          sourceRowNumbers: decision.sourceRowNumbers,
+        },
+        severity: "medium",
+        status: "open",
+      });
+    }
+
+    if (tapeRow.documentStatus === decision.documentStatus) {
+      continue;
+    }
+
+    const oldValue =
+      tapeRow.documentStatus === null ? null : String(tapeRow.documentStatus);
+
+    const statusGroup = loansByTargetStatus.get(decision.documentStatus);
+    if (statusGroup) {
+      statusGroup.push(tapeRow.id);
+    } else {
+      loansByTargetStatus.set(decision.documentStatus, [tapeRow.id]);
+    }
+
+    fieldEditedAuditLogs.push({
+      eventType: "FIELD_EDITED",
+      loanId: tapeRow.id,
+      metadata: {
+        field: "documentStatus",
+        manifestBatchId,
+        newValue: decision.documentStatus,
+        oldValue,
+        reason: `document_manifest applied: ${decision.missingDocumentTypes.length} missing of ${rows.length} entries`,
+        source: "system:document_manifest",
+      },
+    });
+  }
+
+  return { exceptionsToCreate, fieldEditedAuditLogs, loansByTargetStatus };
 };
 
 const applyChunk = async (
@@ -242,99 +348,51 @@ const applyChunk = async (
   let loansUpdated = 0;
   let missingLoansCreated = 0;
 
-  await prisma.$transaction(async (tx) => {
-    const exceptionsToCreate: Array<{
-      exceptionType: string;
-      field: string;
-      loanId: string;
-      message: string;
-      metadata: Record<string, unknown>;
-      severity: string;
-      status: string;
-    }> = [];
+  const { exceptionsToCreate, fieldEditedAuditLogs, loansByTargetStatus } =
+    prepareChunkOperations(byLoanId, tapeByLoanId, manifestBatchId);
 
-    for (const [businessId, rows] of byLoanId) {
-      const tapeRow = tapeByLoanId.get(businessId);
-      if (!tapeRow) {
-        continue;
+  await prisma.$transaction(
+    async (tx) => {
+      for (const [targetStatus, ids] of loansByTargetStatus) {
+        if (ids.length > 0) {
+          await tx.loan.updateMany({
+            data: { documentStatus: targetStatus },
+            where: { id: { in: ids } },
+          });
+          loansUpdated += ids.length;
+        }
       }
 
-      const decision = decideManifestStatus(rows);
-
-      // Exceptions are ensured independently of the status flip so that a
-      // resumed/interrupted run (status already applied by the aborted
-      // attempt, orphans cleaned by the replay guard) still recreates them.
-      if (
-        decision.documentStatus === DOCUMENT_STATUS_MISSING &&
-        decision.missingDocumentTypes.length > 0
-      ) {
-        exceptionsToCreate.push({
-          exceptionType: "missing_field",
-          field: "documentStatus",
-          loanId: tapeRow.id,
-          message: `documents missing per manifest: ${decision.missingDocumentTypes.join(", ")}`,
-          metadata: {
-            manifestBatchId,
-            missingDocumentTypes: decision.missingDocumentTypes,
-            sourceRowNumbers: decision.sourceRowNumbers,
-          },
-          severity: "medium",
-          status: "open",
-        });
-      }
-
-      // No-op when the tape loan already reflects the manifest verdict.
-      if (tapeRow.documentStatus === decision.documentStatus) {
-        continue;
-      }
-
-      const oldValue =
-        tapeRow.documentStatus === null ? null : String(tapeRow.documentStatus);
-
-      await tx.loan.update({
-        data: { documentStatus: decision.documentStatus },
-        where: { id: tapeRow.id },
-      });
-      loansUpdated += 1;
-
-      await tx.auditLog.create({
-        data: {
-          eventType: "FIELD_EDITED",
-          loanId: tapeRow.id,
-          metadata: {
-            field: "documentStatus",
-            manifestBatchId,
-            newValue: decision.documentStatus,
-            oldValue,
-            reason: `document_manifest applied: ${decision.missingDocumentTypes.length} missing of ${rows.length} entries`,
-            source: "system:document_manifest",
-          },
-        },
-      });
-    }
-
-    if (exceptionsToCreate.length > 0) {
-      const createdExceptions = await tx.exception.createManyAndReturn({
-        data: exceptionsToCreate as never,
-        select: { id: true, loanId: true },
-      });
-
-      if (createdExceptions.length > 0) {
+      if (fieldEditedAuditLogs.length > 0) {
         await tx.auditLog.createMany({
-          data: createdExceptions.map((exc) => ({
-            eventType: "EXCEPTION_CREATED",
-            exceptionId: exc.id,
-            loanId: exc.loanId,
-            metadata: {
-              exceptionType: "missing_field",
-              manifestBatchId,
-            },
-          })) as never,
+          data: fieldEditedAuditLogs as never,
         });
       }
-      missingLoansCreated = createdExceptions.length;
-    }
-  });
+
+      if (exceptionsToCreate.length > 0) {
+        const createdExceptions = await tx.exception.createManyAndReturn({
+          data: exceptionsToCreate as never,
+          select: { id: true, loanId: true },
+        });
+
+        if (createdExceptions.length > 0) {
+          await tx.auditLog.createMany({
+            data: createdExceptions.map((exc) => ({
+              eventType: "EXCEPTION_CREATED",
+              exceptionId: exc.id,
+              loanId: exc.loanId,
+              metadata: {
+                exceptionType: "missing_field",
+                manifestBatchId,
+              },
+            })) as never,
+          });
+        }
+        missingLoansCreated = createdExceptions.length;
+      }
+    },
+    { maxWait: 10_000, timeout: 30_000 }
+  );
 
   return {
     loansUpdated,
@@ -365,7 +423,10 @@ export const processDocumentManifest = async (
     }
   };
 
-  const markFailed = async (error: unknown): Promise<void> => {
+  const markFailed = async (
+    error: unknown,
+    opts?: { isRetryable?: boolean }
+  ): Promise<void> => {
     if (hasFailed) {
       return;
     }
@@ -395,9 +456,15 @@ export const processDocumentManifest = async (
       // best-effort
     }
 
-    await fs.promises.unlink(filePath).catch(() => {
-      // ignore ENOENT
-    });
+    const isRetryable =
+      opts?.isRetryable ?? !message.includes("header mismatch");
+    // Preserve filePath for retryable failures so failed replay can reopen the file;
+    // only unlink for non-retryable validation errors.
+    if (!isRetryable) {
+      await fs.promises.unlink(filePath).catch(() => {
+        // ignore ENOENT
+      });
+    }
   };
 
   try {

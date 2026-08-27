@@ -166,12 +166,21 @@ describe("validateManifestHeaders", () => {
       validateManifestHeaders(["loanid", "documenttype", "available"])
     ).toBeNull();
     expect(validateManifestHeaders(["\uFEFFloan_id", "available"])).toBeNull();
+    expect(validateManifestHeaders([])).toBeNull();
   });
 
-  it("rejects files without any recognized manifest column", () => {
-    const error = validateManifestHeaders(["foo", "bar"]);
-    expect(error).toContain("header mismatch");
-    expect(error).toContain("foo");
+  it("rejects files without required manifest columns and reports missing names", () => {
+    const error1 = validateManifestHeaders(["foo", "bar"]);
+    expect(error1).toContain("header mismatch");
+    expect(error1).toContain("loan_id, available");
+
+    const error2 = validateManifestHeaders(["loan_id", "document_type"]);
+    expect(error2).toContain("header mismatch");
+    expect(error2).toContain("available");
+
+    const error3 = validateManifestHeaders(["document_type", "available"]);
+    expect(error3).toContain("header mismatch");
+    expect(error3).toContain("loan_id");
   });
 });
 
