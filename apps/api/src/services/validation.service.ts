@@ -618,6 +618,7 @@ export const validateBatch = async (batchId: string): Promise<void> => {
           stageMessage:
             "Ingestion and automated validation completed successfully.",
         },
+        status: "done",
       },
       where: { id: batchId },
     });

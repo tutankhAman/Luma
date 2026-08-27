@@ -320,7 +320,11 @@ export const detectServicerConflicts = async (
           conflictMatchedRows: totalMatched,
           conflictStage: "done",
           conflictUnmatchedLoanIds: totalUnmatched,
+          pipelineStage: "completed",
+          stageMessage:
+            "Ingestion and servicer conflict detection completed successfully.",
         } as never,
+        status: "done",
       },
       where: { id: servicerBatchId },
     });

@@ -1,4 +1,6 @@
 import type { FailedRow } from "@repo/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { AiSummaryPanel } from "@/components/batch/ai-summary-panel";
 import { BatchStatusBadge } from "@/components/ui/badges";
@@ -66,6 +68,7 @@ function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
 }
 
 export default function BatchDetailPage() {
+  const queryClient = useQueryClient();
   const { batchId } = useParams<{ batchId: string }>();
   const id = batchId ?? "";
   const { data: batch, isLoading } = useUploadBatch(id);
@@ -74,6 +77,17 @@ export default function BatchDetailPage() {
     id,
     processing
   );
+
+  useEffect(() => {
+    if (batch?.status === "done") {
+      void queryClient.invalidateQueries({
+        queryKey: ["uploads", id, "summary"],
+      });
+      void queryClient.invalidateQueries({ queryKey: ["exceptions"] });
+      void queryClient.invalidateQueries({ queryKey: ["summary"] });
+      void queryClient.invalidateQueries({ queryKey: ["uploads"] });
+    }
+  }, [batch?.status, id, queryClient]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
