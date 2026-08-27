@@ -114,13 +114,13 @@ const NAV_ITEMS: NavItem[] = [
 
 function Wordmark() {
   return (
-    <div className="flex items-center justify-center gap-2.5">
+    <div className="flex items-center gap-3 px-1">
       <img
         alt="Luma"
         className="size-6 shrink-0 rounded-[9px]"
-        height={24}
+        height={28}
         src="/luma.svg"
-        width={24}
+        width={28}
       />
       <p className="font-bold text-xl tracking-tight">Luma</p>
     </div>
@@ -161,7 +161,7 @@ function RoleSwitcher({ current }: { current: Role }) {
     >
       <SelectTrigger
         aria-label="Switch role"
-        className="w-full justify-between gap-2 rounded-lg border-border bg-card px-2.5 data-[size=sm]:h-8"
+        className="w-full justify-between gap-2 rounded-full border-border bg-card px-3.5 data-[size=sm]:h-8 data-[size=sm]:rounded-full"
         size="sm"
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -172,10 +172,10 @@ function RoleSwitcher({ current }: { current: Role }) {
           <SelectValue />
         </span>
       </SelectTrigger>
-      <SelectContent align="start">
+      <SelectContent align="start" className="rounded-2xl p-1.5">
         {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
           <SelectItem
-            className="data-[highlighted]:text-accent-foreground"
+            className="rounded-full px-3 py-1.5 data-[highlighted]:text-accent-foreground"
             key={role}
             value={role}
           >
@@ -232,7 +232,7 @@ export function Sidebar() {
           <NavLink
             className={({ isActive }) =>
               cn(
-                "group flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
+                "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
                 isActive
                   ? "bg-primary/10 font-medium text-primary"
                   : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -259,7 +259,7 @@ export function Sidebar() {
         <NavLink
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition-colors",
+              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
               isActive
                 ? "bg-primary/10 font-medium text-primary"
                 : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -289,14 +289,14 @@ export function Sidebar() {
         </div>
         <div className="flex items-center gap-1">
           <button
-            className="flex-1 rounded-md px-2 py-1.5 text-left text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="flex-1 rounded-full px-2.5 py-1.5 text-center text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={() => navigate("/login")}
             type="button"
           >
             Test Credentials
           </button>
           <button
-            className="flex-1 rounded-md px-2 py-1.5 text-right text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="flex-1 rounded-full px-2.5 py-1.5 text-center text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             disabled={signingOut}
             onClick={() => {
               void handleSignOut();
