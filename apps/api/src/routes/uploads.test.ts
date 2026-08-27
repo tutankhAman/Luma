@@ -54,6 +54,14 @@ const fakeAuth = {
 mock.module("../lib/prisma.js", () => ({ prisma: fakePrisma }));
 mock.module("../lib/auth.js", () => ({ auth: fakeAuth }));
 mock.module("../services/ingestion.service.js", () => ({
+  MAX_FAILED_ROWS_STORED: 1000,
+  cleanString: (value: unknown): string | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const s = String(value).trim();
+    return s === "" ? null : s;
+  },
   processStreamAndNormalize: mock(() => Promise.resolve()),
 }));
 
@@ -259,12 +267,14 @@ describe("GET /api/uploads", () => {
 });
 
 describe("GET /api/uploads/:batchId", () => {
-  it("returns 400 for invalid cuid", async () => {
-    const res = await fetch(`${baseUrl}/api/uploads/nonexistent`);
+  it("returns 400 for a string that is neither cuid nor cuid2", async () => {
+    // b1134e2 widened BATCH_ID_SCHEMA to cuid2().or(cuid()); "nonexistent"
+    // is a valid cuid2, so an invalid id must fail both formats.
+    const res = await fetch(`${baseUrl}/api/uploads/NOTACUID`);
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when not found", async () => {
+  it("returns 404 when a well-formed id is not found", async () => {
     const cuid = "c".repeat(25);
     fakePrisma.uploadBatch.findFirst = mock(() =>
       Promise.resolve(null as never)
@@ -298,8 +308,8 @@ describe("GET /api/uploads/:batchId", () => {
 });
 
 describe("GET /api/uploads/:batchId/summary", () => {
-  it("returns 400 for invalid cuid", async () => {
-    const res = await fetch(`${baseUrl}/api/uploads/nonexistent/summary`);
+  it("returns 400 for a string that is neither cuid nor cuid2", async () => {
+    const res = await fetch(`${baseUrl}/api/uploads/NOTACUID/summary`);
     expect(res.status).toBe(400);
   });
 
@@ -323,8 +333,14 @@ describe("GET /api/uploads/:batchId/summary", () => {
         status: "done",
       } as never)
     );
-    fakePrisma.loan.count = mock(() => Promise.resolve(10 as never));
-    fakePrisma.exception.count = mock(() => Promise.resolve(0 as never));
+    // 338cfb4: failedValidation now counts DISTINCT loans with exceptions
+    // via a second loan.count — the summary handler makes two loan.count
+    // calls (totalImported first, failedValidation second).
+    let loanCountCall = 0;
+    fakePrisma.loan.count = mock(() => {
+      loanCountCall += 1;
+      return Promise.resolve(loanCountCall === 1 ? 10 : 0) as never;
+    });
     fakePrisma.exception.groupBy = mock(() => Promise.resolve([] as never));
     const res = await fetch(`${baseUrl}/api/uploads/${cuid}/summary`);
     expect(res.status).toBe(200);
