@@ -175,7 +175,7 @@ function RoleSwitcher({ current }: { current: Role }) {
       <SelectContent align="start" className="rounded-2xl p-1.5">
         {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
           <SelectItem
-            className="rounded-full px-3 py-1.5 data-[highlighted]:text-accent-foreground"
+            className="rounded-full px-3 py-1.5 font-medium data-[highlighted]:text-accent-foreground"
             key={role}
             value={role}
           >
@@ -211,13 +211,13 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col rounded-tr-3xl rounded-br-3xl border-sidebar-border border-r bg-sidebar">
-      <div className="px-5 pt-5 pb-4">
+      <div className="px-4 pt-5 pb-10">
         <Wordmark />
       </div>
 
       {role ? (
         <div className="px-4 pb-1">
-          <p className="mb-1.5 font-medium text-[10px] text-muted-foreground uppercase tracking-widest">
+          <p className="mb-4 font-medium text-[10px] text-muted-foreground uppercase tracking-widest">
             Viewing as
           </p>
           <RoleSwitcher current={role} />
@@ -232,9 +232,9 @@ export function Sidebar() {
           <NavLink
             className={({ isActive }) =>
               cn(
-                "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
+                "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] font-medium text-[13.5px] transition-colors",
                 isActive
-                  ? "bg-primary/10 font-medium text-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )
             }
@@ -259,9 +259,9 @@ export function Sidebar() {
         <NavLink
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
+              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] font-medium text-[13.5px] transition-colors",
               isActive
-                ? "bg-primary/10 font-medium text-primary"
+                ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )
           }
@@ -272,7 +272,7 @@ export function Sidebar() {
         </NavLink>
       </nav>
 
-      <div className="border-sidebar-border border-t p-4">
+      <div className="rounded-tl-3xl rounded-tr-3xl border-sidebar-border border-t bg-sidebar-accent/20 p-4">
         <div className="mb-3 flex items-center gap-2.5">
           <span
             aria-hidden="true"
@@ -287,22 +287,26 @@ export function Sidebar() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            className="flex-1 rounded-full px-2.5 py-1.5 text-center text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        <div className="flex items-center">
+          {/* <button
+            className="flex-1 rounded-full px-2.5 py-1.5 text-center font-medium text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={() => navigate("/login")}
             type="button"
           >
             Test Credentials
-          </button>
+          </button> */}
           <button
-            className="flex-1 rounded-full px-2.5 py-1.5 text-center text-muted-foreground text-xs transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-destructive/10 px-3 py-2 text-center font-medium text-destructive text-xs transition-colors hover:bg-destructive/15 disabled:opacity-60"
             disabled={signingOut}
             onClick={() => {
               void handleSignOut();
             }}
             type="button"
           >
+            <i
+              aria-hidden="true"
+              className="ri-logout-box-r-line text-[13px]"
+            />
             {signingOut ? "Signing out…" : "Logout"}
           </button>
         </div>
