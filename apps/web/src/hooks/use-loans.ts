@@ -1,4 +1,8 @@
-import type { LoanDetail, LoanFieldsPatchBody } from "@repo/types";
+import type {
+  LoanDetail,
+  LoanFieldsPatchBody,
+  LoanListQuery,
+} from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loansApi } from "@/lib/api";
@@ -58,5 +62,13 @@ export function useVerifyLoan(loanId: string) {
       void queryClient.invalidateQueries({ queryKey: ["loan", loanId] });
       void queryClient.invalidateQueries({ queryKey: ["summary"] });
     },
+  });
+}
+
+export function useLoanList(query: LoanListQuery) {
+  return useQuery({
+    placeholderData: (previous) => previous,
+    queryFn: () => loansApi.list(query),
+    queryKey: ["loans", query],
   });
 }
