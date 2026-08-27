@@ -226,6 +226,30 @@ const applyChunk = async (
       }
 
       const decision = decideManifestStatus(rows);
+
+      // Exceptions are ensured independently of the status flip so that a
+      // resumed/interrupted run (status already applied by the aborted
+      // attempt, orphans cleaned by the replay guard) still recreates them.
+      if (
+        decision.documentStatus === DOCUMENT_STATUS_MISSING &&
+        decision.missingDocumentTypes.length > 0
+      ) {
+        exceptionsToCreate.push({
+          exceptionType: "missing_field",
+          field: "documentStatus",
+          loanId: tapeRow.id,
+          message: `documents missing per manifest: ${decision.missingDocumentTypes.join(", ")}`,
+          metadata: {
+            manifestBatchId,
+            missingDocumentTypes: decision.missingDocumentTypes,
+            sourceRowNumbers: decision.sourceRowNumbers,
+          },
+          severity: "medium",
+          status: "open",
+        });
+      }
+
+      // No-op when the tape loan already reflects the manifest verdict.
       if (tapeRow.documentStatus === decision.documentStatus) {
         continue;
       }
@@ -253,25 +277,6 @@ const applyChunk = async (
           },
         },
       });
-
-      if (
-        decision.documentStatus === DOCUMENT_STATUS_MISSING &&
-        decision.missingDocumentTypes.length > 0
-      ) {
-        exceptionsToCreate.push({
-          exceptionType: "missing_field",
-          field: "documentStatus",
-          loanId: tapeRow.id,
-          message: `documents missing per manifest: ${decision.missingDocumentTypes.join(", ")}`,
-          metadata: {
-            manifestBatchId,
-            missingDocumentTypes: decision.missingDocumentTypes,
-            sourceRowNumbers: decision.sourceRowNumbers,
-          },
-          severity: "medium",
-          status: "open",
-        });
-      }
     }
 
     if (exceptionsToCreate.length > 0) {
