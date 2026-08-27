@@ -67,6 +67,7 @@
       "includes": [
         "apps/api/src/services/validation.service.ts",
         "apps/api/src/services/ingestion.service.ts",
+        "apps/api/src/services/document-manifest.service.ts",
         "apps/api/src/routes/verified-loans.ts"
       ],
       "linter": {

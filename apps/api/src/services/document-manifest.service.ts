@@ -111,7 +111,7 @@ export const normalizeManifestRow = (
     return "";
   };
 
-  const rawLoanId = cleanString(raw.loan_id ?? raw.loanId);
+  const rawLoanId = cleanString(get("loan_id", "loanid", "loanId"));
   const documentType = cleanString(
     get("document_type", "documentType", "document")
   );
@@ -414,11 +414,11 @@ export const processDocumentManifest = async (
     let totalApplied = 0;
     let totalMissingExceptioned = 0;
 
-    const flushChunk = async (chunk: ManifestRow[]): Promise<void> => {
-      if (chunk.length === 0) {
+    const flushChunk = async (manifestChunk: ManifestRow[]): Promise<void> => {
+      if (manifestChunk.length === 0) {
         return;
       }
-      const outcome = await applyChunk(batchId, chunk);
+      const outcome = await applyChunk(batchId, manifestChunk);
       totalApplied += outcome.loansUpdated;
       totalMissingExceptioned += outcome.missingLoansCreated;
     };
