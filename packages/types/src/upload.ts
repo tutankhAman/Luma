@@ -29,6 +29,12 @@ export interface PipelineProgressMetadata {
   failedRowsTruncated?: boolean;
   pipelineStage?: PipelineStage;
   pipelineStep?: number;
+  publicDataAppliedLoans?: number;
+  publicDataDistinctLoans?: number;
+  publicDataFoldedLoans?: number;
+  publicDataLayout?: string;
+  publicDataSourceRows?: number;
+  publicDataUnmappedNonEmpty?: number;
   skippedDuplicates?: number;
   stageMessage?: string;
   totalFailedRows?: number;

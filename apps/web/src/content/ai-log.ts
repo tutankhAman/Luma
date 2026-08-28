@@ -1,4 +1,4 @@
-/* Structured content transcribed from .context/AI_DEVELOPMENT_LOG.md —
+/* Structured content transcribed from docs/AI_DEVELOPMENT_LOG.md —
    rendered by pages/shared/ai-development-log.tsx per spec §7.1. */
 
 export interface CommitChip {

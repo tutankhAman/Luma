@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useLoanList } from "@/hooks/use-loans";
+import { API_BASE } from "@/lib/api";
 
 /* Spec §4.4 — Loan Records browser. Read-only inspection for operators:
    filters (status, source file), search by loan/borrower ID, row click opens
@@ -132,7 +133,7 @@ function LoanDetailDrawer({
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
   if (loanId && loanId !== fetchedFor && !loading) {
     setLoading(true);
-    fetch(`/api/loans/${loanId}`, { credentials: "include" })
+    fetch(`${API_BASE}/api/loans/${loanId}`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data: LoanDetail) => {
         setDetail(data);

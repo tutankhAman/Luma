@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+**/node_modules
+**/dist
+.turbo
+**/.turbo
+**/src/generated
+docker-compose.prod.yml
+docs
+.context
+*.csv
+*.md
+!README.md

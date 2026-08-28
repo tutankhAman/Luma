@@ -19,11 +19,16 @@ export const createApp = (): Express => {
   const app = express();
 
   const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
+  const extraOrigins = (process.env.EXTRA_FRONTEND_URLS ?? "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0);
+  const allowedOrigins = [frontendUrl, ...extraOrigins];
 
   app.use(
     cors({
       credentials: true,
-      origin: frontendUrl,
+      origin: allowedOrigins,
     })
   );
 

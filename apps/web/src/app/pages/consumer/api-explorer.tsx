@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { useVerifiedLoans } from "@/hooks/use-verified-loans";
+import { API_BASE } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /* Spec §6.5 — API Explorer (Module H). */
@@ -165,7 +166,7 @@ export default function ApiExplorerPage() {
   const send = async () => {
     setSending(true);
     const startTime = performance.now();
-    const url = endpoint.path.replace(":id", paramValue.trim() || sampleId);
+    const url = `${API_BASE}${endpoint.path.replace(":id", paramValue.trim() || sampleId)}`;
     try {
       const res = await fetch(url, { credentials: "include" });
       const durationMs = Math.round(performance.now() - startTime);

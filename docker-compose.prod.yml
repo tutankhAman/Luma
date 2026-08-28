@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      POSTGRES_DB: luma
+    volumes:
+      - luma_pgdata:/var/lib/postgresql/data
+    networks: [default]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d luma"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: api
+    image: luma-api:local
+    working_dir: /app/apps/api
+    command: ["bun", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/luma
+    networks: [default]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: api
+    image: luma-api:local
+    restart: unless-stopped
+    expose: ["4000"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/luma
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET required}
+      BETTER_AUTH_URL: https://luma-api.aamn.dev
+      FRONTEND_URL: https://luma.aamn.dev
+      EXTRA_FRONTEND_URLS: ${EXTRA_FRONTEND_URLS:-}
+      CROSS_ORIGIN_COOKIES: ${CROSS_ORIGIN_COOKIES:-false}
+      MOCK_AI: "false"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_MODEL_ID: gemini-3.5-flash-lite
+      PORT: "4000"
+    networks: [default, dokploy-network]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.luma-api.rule=Host(`luma-api.aamn.dev`)
+      - traefik.http.routers.luma-api.entrypoints=web,websecure
+      - traefik.http.routers.luma-api.tls=true
+      - traefik.http.routers.luma-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.luma-api.middlewares=luma-api-headers
+      - traefik.http.middlewares.luma-api-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.luma-api-headers.headers.stsIncludeSubdomains=false
+      - traefik.http.services.luma-api.loadbalancer.server.port=4000
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_API_URL: https://luma-api.aamn.dev
+    image: luma-web:local
+    restart: unless-stopped
+    expose: ["80"]
+    networks: [default, dokploy-network]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.luma-web.rule=Host(`luma.aamn.dev`)
+      - traefik.http.routers.luma-web.entrypoints=web,websecure
+      - traefik.http.routers.luma-web.tls=true
+      - traefik.http.routers.luma-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.luma-web.middlewares=luma-web-headers
+      - traefik.http.middlewares.luma-web-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.luma-web-headers.headers.stsIncludeSubdomains=false
+      - traefik.http.services.luma-web.loadbalancer.server.port=80
+
+networks:
+  default:
+    name: luma
+  dokploy-network:
+    external: true
+
+volumes:
+  luma_pgdata:

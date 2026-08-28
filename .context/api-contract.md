@@ -115,7 +115,7 @@ Upload a CSV file and start ingestion.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `file` | File | Yes | `.csv` only, max 500 MB (~1.5M rows) — matches backend multer limit |
-| `fileType` | string | Yes | `loan_tape` \| `servicer_update` \| `document_manifest` |
+| `fileType` | string | Yes | `loan_tape` \| `servicer_update` \| `document_manifest` \| `fannie_mae` \| `freddie_mac` (public-data pipe, 108-col, fold) |
 
 **Response `202`:**
 ```json
