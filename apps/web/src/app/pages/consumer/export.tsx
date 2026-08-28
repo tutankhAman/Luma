@@ -38,7 +38,7 @@ export default function ExportPage() {
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const target = `${verifiedLoansApi.exportCsv()}&format=${format}`;
+  const target = verifiedLoansApi.exportUrl({ format });
 
   return (
     <div className="mx-auto max-w-[900px] space-y-6 p-8">
