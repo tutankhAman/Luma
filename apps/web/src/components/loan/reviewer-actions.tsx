@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -49,11 +50,46 @@ function getDialogDescription(
 function VerifyLoanSection({
   allResolved,
   loanId,
+  verifiedRecord,
 }: {
   allResolved: boolean;
   loanId: string;
+  verifiedRecord?: { recordHash: string; verifiedAt: string } | null;
 }) {
   const verifyLoan = useVerifyLoan(loanId);
+
+  if (verifiedRecord) {
+    return (
+      <div className="space-y-3 rounded-xl border border-success/30 bg-success/[0.08] p-4 text-success">
+        <div className="flex items-center gap-2 font-semibold text-[13.5px]">
+          <i
+            aria-hidden="true"
+            className="ri-shield-check-fill text-lg text-success"
+          />
+          <span>Loan sealed & verified</span>
+        </div>
+        <p className="text-[12px] text-foreground/85 leading-relaxed">
+          Cryptographic record sealed with immutable hash:
+          <span className="mt-1.5 block select-all break-all rounded-lg border border-success/25 bg-success/10 p-2 font-medium font-mono text-[11px] text-success">
+            {verifiedRecord.recordHash}
+          </span>
+        </p>
+        <div className="pt-1">
+          <Link
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "w-full rounded-full font-medium"
+            )}
+            to="/reviewer/exceptions"
+          >
+            <i aria-hidden="true" className="ri-arrow-left-line text-base" />
+            Back to Review Queue
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -122,6 +158,7 @@ export function ReviewerActions({
   requestingDraft,
   stagedValue,
   decisionState,
+  verifiedRecord,
 }: {
   allResolved: boolean;
   exceptionId: string | null;
@@ -133,6 +170,7 @@ export function ReviewerActions({
   requestingDraft?: boolean;
   stagedValue?: string;
   decisionState?: "accepted" | "rejected" | "edited" | null;
+  verifiedRecord?: { recordHash: string; verifiedAt: string } | null;
 }) {
   const [correctedValue, setCorrectedValue] = useState(stagedValue ?? "");
   const [confirmAction, setConfirmAction] = useState<
@@ -281,7 +319,11 @@ export function ReviewerActions({
         </div>
       )}
 
-      <VerifyLoanSection allResolved={allResolved} loanId={loanId} />
+      <VerifyLoanSection
+        allResolved={allResolved}
+        loanId={loanId}
+        verifiedRecord={verifiedRecord}
+      />
 
       <Dialog
         onOpenChange={(open) => {

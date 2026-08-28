@@ -77,7 +77,7 @@ export default function LoanDetailPage() {
     return (
       <div className="mx-auto max-w-6xl space-y-4 p-6">
         <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+        <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
           <Skeleton className="h-96 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
@@ -106,18 +106,18 @@ export default function LoanDetailPage() {
         <VerificationStatus verifiedRecord={loan.verifiedRecord} />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_380px]">
-        <LoanFieldsPanel loan={loan} />
+      <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_400px]">
+        <LoanFieldsPanel className="h-full" loan={loan} />
 
-        <div className="space-y-4">
-          <Card className="rounded-xl border-border">
-            <CardHeader>
+        <div className="flex h-full flex-col">
+          <Card className="flex h-full min-h-[640px] flex-col rounded-[24px] border border-border lg:max-h-[860px]">
+            <CardHeader className="shrink-0 border-border/50 border-b pb-3">
               <CardTitle>Exceptions ({exceptions.length})</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Select an exception to review and act on it.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex-1 space-y-4 overflow-y-auto p-4">
               <ExceptionList
                 activeId={activeExceptionId}
                 exceptions={exceptions}
@@ -190,6 +190,7 @@ export default function LoanDetailPage() {
                     onNoteDrafted={() => handleNoteDraft(activeException.id)}
                     requestingDraft={draftNote.isPending}
                     stagedValue={stagedValue}
+                    verifiedRecord={loan.verifiedRecord}
                   />
                 </>
               ) : (

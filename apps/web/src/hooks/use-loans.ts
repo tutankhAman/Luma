@@ -56,10 +56,14 @@ export function useVerifyLoan(loanId: string) {
       toast.error("Verification failed", { description: error.message });
     },
     onSuccess: (result) => {
-      toast.success("Loan verified", {
+      toast.success("Loan verified and sealed", {
         description: `Record hash: ${result.verifiedLoan.recordHash.slice(0, 18)}…`,
       });
       void queryClient.invalidateQueries({ queryKey: ["loan", loanId] });
+      void queryClient.invalidateQueries({ queryKey: ["loan"] });
+      void queryClient.invalidateQueries({ queryKey: ["loans"] });
+      void queryClient.invalidateQueries({ queryKey: ["exceptions"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit", loanId] });
       void queryClient.invalidateQueries({ queryKey: ["summary"] });
     },
   });

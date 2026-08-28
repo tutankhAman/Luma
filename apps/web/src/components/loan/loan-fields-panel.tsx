@@ -105,7 +105,13 @@ interface EditingState {
   value: string;
 }
 
-export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
+export function LoanFieldsPanel({
+  loan,
+  className,
+}: {
+  loan: LoanDetail;
+  className?: string;
+}) {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const updateFields = useUpdateLoanFields(loan.id);
 
@@ -129,7 +135,7 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
   };
 
   return (
-    <Card className="rounded-[24px] border border-border">
+    <Card className={cn("rounded-[24px] border border-border", className)}>
       <CardHeader>
         <CardTitle>Loan fields</CardTitle>
         <CardDescription className="text-muted-foreground">
