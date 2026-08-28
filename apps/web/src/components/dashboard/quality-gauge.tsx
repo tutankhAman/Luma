@@ -10,6 +10,19 @@ const gaugeConfig = {
   },
 } satisfies ChartConfig;
 
+function formatScoreText(val: number): string {
+  if (val === 0) {
+    return "0";
+  }
+  if (val < 1) {
+    return val.toFixed(2);
+  }
+  if (val < 10) {
+    return val.toFixed(1);
+  }
+  return String(Math.round(val));
+}
+
 export function QualityScoreGauge({
   className,
   score,
@@ -54,7 +67,7 @@ export function QualityScoreGauge({
       </ChartContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <p className="font-semibold text-[30px] tabular-nums leading-none tracking-tight">
-          {Math.round(clamped)}
+          {formatScoreText(clamped)}
           <span className="text-lg text-muted-foreground">%</span>
         </p>
         <p className="mt-1 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">

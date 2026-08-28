@@ -357,7 +357,7 @@ router.get(
 
     const realQualityScore =
       totalImported > 0
-        ? Math.round((globalVerified / totalImported) * 100 * 10) / 10
+        ? Math.round((globalVerified / totalImported) * 100 * 100) / 100
         : 0;
 
     const data = verifiedLoans.map((vl) => ({

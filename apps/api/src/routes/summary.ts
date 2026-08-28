@@ -61,7 +61,7 @@ router.get(
 
     const qualityScore =
       totalLoansImported > 0
-        ? Math.round((verifiedLoans / totalLoansImported) * 100 * 10) / 10
+        ? Math.round((verifiedLoans / totalLoansImported) * 100 * 100) / 100
         : 0;
 
     const exceptionsByType: Record<string, number> = Object.fromEntries(

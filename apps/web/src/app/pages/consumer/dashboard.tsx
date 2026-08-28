@@ -275,6 +275,19 @@ function RecentAuditActivity() {
   );
 }
 
+function formatQualityScore(score: number): string {
+  if (score === 0) {
+    return "0%";
+  }
+  if (score < 1) {
+    return `${score.toFixed(2)}%`;
+  }
+  if (score < 10) {
+    return `${score.toFixed(1)}%`;
+  }
+  return `${Math.round(score)}%`;
+}
+
 function getQualityDelta(score: number): string {
   if (score >= 95) {
     return "High confidence";
@@ -334,8 +347,8 @@ export default function ConsumerDashboard() {
           loading={isLoading}
           trend={qualityScore >= 90 ? "up" : "neutral"}
           trendLabel="score"
-          trendValue={`${Math.round(qualityScore)}%`}
-          value={`${Math.round(qualityScore)}%`}
+          trendValue={formatQualityScore(qualityScore)}
+          value={formatQualityScore(qualityScore)}
         />
         <KpiCard
           icon="ri-download-cloud-2-line"
