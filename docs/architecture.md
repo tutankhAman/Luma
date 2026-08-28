@@ -236,7 +236,7 @@ Provider is Google Gemini through Vercel AI SDK. Model is `gemini-3.5-flash-lite
 
 Each endpoint loads its target (exception or batch), builds a typed prompt, calls `generateObject` or `generateText` with a Zod schema, stores any recommendation on `Exception.aiRecommendation` when applicable, and writes an `AI_RECOMMENDATION` audit entry in the same transaction. The same pattern applies to `explain`, `classify-severity` (returns `suggestedSeverity`), `draft-note` (returns `note`), `summarize-batch`, and `suggest-rule`.
 
-### 5.2 Endpoints and Storage
+### 5.1 Endpoints and Storage
 
 | Endpoint | Input | AI Call | Stored Where | Extra |
 |---|---|---|---|---|
@@ -248,7 +248,7 @@ Each endpoint loads its target (exception or batch), builds a typed prompt, call
 
 When AI is not configured and not mocked, the route returns `200` with `{ code: "AI_UNAVAILABLE", error, summary: null }` or `recommendation: null` and the UI shows a manual review message. It never returns 500.
 
-### 5.3 Controls
+### 5.2 Controls
 
 *   Recommendations are shown in a read only card with model name, `promptSummary`, timestamp, and confidence. Text says AI suggestions require human review and do not automatically change data.
 *   The reviewer must call `POST /api/exceptions/:id/decision` with `accepted`, `edited` (requires `editedValue`), or `rejected` before any field update. The decision is logged as `AI_RECOMMENDATION` with `aiDecision` and `editedValue`.
