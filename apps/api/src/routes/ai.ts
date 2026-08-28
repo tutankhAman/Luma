@@ -63,7 +63,7 @@ router.post(
 
 router.post(
   "/summarize-batch",
-  requireRole("reviewer"),
+  requireRole("reviewer", "data_operator"),
   async (req: Request, res: Response): Promise<void> => {
     const parsed = aiSummarizeBatchRequestSchema.safeParse(req.body);
     if (!parsed.success) {
