@@ -48,10 +48,11 @@ const upload = multer({
 
 const router = express.Router();
 
-router.use(requireAuth, requireRole("data_operator"));
+router.use(requireAuth);
 
 router.post(
   "/",
+  requireRole("data_operator"),
   upload.single("file"),
   async (req: Request, res: Response): Promise<void> => {
     const { file } = req as Request & { file?: Express.Multer.File };
@@ -187,117 +188,129 @@ router.post(
   }
 );
 
-router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const parsed = listUploadsQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({
-      code: "BAD_REQUEST",
-      error: "Invalid query",
-      fields: Object.fromEntries(
-        parsed.error.issues.map((issue) => [
-          issue.path.join("."),
-          issue.message,
-        ])
-      ),
+router.get(
+  "/",
+  requireRole("data_operator", "reviewer", "data_consumer"),
+  async (req: Request, res: Response): Promise<void> => {
+    const parsed = listUploadsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({
+        code: "BAD_REQUEST",
+        error: "Invalid query",
+        fields: Object.fromEntries(
+          parsed.error.issues.map((issue) => [
+            issue.path.join("."),
+            issue.message,
+          ])
+        ),
+      });
+      return;
+    }
+
+    const { page, limit, status } = parsed.data;
+    const { user } = req;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
+      return;
+    }
+
+    // Operators see only their own batches; reviewer/consumer need batch
+    // metadata (fileName, recordCount, fileType) for dashboards and filters.
+    const where: Record<string, unknown> =
+      user.role === "data_operator" ? { uploadedById: user.id } : {};
+    if (status) {
+      where.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+    const [total, batches] = await Promise.all([
+      prisma.uploadBatch.count({ where }),
+      prisma.uploadBatch.findMany({
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        where,
+      }),
+    ]);
+
+    const data = batches.map((batch) => ({
+      createdAt: batch.createdAt.toISOString(),
+      failedCount: batch.failedCount,
+      fileName: batch.fileName,
+      fileType: batch.fileType,
+      id: batch.id,
+      recordCount: batch.recordCount,
+      status: batch.status,
+    }));
+
+    res.json({
+      data,
+      pagination: {
+        limit,
+        page,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
-    return;
   }
+);
 
-  const { page, limit, status } = parsed.data;
-  const { user } = req;
-  if (!user) {
-    res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
-    return;
-  }
+router.get(
+  "/:batchId",
+  requireRole("data_operator"),
+  async (req: Request, res: Response): Promise<void> => {
+    const rawBatchId = (req.params as { batchId: string }).batchId;
+    const parsedId = BATCH_ID_SCHEMA.safeParse(rawBatchId);
+    if (!parsedId.success) {
+      res.status(400).json({
+        code: "BAD_REQUEST",
+        error: "Invalid batchId",
+        fields: { batchId: "Must be a valid cuid" },
+      });
+      return;
+    }
+    const { data: batchId } = parsedId;
+    const { user } = req;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
+      return;
+    }
 
-  const where: Record<string, unknown> = { uploadedById: user.id };
-  if (status) {
-    where.status = status;
-  }
-
-  const skip = (page - 1) * limit;
-  const [total, batches] = await Promise.all([
-    prisma.uploadBatch.count({ where }),
-    prisma.uploadBatch.findMany({
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-      where,
-    }),
-  ]);
-
-  const data = batches.map((batch) => ({
-    createdAt: batch.createdAt.toISOString(),
-    failedCount: batch.failedCount,
-    fileName: batch.fileName,
-    fileType: batch.fileType,
-    id: batch.id,
-    recordCount: batch.recordCount,
-    status: batch.status,
-  }));
-
-  res.json({
-    data,
-    pagination: {
-      limit,
-      page,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
-});
-
-router.get("/:batchId", async (req: Request, res: Response): Promise<void> => {
-  const rawBatchId = (req.params as { batchId: string }).batchId;
-  const parsedId = BATCH_ID_SCHEMA.safeParse(rawBatchId);
-  if (!parsedId.success) {
-    res.status(400).json({
-      code: "BAD_REQUEST",
-      error: "Invalid batchId",
-      fields: { batchId: "Must be a valid cuid" },
+    const batch = await prisma.uploadBatch.findFirst({
+      where: { id: batchId, uploadedById: user.id },
     });
-    return;
+
+    if (!batch) {
+      res.status(404).json({ code: "NOT_FOUND", error: "Batch not found" });
+      return;
+    }
+
+    const metadata = (batch.metadata as Record<string, unknown> | null) ?? {};
+    const failedRows = Array.isArray(metadata.failedRows)
+      ? (metadata.failedRows as unknown[])
+      : [];
+
+    const response: GetBatchResponse = {
+      createdAt: batch.createdAt.toISOString(),
+      failedCount: batch.failedCount,
+      failedRows: failedRows as GetBatchResponse["failedRows"],
+      fileName: batch.fileName,
+      fileType: batch.fileType as GetBatchResponse["fileType"],
+      id: batch.id,
+      metadata: batch.metadata,
+      recordCount: batch.recordCount,
+      status: batch.status as GetBatchResponse["status"],
+      updatedAt: batch.updatedAt.toISOString(),
+      uploadedById: batch.uploadedById,
+    };
+
+    res.json(response);
   }
-  const { data: batchId } = parsedId;
-  const { user } = req;
-  if (!user) {
-    res.status(401).json({ code: "UNAUTHENTICATED", error: "Unauthorized" });
-    return;
-  }
-
-  const batch = await prisma.uploadBatch.findFirst({
-    where: { id: batchId, uploadedById: user.id },
-  });
-
-  if (!batch) {
-    res.status(404).json({ code: "NOT_FOUND", error: "Batch not found" });
-    return;
-  }
-
-  const metadata = (batch.metadata as Record<string, unknown> | null) ?? {};
-  const failedRows = Array.isArray(metadata.failedRows)
-    ? (metadata.failedRows as unknown[])
-    : [];
-
-  const response: GetBatchResponse = {
-    createdAt: batch.createdAt.toISOString(),
-    failedCount: batch.failedCount,
-    failedRows: failedRows as GetBatchResponse["failedRows"],
-    fileName: batch.fileName,
-    fileType: batch.fileType as GetBatchResponse["fileType"],
-    id: batch.id,
-    metadata: batch.metadata,
-    recordCount: batch.recordCount,
-    status: batch.status as GetBatchResponse["status"],
-    updatedAt: batch.updatedAt.toISOString(),
-    uploadedById: batch.uploadedById,
-  };
-
-  res.json(response);
-});
+);
 
 router.get(
   "/:batchId/summary",
+  requireRole("data_operator"),
   async (req: Request, res: Response): Promise<void> => {
     const rawBatchId = (req.params as { batchId: string }).batchId;
     const parsedId = BATCH_ID_SCHEMA.safeParse(rawBatchId);

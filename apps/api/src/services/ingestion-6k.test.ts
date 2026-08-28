@@ -7,6 +7,8 @@ describe("6k Loan Tape CSV verification", () => {
   const candidatePaths = [
     path.resolve(process.cwd(), "loan_tape_6k.csv"),
     path.resolve(process.cwd(), "../../loan_tape_6k.csv"),
+    path.resolve(process.cwd(), "sample-files/loan_tape_6k.csv"),
+    path.resolve(process.cwd(), "../../sample-files/loan_tape_6k.csv"),
     path.resolve(import.meta.dirname, "../../../../../loan_tape_6k.csv"),
     path.resolve(import.meta.dirname, "../../../../loan_tape_6k.csv"),
     path.resolve(import.meta.dirname, "../../../loan_tape_6k.csv"),
