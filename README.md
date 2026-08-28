@@ -2,7 +2,7 @@
 
 Loan Data Verification Copilot for Intain Campus FinTech Challenge 2026. Ingests messy loan CSVs, validates records, manages exceptions with AI assistance, and produces traceable verified records with audit trail and hash-based integrity.
 
-Built from the problem statement Modules A–H. This document covers setup, environment variables, run commands, credentials, and pointers to required deliverables.
+Built from the problem statement Modules A to H. This document covers setup, environment variables, run commands, credentials, and pointers to required deliverables.
 
 ## Stack
 
