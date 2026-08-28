@@ -57,7 +57,7 @@ function RecentUploads() {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section className="rounded-2xl border border-border bg-card">
       <header className="flex items-center justify-between border-border border-b px-5 py-4">
         <div>
           <h3 className="font-semibold text-[14px] tracking-tight">
@@ -162,7 +162,7 @@ function CorrectionsNeeded() {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card">
+    <section className="rounded-2xl border border-border bg-card">
       <header className="flex items-center justify-between border-border border-b px-5 py-4">
         <div>
           <h3 className="font-semibold text-[14px] tracking-tight">
@@ -220,7 +220,7 @@ function ValidationSummaryChart() {
   });
 
   return (
-    <section className="flex h-full min-h-[340px] flex-col rounded-xl bg-transparent p-5">
+    <section className="flex h-full min-h-[340px] flex-col rounded-xl bg-transparent py-5 pr-4">
       <header className="mb-3 flex shrink-0 items-start justify-between">
         <div>
           <h3 className="font-semibold text-xl tracking-tight">
@@ -262,7 +262,7 @@ function IssuesByType() {
     .sort((a, b) => b[1] - a[1]);
 
   return (
-    <section className="flex h-full min-h-[340px] flex-col rounded-xl border border-border bg-card p-5">
+    <section className="flex h-full min-h-[340px] flex-col rounded-2xl border border-border bg-card p-5">
       <header className="mb-3 shrink-0">
         <h3 className="font-semibold text-xl tracking-tight">Issues by type</h3>
         <p className="text-[12px] text-muted-foreground">
