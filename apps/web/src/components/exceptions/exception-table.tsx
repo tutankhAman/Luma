@@ -22,11 +22,63 @@ const SEVERITY_DOT = {
 
 type SortKey = "createdAt" | "severity";
 
-const RAW_VALUE_PATTERN = /\(([^)]+)\)/;
+const BORROWER_PATTERN = /borrower\s+([A-Za-z0-9_-]+)/i;
+const RATE_PATTERN = /interest_rate\s+([0-9.]+)/i;
+const STATE_PATTERN = /borrower_state\s+([A-Za-z0-9_-]+)/i;
+const STATUS_PATTERN = /payment_status\s+([A-Za-z0-9_-]+)/i;
+const DATE_PATTERN = /\b(\d{4}-\d{2}-\d{2})\b/;
+const PAREN_PATTERN = /\(([^)]+)\)/;
 
-function rawValue(message: string): string {
-  const match = message.match(RAW_VALUE_PATTERN);
-  return match?.[1] ?? "—";
+function extractRawValue(item: ExceptionListItem): string {
+  if (item.aiRecommendation?.fieldsToChange?.[0]?.currentValue) {
+    return item.aiRecommendation.fieldsToChange[0].currentValue;
+  }
+
+  const msg = item.message;
+
+  const borrowerMatch = msg.match(BORROWER_PATTERN);
+  if (borrowerMatch?.[1]) {
+    return borrowerMatch[1];
+  }
+
+  const rateMatch = msg.match(RATE_PATTERN);
+  if (rateMatch?.[1]) {
+    return `${rateMatch[1]}%`;
+  }
+
+  const stateMatch = msg.match(STATE_PATTERN);
+  if (stateMatch?.[1]) {
+    return stateMatch[1];
+  }
+
+  const statusMatch = msg.match(STATUS_PATTERN);
+  if (statusMatch?.[1]) {
+    return statusMatch[1];
+  }
+
+  const dateMatch = msg.match(DATE_PATTERN);
+  if (dateMatch?.[1]) {
+    return dateMatch[1];
+  }
+
+  if (item.exceptionType === "missing_field") {
+    return "Missing";
+  }
+
+  if (item.exceptionType === "balance_error") {
+    return "Invalid Balance";
+  }
+
+  if (item.exceptionType === "date_error") {
+    return "Invalid Date";
+  }
+
+  const parenMatch = msg.match(PAREN_PATTERN);
+  if (parenMatch?.[1]) {
+    return parenMatch[1];
+  }
+
+  return "—";
 }
 
 function EmptyState() {
@@ -161,7 +213,7 @@ export function ExceptionQueueTable({
               </TableCell>
               <TableCell>
                 <span className="rounded-full border border-destructive/25 bg-destructive/8 px-2 py-0.5 font-mono text-[12px] text-destructive">
-                  {rawValue(exception.message)}
+                  {extractRawValue(exception)}
                 </span>
               </TableCell>
               <TableCell>
