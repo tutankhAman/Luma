@@ -17,17 +17,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAiDecision, useDraftNote } from "@/hooks/use-ai";
+import { useDraftNote } from "@/hooks/use-ai";
 import { useLoan } from "@/hooks/use-loans";
 
 export default function LoanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const loanId = id ?? "";
   const { data: loan, isLoading } = useLoan(loanId);
-  const aiDecision = useAiDecision();
   const draftNote = useDraftNote();
   const [conflictOpen, setConflictOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [decisionState, setDecisionState] = useState<
+    "accepted" | "rejected" | "edited" | null
+  >(null);
+  const [stagedValue, setStagedValue] = useState<string>("");
 
   const exceptions = useMemo<LoanExceptionItem[]>(
     () => loan?.exceptions ?? [],
@@ -42,6 +45,12 @@ export default function LoanDetailPage() {
       setActiveExceptionId(exceptions[0]?.id ?? null);
     }
   }, [exceptions, activeExceptionId]);
+
+  const handleSelectException = (selectedExceptionId: string | null) => {
+    setActiveExceptionId(selectedExceptionId);
+    setDecisionState(null);
+    setStagedValue("");
+  };
 
   const activeException = exceptions.find(
     (item) => item.id === activeExceptionId
@@ -112,7 +121,7 @@ export default function LoanDetailPage() {
               <ExceptionList
                 activeId={activeExceptionId}
                 exceptions={exceptions}
-                onSelect={setActiveExceptionId}
+                onSelect={handleSelectException}
               />
 
               {activeException ? (
@@ -152,17 +161,27 @@ export default function LoanDetailPage() {
                     </div>
                   ) : null}
                   <AiPanel
-                    exceptionId={activeException.id}
-                    onDecision={(type, editedValue) =>
-                      aiDecision.mutate({
-                        decision: type,
-                        editedValue,
-                        exceptionId: activeException.id,
-                      })
-                    }
+                    decisionState={decisionState}
+                    exception={activeException}
+                    onDecision={(type, editedValue, recommendation) => {
+                      setDecisionState(type);
+                      if (type === "accepted" || type === "edited") {
+                        const val =
+                          editedValue ??
+                          recommendation?.fieldsToChange?.[0]?.suggestedValue ??
+                          "";
+                        setStagedValue(val);
+                        if (!note && recommendation) {
+                          setNote(
+                            `Approved with AI correction (${recommendation.model}): ${recommendation.reasoning}`
+                          );
+                        }
+                      }
+                    }}
                   />
                   <ReviewerActions
                     allResolved={allResolved}
+                    decisionState={decisionState}
                     exceptionId={activeException.id}
                     exceptionStatus={activeException.status}
                     loanId={loan.id}
@@ -170,6 +189,7 @@ export default function LoanDetailPage() {
                     onNoteChange={setNote}
                     onNoteDrafted={() => handleNoteDraft(activeException.id)}
                     requestingDraft={draftNote.isPending}
+                    stagedValue={stagedValue}
                   />
                 </>
               ) : (
