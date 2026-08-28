@@ -155,56 +155,73 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen gap-4 bg-background p-4 font-sans">
-      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-foreground pt-40 pr-12 pb-12 pl-12 text-background lg:flex">
-        <div className="mb-10 flex items-center gap-2 font-medium text-background">
-          <span
-            aria-hidden="true"
-            className="size-5 rounded-full border border-white"
-          />
-          Luma
-        </div>
-        <h1 className="mb-3 text-center font-semibold text-[32px] text-background tracking-tight">
-          Loan data verification,
-          <br />
-          made trustworthy
-        </h1>
-        <p className="mb-12 max-w-[280px] text-center text-[15px] text-muted-foreground leading-snug">
-          Turn messy loan tapes into validated, traceable records with AI
-          assistance at every step.
-        </p>
-        <ol className="w-full max-w-[340px] space-y-3">
-          {STEPS.map((step, index) => {
-            const active = index === 0;
-            return (
-              <li
-                className={`flex items-center gap-4 rounded-xl p-4 ${
-                  active
-                    ? "bg-background font-medium text-foreground"
-                    : "bg-muted/70 text-muted-foreground"
-                } text-[14px]`}
-                key={step.title}
-              >
-                <span
-                  className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
+      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-foreground pt-36 pr-12 pb-12 pl-12 text-background lg:flex">
+        {/* Wallpaper Background */}
+        <img
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover object-center"
+          height={3840}
+          src="/login-bg.webp"
+          width={2160}
+        />
+        {/* Dark Vignette Overlay */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-black/65 backdrop-blur-[1px]"
+        />
+
+        <div className="relative z-10 flex w-full flex-col items-center">
+          <div className="mb-8 flex items-center gap-2 font-medium text-white">
+            <span
+              aria-hidden="true"
+              className="size-5 rounded-full border border-white/80"
+            />
+            Luma
+          </div>
+          <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
+            Loan data verification,
+            <br />
+            made trustworthy
+          </h1>
+          <p className="mb-10 max-w-[300px] text-center text-[14.5px] text-white/80 leading-snug">
+            Turn messy loan tapes into validated, traceable records with AI
+            assistance at every step.
+          </p>
+          <ol className="w-full max-w-[340px] space-y-3">
+            {STEPS.map((step, index) => {
+              const active = index === 0;
+              return (
+                <li
+                  className={`flex items-center gap-4 rounded-2xl p-4 backdrop-blur-md transition-colors ${
                     active
-                      ? "bg-foreground text-background"
-                      : "border border-muted-foreground/50"
-                  }`}
+                      ? "border border-white/20 bg-white/15 font-medium text-white shadow-black/20 shadow-lg"
+                      : "border border-white/10 bg-black/40 text-white/70"
+                  } text-[14px]`}
+                  key={step.title}
                 >
-                  {index + 1}
-                </span>
-                <span>
-                  <span className="block">{step.title}</span>
                   <span
-                    className={`block text-[12px] ${active ? "text-background/70" : "text-muted-foreground/70"}`}
+                    className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
+                      active
+                        ? "bg-white font-semibold text-black"
+                        : "border border-white/40 text-white/80"
+                    }`}
                   >
-                    {step.description}
+                    {index + 1}
                   </span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+                  <span>
+                    <span className="block text-white">{step.title}</span>
+                    <span
+                      className={`block text-[12px] ${active ? "text-white/80" : "text-white/60"}`}
+                    >
+                      {step.description}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </section>
 
       <section className="flex w-full flex-col items-center justify-center bg-card lg:w-1/2">
@@ -262,7 +279,7 @@ export default function LoginPage() {
             </div>
 
             <button
-              className="mt-8 w-full rounded-xl bg-primary py-3 font-medium text-[14px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="mt-8 w-full rounded-full bg-primary py-3 font-medium text-[14px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               disabled={submitting}
               type="submit"
             >
