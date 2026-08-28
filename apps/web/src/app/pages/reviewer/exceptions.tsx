@@ -1,5 +1,11 @@
-import type { ExceptionListItem } from "@repo/types";
+import type {
+  ExceptionListItem,
+  ExceptionStatus,
+  ExceptionType,
+  Severity,
+} from "@repo/types";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AiResolutionPanel } from "@/components/exceptions/ai-resolution-panel";
 import { ExceptionQueueTable } from "@/components/exceptions/exception-table";
 import { FilterBar } from "@/components/exceptions/filter-bar";
@@ -10,9 +16,23 @@ import {
 } from "@/hooks/use-exceptions-filters";
 
 export default function ExceptionQueuePage() {
-  const [filters, setFilters] = useState<ExceptionListFilters>(
-    EMPTY_EXCEPTION_FILTERS
-  );
+  const [searchParams] = useSearchParams();
+  const initialSeverity = (searchParams.get("severity") ?? "") as Severity | "";
+  const initialStatus = (searchParams.get("status") ?? "open") as
+    | ExceptionStatus
+    | "";
+  const initialType = (searchParams.get("type") ?? "") as ExceptionType | "";
+  const initialBatchId = searchParams.get("batchId") ?? "";
+  const initialSearch = searchParams.get("search") ?? "";
+
+  const [filters, setFilters] = useState<ExceptionListFilters>(() => ({
+    ...EMPTY_EXCEPTION_FILTERS,
+    batchId: initialBatchId,
+    search: initialSearch,
+    severity: initialSeverity,
+    status: initialStatus,
+    type: initialType,
+  }));
   const [selected, setSelected] = useState<ExceptionListItem | null>(null);
   const { data, isLoading, isFetching } = useExceptions(filters);
 

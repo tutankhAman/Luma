@@ -64,18 +64,22 @@ export function AiBatchSummary({ batchId }: { batchId: string }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.04] p-5"
+        "relative overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.03] p-5 shadow-xs"
       )}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <i
-            aria-hidden="true"
-            className="ri-sparkling-2-line text-base text-primary"
-          />
-          <h3 className="font-semibold text-[14px] tracking-tight">
-            AI batch summary
-          </h3>
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <i aria-hidden="true" className="ri-sparkling-2-line text-[14px]" />
+          </span>
+          <div>
+            <h3 className="font-semibold text-[14px] tracking-tight">
+              AI batch summary
+            </h3>
+            <p className="text-[11.5px] text-muted-foreground">
+              Automated anomaly & validation insight
+            </p>
+          </div>
         </div>
         <button
           className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"

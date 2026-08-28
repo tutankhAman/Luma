@@ -83,8 +83,8 @@ export function RecentDecisions({
   }
 
   return (
-    <ol className="relative space-y-4 pl-1">
-      {filtered.map((event) => {
+    <ul className="divide-y divide-border">
+      {filtered.slice(0, 5).map((event) => {
         const meta =
           EVENT_META[event.eventType as AuditEventType] ??
           ({
@@ -92,42 +92,38 @@ export function RecentDecisions({
             tone: "text-muted-foreground",
           } as const);
         return (
-          <li
-            className="flex items-start gap-3"
-            key={`${event.eventType}-${event.timestamp}`}
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card",
-                meta.tone
-              )}
-            >
-              <i className={cn(meta.icon, "text-[12px]")} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] leading-snug">
-                <span className="font-medium">
+          <li key={`${event.eventType}-${event.timestamp}`}>
+            <div className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/50">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border border-border/80 bg-muted/40",
+                  meta.tone
+                )}
+              >
+                <i className={cn(meta.icon, "text-[13px]")} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-[13px] leading-snug">
                   {humanizeEventType(event.eventType)}
-                </span>
-                {event.loanId ? (
-                  <span className="ml-1.5 font-mono text-[11.5px] text-muted-foreground">
-                    {event.loanId}
-                  </span>
-                ) : null}
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {event.actor ?? "System"}
-                {" · "}
-                {new Date(event.timestamp).toLocaleTimeString(undefined, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+                  {event.loanId ? (
+                    <span className="ml-1.5 font-mono text-[11.5px] text-muted-foreground">
+                      {event.loanId}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="truncate text-[11.5px] text-muted-foreground">
+                  {event.actor ?? "System"} ·{" "}
+                  {new Date(event.timestamp).toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
             </div>
           </li>
         );
       })}
-    </ol>
+    </ul>
   );
 }

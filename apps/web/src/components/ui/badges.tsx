@@ -3,6 +3,7 @@ import type {
   ExceptionStatus,
   ExceptionType,
   Severity,
+  ValidationResult,
   ValidationStatus,
 } from "@repo/types";
 import { cn } from "@/lib/utils";
@@ -157,6 +158,40 @@ export function ValidationStatusBadge({
         )}
       />
       {VALIDATION_LABELS[status]}
+    </span>
+  );
+}
+
+const VALIDATION_RESULT_STYLES: Record<ValidationResult, string> = {
+  passed: "border-success/30 bg-success/8 text-success",
+  passed_with_review: "border-primary/30 bg-primary/8 text-primary",
+};
+
+const VALIDATION_RESULT_LABELS: Record<ValidationResult, string> = {
+  passed: "Passed",
+  passed_with_review: "Reviewed & passed",
+};
+
+export function ValidationResultBadge({
+  result,
+}: {
+  result: ValidationResult;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-medium text-[11px] tracking-wide",
+        VALIDATION_RESULT_STYLES[result]
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          result === "passed" ? "bg-success" : "bg-primary"
+        )}
+      />
+      {VALIDATION_RESULT_LABELS[result]}
     </span>
   );
 }

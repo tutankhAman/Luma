@@ -71,29 +71,20 @@ export function ExceptionQueuePreview({
       {sorted.slice(0, 5).map((item) => (
         <li key={item.id}>
           <button
-            className="group flex w-full items-center gap-3 px-1 py-2.5 text-left transition-colors hover:bg-accent/50"
+            className="group flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-accent/50"
             onClick={() => navigate(`/reviewer/loans/${item.loan.id}`)}
             type="button"
           >
-            <SeverityBadge
-              className="w-[76px] shrink-0 justify-center"
-              severity={item.severity as Severity}
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium text-[13px]">
-                <span className="font-mono">
-                  {item.loan.loanId ?? item.loan.id}
-                </span>
-                <span className="mx-1.5 text-muted-foreground">·</span>
-                <span className="text-muted-foreground">
-                  {exceptionTypeLabel(item.exceptionType)}
-                </span>
-              </span>
-              <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">
-                {item.field ? `${item.field} — ` : ""}
-                {item.message}
-              </span>
+            <span className="w-[100px] shrink-0 truncate font-mono text-[12px]">
+              {item.loan.loanId ?? item.loan.id}
             </span>
+            <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {exceptionTypeLabel(item.exceptionType)}
+              </span>
+              {item.field ? ` · ${item.field}` : ""} — {item.message}
+            </span>
+            <SeverityBadge severity={item.severity as Severity} />
             <i
               aria-hidden="true"
               className="ri-arrow-right-s-line text-muted-foreground/60 transition-transform group-hover:translate-x-0.5"
