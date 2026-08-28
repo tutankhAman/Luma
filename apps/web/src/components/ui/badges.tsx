@@ -26,7 +26,7 @@ const SEVERITY_DOT: Record<Severity, string> = {
 };
 
 const SEVERITY_LABELS: Record<Severity, string> = {
-  critical: "High",
+  critical: "Critical",
   high: "High",
   low: "Low",
   medium: "Medium",
