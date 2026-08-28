@@ -249,6 +249,69 @@ describe("GET /api/uploads", () => {
     expect(body.pagination.total).toBe(1);
   });
 
+  it("scopes operator listing to their own batches", async () => {
+    let capturedWhere: unknown;
+    fakePrisma.uploadBatch.count = mock(() => {
+      capturedWhere = { uploadedById: "user_op" };
+      return Promise.resolve(0 as never);
+    });
+    const res = await fetch(`${baseUrl}/api/uploads?page=1&limit=20`);
+    expect(res.status).toBe(200);
+    const countCall = (
+      fakePrisma.uploadBatch.count as unknown as {
+        mock: { calls: unknown[][] };
+      }
+    ).mock.calls.at(-1)?.[0] as { where?: unknown } | undefined;
+    expect(countCall?.where).toEqual({ uploadedById: "user_op" });
+    expect(capturedWhere).toBeDefined();
+  });
+
+  it("allows reviewer to list all batches without owner scoping", async () => {
+    fakeAuth.api.getSession = mock(() =>
+      Promise.resolve(reviewerSession as never)
+    );
+    fakePrisma.uploadBatch.count = mock(() => Promise.resolve(1 as never));
+    fakePrisma.uploadBatch.findMany = mock(() =>
+      Promise.resolve([
+        {
+          createdAt: new Date("2026-08-25T10:00:00.000Z"),
+          failedCount: 0,
+          fileName: "b.csv",
+          fileType: "loan_tape",
+          id: "batch_2",
+          recordCount: 5,
+          status: "done",
+        },
+      ] as never)
+    );
+    const res = await fetch(`${baseUrl}/api/uploads?page=1&limit=20`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { data: { id: string }[] };
+    expect(body.data[0]?.id).toBe("batch_2");
+  });
+
+  it("allows data_consumer to list batches", async () => {
+    fakeAuth.api.getSession = mock(() =>
+      Promise.resolve({
+        ...reviewerSession,
+        user: {
+          ...reviewerSession.user,
+          id: "user_con",
+          role: "data_consumer",
+        },
+      } as never)
+    );
+    fakePrisma.uploadBatch.count = mock(() => Promise.resolve(0 as never));
+    const res = await fetch(`${baseUrl}/api/uploads?page=1&limit=20`);
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    fakeAuth.api.getSession = mock(() => Promise.resolve(null as never));
+    const res = await fetch(`${baseUrl}/api/uploads?page=1&limit=20`);
+    expect(res.status).toBe(401);
+  });
+
   it("returns 400 for invalid query", async () => {
     const res = await fetch(`${baseUrl}/api/uploads?page=0`);
     expect(res.status).toBe(400);

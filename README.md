@@ -137,7 +137,7 @@ Base URL: `http://localhost:4000` (dev). Auth: cookie session. Error format: `{ 
 | POST | `/api/auth/sign-out` | auth |
 | GET | `/api/auth/get-session` | auth |
 | POST | `/api/uploads` | `data_operator` |
-| GET | `/api/uploads` | `data_operator` |
+| GET | `/api/uploads` | `data_operator` (own batches), `reviewer`/`data_consumer` (all batches) |
 | GET | `/api/uploads/:batchId` | `data_operator` |
 | GET | `/api/uploads/:batchId/summary` | `data_operator` |
 | GET | `/api/loans` | `data_operator`, `reviewer`, `data_consumer` (verified only) |
