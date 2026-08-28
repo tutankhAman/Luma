@@ -337,8 +337,9 @@ export default function ImportHistoryPage() {
             <p className="text-[12px] text-muted-foreground">
               Page {page} of {totalPages}
             </p>
-            <div className="flex gap-1.5">
+            <div className="flex gap-2">
               <Button
+                className="rounded-full px-3 text-xs"
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
                 size="sm"
@@ -347,6 +348,7 @@ export default function ImportHistoryPage() {
                 Previous
               </Button>
               <Button
+                className="rounded-full px-3 text-xs"
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
                 size="sm"
@@ -365,7 +367,10 @@ export default function ImportHistoryPage() {
     <div className="mx-auto max-w-[1100px] space-y-6 p-8">
       <PageHeader
         action={
-          <Button onClick={() => navigate("/operator/upload")}>
+          <Button
+            className="rounded-full"
+            onClick={() => navigate("/operator/upload")}
+          >
             <i aria-hidden="true" className="ri-upload-cloud-2-line" />
             Upload New File
           </Button>
@@ -375,7 +380,7 @@ export default function ImportHistoryPage() {
         title="Import History"
       />
 
-      <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card">
         {renderTable()}
       </section>
 
