@@ -22,6 +22,8 @@ export const fileTypeSchema = z.enum([
   "loan_tape",
   "servicer_update",
   "document_manifest",
+  "fannie_mae",
+  "freddie_mac",
 ]);
 export type FileType = z.infer<typeof fileTypeSchema>;
 
