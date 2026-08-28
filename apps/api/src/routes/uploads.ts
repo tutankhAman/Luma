@@ -16,6 +16,7 @@ import { requireAuth } from "../middleware/require-auth.js";
 import { requireRole } from "../middleware/require-role.js";
 import { processDocumentManifest } from "../services/document-manifest.service.js";
 import { processStreamAndNormalize } from "../services/ingestion.service.js";
+import { processPublicDataIngestion } from "../services/public-data/ingestion.service.js";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const UPLOAD_DIR = path.join(os.tmpdir(), "luma-uploads");
@@ -96,7 +97,8 @@ router.post(
         code: "BAD_REQUEST",
         error: "Invalid fileType",
         fields: {
-          fileType: "Must be loan_tape | servicer_update | document_manifest",
+          fileType:
+            "Must be loan_tape | servicer_update | document_manifest | fannie_mae | freddie_mac",
         },
       });
       return;
@@ -155,6 +157,23 @@ router.post(
       processDocumentManifest(file.path, batch.id).catch((err) => {
         process.stderr.write(
           `[Upload] Manifest processing uncaught error for batch ${batch.id}: ${err}\n`
+        );
+      });
+      return;
+    }
+
+    // Public loan data (Fannie Mae / Freddie Mac) is loan-shaped pipe data:
+    // same validation → exception → verification lineage as the synthetic
+    // loan_tape, handled by a dedicated tolerant parser and incremental
+    // contiguous-run fold (352522aa plan §4).
+    if (batch.fileType === "fannie_mae" || batch.fileType === "freddie_mac") {
+      processPublicDataIngestion(
+        file.path,
+        batch.id,
+        batch.fileType as "fannie_mae" | "freddie_mac"
+      ).catch((err) => {
+        process.stderr.write(
+          `[Upload] Public-data ingestion uncaught error for batch ${batch.id}: ${err}\n`
         );
       });
       return;
