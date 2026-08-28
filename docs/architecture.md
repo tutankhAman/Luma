@@ -55,35 +55,6 @@ graph TB
     Browser --- OP & REV & CON
 ```
 
-### 1.2 Request Flow
-
-```mermaid
-sequenceDiagram
-    participant U as User Browser
-    participant W as Vite SPA
-    participant A as Express API
-    participant M as Middleware<br/>requireAuth/requireRole
-    participant S as Service Layer
-    participant P as Prisma
-    participant D as Postgres
-
-    U->>W: Navigate, authClient.useSession()
-    W->>A: GET /api/auth/get-session<br/>Cookie
-    A->>M: requireAuth
-    M->>P: auth.api.getSession
-    P->>D: SELECT session
-    M-->>A: req.user set
-    A-->>W: { user, role }
-
-    U->>W: POST /api/uploads<br/>multipart
-    W->>A: Multer + requireRole(data_operator)
-    A->>S: create UploadBatch + FILE_UPLOADED log
-    S->>P: transaction
-    P->>D: INSERT
-    A-->>W: 202 { batchId }
-    Note over A,S: Background: processStreamAndNormalize()
-```
-
 ---
 
 ## 2. Data Model
@@ -237,55 +208,13 @@ Middleware order in `createApp`: `cors` -> `auth handler` -> `express.json` -> r
 
 Pagination uses `page` and `limit` (max 100). All list routes return `{ data, pagination: { limit, page, total, totalPages } }`.
 
-### 3.3 API Layer Diagram
-
-```mermaid
-graph LR
-    Client --> Router
-    Router --> AuthMW[requireAuth]
-    AuthMW --> RoleMW[requireRole]
-    RoleMW --> Handler
-    Handler --> Zod[Zod safeParse]
-    Zod --> Service
-    Service --> Prisma
-    Prisma --> DB
-    Service --> Audit[AuditLog in same transaction]
-    Handler --> Response
-```
-
 ---
 
 ## 4. Validation Engine
 
 Location `apps/api/src/services/validation.service.ts`. Runs automatically after ingestion completes. Uses thresholds from code (`validation_rules.json` logic inline: rate 0 to 40, stale 90 days).
 
-### 4.1 Rule Flow
-
-```mermaid
-flowchart TD
-    Start([Batch done]) --> Load[Load loans in 5k page]
-    Load --> PerLoan{For each loan}
-    PerLoan --> R1[requiredFields<br/>missing_field]
-    R1 --> R2[dateValidity + maturityOrder<br/>date_error]
-    R2 --> R3[principalNotNegative + balanceNotExceed<br/>balance_error]
-    R3 --> R4[interestRateInRange<br/>rate_out_of_range]
-    R4 --> R5[paymentConsistency + closedLoanWithBalance<br/>status_inconsistency]
-    R5 --> R6[documentPresence<br/>missing_field]
-    R6 --> R7[staleRecord<br/>stale_record]
-    R7 --> R8[invalidState<br/>invalid_state]
-    R8 --> BatchCheck{Batch scope?}
-    BatchCheck --> D1[duplicateLoanId]
-    D1 --> D2[duplicateBorrowerCombo]
-    D2 --> D3[repeatedBorrowerSpike]
-    D3 --> Collect[Collect Exceptions]
-    Collect --> Bulk[prisma.exception.createMany<br/>in transaction]
-    Bulk --> Update[Update Loan.validationStatus<br/>failed if any else passed]
-    Update --> NextPage{More pages?}
-    NextPage -- yes --> Load
-    NextPage -- no --> Summary[Write VALIDATION_RUN<br/>+ EXCEPTION_CREATED logs]
-```
-
-Per loan rules return an `Exception` object with `exceptionType`, `severity`, `field`, `message`. Batch scoped rules use DB queries:
+Per loan rules return an `Exception` object with `exceptionType`, `severity`, `field`, `message`. In order they are `requiredFields` (`missing_field`), `dateValidity` and `maturityOrder` (`date_error`), `principalNotNegative` and `balanceNotExceed` (`balance_error`), `interestRateInRange` (`rate_out_of_range`), `paymentConsistency` and `closedLoanWithBalance` (`status_inconsistency`), `documentPresence` (`missing_field`), `staleRecord` (`stale_record`), `invalidState` (`invalid_state`). Batch scoped rules use DB queries:
 
 *   `duplicateLoanId` - `groupBy` on `loanId` having count >1.
 *   `duplicateBorrowerCombo` - `groupBy` on `borrowerId`, `originalPrincipal`, `originationDate`.
@@ -305,35 +234,7 @@ Example numbers with `loan_tape.csv` (137 rows): 8 failedRows, 129 imported, 60 
 
 Provider is Google Gemini through Vercel AI SDK. Model is `gemini-3.5-flash-lite` configurable by `AI_MODEL_ID`. When `MOCK_AI=true` or `GEMINI_API_KEY` is empty the service returns deterministic mocks and never calls the network. All AI routes are rate limited to 20 per minute per user.
 
-### 5.1 How It Works
-
-```mermaid
-sequenceDiagram
-    participant R as Reviewer UI
-    participant A as POST /api/ai/explain
-    participant S as ai.service.ts
-    participant D as Prisma
-    participant G as Gemini
-    participant E as Exception Table
-    participant L as AuditLog
-
-    R->>A: { exceptionId }
-    A->>S: explainException(id, actorId)
-    S->>D: SELECT exception + loan + metadata
-    S->>S: buildExplainPrompt()<br/>loan snapshot + conflictContext
-    alt MOCK_AI
-        S->>S: mock recommendation<br/>confidence 0.84
-    else AI configured
-        S->>G: generateObject(schema)
-        G-->>S: { confidence, fieldsToChange, reasoning, suggestion }
-    end
-    S->>D: transaction<br/>UPDATE exception.aiRecommendation<br/>INSERT audit AI_RECOMMENDATION
-    S-->>A: { exceptionId, recommendation }
-    A-->>R: 200
-    Note over R: Shows model, promptSummary, timestamp<br/>Accept / Edit / Reject -> POST /exceptions/:id/decision
-```
-
-The same pattern applies to `classify-severity` (returns `suggestedSeverity`), `draft-note` (returns `note`), `summarize-batch`, and `suggest-rule`.
+Each endpoint loads its target (exception or batch), builds a typed prompt, calls `generateObject` or `generateText` with a Zod schema, stores any recommendation on `Exception.aiRecommendation` when applicable, and writes an `AI_RECOMMENDATION` audit entry in the same transaction. The same pattern applies to `explain`, `classify-severity` (returns `suggestedSeverity`), `draft-note` (returns `note`), `summarize-batch`, and `suggest-rule`.
 
 ### 5.2 Endpoints and Storage
 
@@ -363,25 +264,9 @@ When AI is not configured and not mocked, the route returns `200` with `{ code: 
 
 `GET /api/audit/:loanId` returns logs ordered by `createdAt` ascending, paginated, with actor `name` and `role` and metadata.
 
-### 6.2 Verification Lifecycle
+`POST /api/loans/:id/verify` asserts no `status = open` remains else `409`. It builds `canonicalData` from the current loan fields (21 columns), computes `recordHash = SHA256(JSON.stringify(canonicalData))` in `lib/hash.ts`, creates `VerifiedLoan` with `sourceBatchRef` (file name and id), `validationResult` (`passed` or `passed_with_review`), `reviewerDecision`, `aiRecommendationUsed`, and writes `VERIFIED_RECORD_CREATED` with `hash` and `verifiedBy`. Lifecycle is `pending -> failed -> review -> approved/rejected -> passed -> verified`.
 
-```mermaid
-stateDiagram-v2
-    [*] --> pending: Loan created
-    pending --> failed: Validation finds exceptions
-    pending --> passed: No exceptions
-    failed --> review: Reviewer opens
-    review --> approved: Approve / correct
-    review --> rejected: Reject
-    approved --> passed: Last open closed
-    rejected --> passed: Last open closed (or stays failed)
-    passed --> verified: POST /loans/:id/verify<br/>all exceptions not open
-    verified --> [*]
-```
-
-`POST /api/loans/:id/verify` asserts no `status = open` remains else `409`. It builds `canonicalData` from the current loan fields (21 columns), computes `recordHash = SHA256(JSON.stringify(canonicalData))` in `lib/hash.ts`, creates `VerifiedLoan` with `sourceBatchRef` (file name and id), `validationResult` (`passed` or `passed_with_review`), `reviewerDecision`, `aiRecommendationUsed`, and writes `VERIFIED_RECORD_CREATED` with `hash` and `verifiedBy`.
-
-### 6.3 End to End Flow
+### 6.2 End to End Flow
 
 ```mermaid
 flowchart LR
@@ -409,32 +294,7 @@ Consumers see only verified loans. `GET /api/loans` with role `data_consumer` ad
 
 ## 7. Frontend and Deployment
 
-Frontend route tree is in `apps/web/src/app/routes.tsx` behind `ProtectedRoute`.
-
-```mermaid
-graph TD
-    ROOT[/] --> LOGIN[/login<br/>email + password]
-    ROOT --> OP[/operator<br/>role=data_operator]
-    ROOT --> REV[/reviewer<br/>role=reviewer]
-    ROOT --> CON[/consumer<br/>role=data_consumer]
-    ROOT --> AILOG[/ai-log]
-
-    OP --> OPDash[/operator/dashboard<br/>upload history + validation summary]
-    OP --> OPUpload[/operator/upload<br/>dropzone]
-    OP --> OPImports[/operator/imports<br/>batch table]
-    OP --> OPBatch[/operator/uploads/:batchId<br/>pipeline tracker + failedRows + summary + AI summary]
-    OP --> OPLoans[/operator/loans<br/>read only drawer]
-
-    REV --> RVDash[/reviewer/dashboard<br/>queue stats]
-    REV --> RVQueue[/reviewer/exceptions<br/>filterable table]
-    REV --> RVLoan[/reviewer/loans/:id<br/>editable fields + AI panel + actions]
-    REV --> RVRules[/reviewer/rules<br/>suggest-rule]
-
-    CON --> CNDash[/consumer/dashboard<br/>quality score + verified table]
-    CON --> CNLoan[/consumer/verified/:id<br/>canonical + audit]
-    CON --> CNAudit[/consumer/audit/:loanId<br/>timeline]
-    CON --> CNAPI[/consumer/api<br/>explorer]
-```
+Frontend route tree is in `apps/web/src/app/routes.tsx` behind `ProtectedRoute`: `/` redirects to `/login`, `/operator` (dashboard, upload, imports, `uploads/:batchId`, loans), `/reviewer` (dashboard, exceptions, `loans/:id`, rules), `/consumer` (dashboard, `verified/:id`, `audit/:loanId`, `api`), and `/ai-log`. Each layout is wrapped in `ProtectedRoute` by role.
 
 Data fetching uses TanStack Query. `useUploadBatch` polls every 1.5s while `status=processing`. Mutations invalidate `uploads`, `loans`, `exceptions`, `audit`, `summary` keys. All fetchers use `axios` with `withCredentials`.
 

@@ -220,7 +220,8 @@ Luma/
 ├── turbo.json
 ├── biome.jsonc             # Ultracite (Biome)
 ├── lefthook.yml            # pre-commit: lint + typecheck + build
-└── .context/               # problem.md, api-contract.md, architecture-flow.md, ui-and-flow.md, AI_DEVELOPMENT_LOG.md
+├── docs/                   # architecture.md, AI_DEVELOPMENT_LOG.md
+└── .context/               # problem.md, api-contract.md, architecture-flow.md, ui-and-flow.md
 ```
 
 ## Scripts
@@ -249,7 +250,7 @@ System design, data model, API design, validation engine, AI feature, audit trai
 
 ## AI Development Log
 
-Required deliverable is tracked in `.context/AI_DEVELOPMENT_LOG.md` and rendered in-app at `/ai-log`. It lists tools, prompts (8 representative), human review process, estimated AI-generated code percentage, 5 rejected-output examples, and lessons learned. See also `AGENTS.md` for code standards.
+Required deliverable is tracked in `docs/AI_DEVELOPMENT_LOG.md` and rendered in-app at `/ai-log`. It lists tools, prompts (8 representative), human review process, estimated AI-generated code percentage, 5 rejected-output examples, and lessons learned. See also `AGENTS.md` for code standards.
 
 ## Sample Outputs
 

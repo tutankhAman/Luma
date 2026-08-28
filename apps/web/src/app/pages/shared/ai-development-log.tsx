@@ -17,7 +17,7 @@ import {
 
 /* Spec §7.1 — AI Development Log (in-app deliverable for the Agentic Coding
    Demonstration judging category). Content lives in content/ai-log.ts,
-   transcribed from .context/AI_DEVELOPMENT_LOG.md. */
+   transcribed from docs/AI_DEVELOPMENT_LOG.md. */
 
 function SectionHeading({ hint, title }: { hint?: string; title: string }) {
   return (
