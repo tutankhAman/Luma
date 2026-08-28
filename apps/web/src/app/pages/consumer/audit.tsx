@@ -186,10 +186,10 @@ function LoanPicker({
                 <button
                   className={cn(
                     "flex w-full items-center justify-between px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-accent",
-                    value === record.id && "bg-accent"
+                    value === record.loanId && "bg-accent"
                   )}
                   onClick={() => {
-                    onPick(record.id);
+                    onPick(record.loanId);
                     setQuery("");
                   }}
                   type="button"
@@ -210,76 +210,57 @@ function LoanPicker({
   );
 }
 
-export default function AuditTrailPage() {
-  const navigate = useNavigate();
-  const [loanId, setLoanId] = useState("");
-  const [eventFilter, setEventFilter] = useState<AuditEventType | "">("");
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useAuditTrail(loanId || "none", page);
-  const { data: verified } = useVerifiedLoans(1, "");
+function TimelineEmptyState({
+  icon,
+  subtitle,
+  title,
+}: {
+  icon: string;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-16">
+      <i
+        aria-hidden="true"
+        className={`${icon} text-3xl text-muted-foreground/40`}
+      />
+      <p className="font-medium text-[13.5px]">{title}</p>
+      <p className="max-w-xs text-center text-[12.5px] text-muted-foreground">
+        {subtitle}
+      </p>
+    </div>
+  );
+}
 
-  const entries = useMemo(() => {
-    const raw = data?.data ?? [];
-    const filtered =
-      eventFilter === ""
-        ? raw
-        : raw.filter((entry) => entry.eventType === eventFilter);
-    // API returns oldest-first; newest-first reads better in an audit viewer
-    return [...filtered].reverse();
-  }, [data, eventFilter]);
-
-  function renderTimelineBody() {
-    if (loanId === "") {
-      return (
-        <div className="flex flex-col items-center gap-2 py-16">
-          <i
-            aria-hidden="true"
-            className="ri-history-line text-3xl text-muted-foreground/40"
-          />
-          <p className="font-medium text-[13.5px]">No loan selected</p>
-          <p className="max-w-xs text-center text-[12.5px] text-muted-foreground">
-            Pick a verified loan to inspect its complete, append-only event
-            history.
-          </p>
-        </div>
-      );
-    }
-    if (isLoading) {
-      return (
-        <div className="space-y-3">
-          {[0, 1, 2, 3].map((row) => (
-            <Skeleton className="h-12 w-full" key={row} />
-          ))}
-        </div>
-      );
-    }
-    if (entries.length === 0) {
-      return (
-        <div className="flex flex-col items-center gap-2 py-16">
-          <i
-            aria-hidden="true"
-            className="ri-inbox-line text-3xl text-muted-foreground/40"
-          />
-          <p className="text-[13px] text-muted-foreground">
-            {eventFilter
-              ? "No events of this type for the selected loan."
-              : "No audit events for this loan."}
-          </p>
-        </div>
-      );
-    }
-    return (
-      <>
-        <header className="mb-4 flex items-center justify-between">
-          <p className="font-medium text-[12px] text-muted-foreground">
-            {entries.length} of {data?.pagination.total ?? 0} events
-            {eventFilter ? " · filtered" : ""}
-          </p>
-          <Button
-            onClick={() => navigate(`/consumer/loans/${loanId}`)}
-            size="sm"
-            variant="ghost"
-          >
+function TimelineList({
+  entries,
+  eventFilter,
+  loanId,
+  onLoadMore,
+  onOpenRecord,
+  page,
+  total,
+  totalPages,
+}: {
+  entries: AuditLogEntry[];
+  eventFilter: string;
+  loanId: string;
+  onLoadMore: () => void;
+  onOpenRecord: () => void;
+  page: number;
+  total: number;
+  totalPages: number;
+}) {
+  return (
+    <>
+      <header className="mb-4 flex items-center justify-between">
+        <p className="font-medium text-[12px] text-muted-foreground">
+          {entries.length} of {total} events
+          {eventFilter ? " · filtered" : ""}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button onClick={onOpenRecord} size="sm" variant="ghost">
             Open record
             <i aria-hidden="true" className="ri-arrow-right-s-line" />
           </Button>
@@ -303,33 +284,102 @@ export default function AuditTrailPage() {
             <i aria-hidden="true" className="ri-download-2-line" />
             Export trail
           </Button>
-        </header>
-        <ol className="relative space-y-0">
-          {entries.map((entry, index) => (
-            <div key={entry.id}>
-              {index < entries.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-8 bottom-0 left-[13px] w-px bg-border"
-                />
-              ) : null}
-              <TimelineEntry entry={entry} />
-            </div>
+        </div>
+      </header>
+      <ol className="relative space-y-0">
+        {entries.map((entry, index) => (
+          <div key={entry.id}>
+            {index < entries.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className="absolute top-8 bottom-0 left-[13px] w-px bg-border"
+              />
+            ) : null}
+            <TimelineEntry entry={entry} />
+          </div>
+        ))}
+      </ol>
+      {totalPages > page ? (
+        <Button
+          className="mt-2"
+          onClick={onLoadMore}
+          size="sm"
+          variant="outline"
+        >
+          Load older events
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
+export default function AuditTrailPage() {
+  const navigate = useNavigate();
+  const [loanId, setLoanId] = useState("");
+  const [eventFilter, setEventFilter] = useState<AuditEventType | "">("");
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useAuditTrail(loanId || "none", page);
+  const { data: verified } = useVerifiedLoans(1, "");
+
+  const entries = useMemo(() => {
+    const raw = data?.data ?? [];
+    const filtered =
+      eventFilter === ""
+        ? raw
+        : raw.filter((entry) => entry.eventType === eventFilter);
+    return [...filtered].reverse();
+  }, [data, eventFilter]);
+
+  const currentVerifiedRecord = verified?.data.find(
+    (v) => v.loanId === loanId || v.id === loanId
+  );
+  const targetVerifiedId = currentVerifiedRecord?.id ?? loanId;
+
+  const renderTimelineBody = () => {
+    if (loanId === "") {
+      return (
+        <TimelineEmptyState
+          icon="ri-history-line"
+          subtitle="Pick a verified loan to inspect its complete, append-only event history."
+          title="No loan selected"
+        />
+      );
+    }
+    if (isLoading) {
+      return (
+        <div className="space-y-3">
+          {[0, 1, 2, 3].map((row) => (
+            <Skeleton className="h-12 w-full" key={row} />
           ))}
-        </ol>
-        {(data?.pagination.totalPages ?? 1) > page ? (
-          <Button
-            className="mt-2"
-            onClick={() => setPage(page + 1)}
-            size="sm"
-            variant="outline"
-          >
-            Load older events
-          </Button>
-        ) : null}
-      </>
+        </div>
+      );
+    }
+    if (entries.length === 0) {
+      return (
+        <TimelineEmptyState
+          icon="ri-inbox-line"
+          subtitle={
+            eventFilter
+              ? "No events of this type for the selected loan."
+              : "No audit events for this loan."
+          }
+          title="No audit events"
+        />
+      );
+    }
+    return (
+      <TimelineList
+        entries={entries}
+        eventFilter={eventFilter}
+        loanId={loanId}
+        onLoadMore={() => setPage(page + 1)}
+        onOpenRecord={() => navigate(`/consumer/loans/${targetVerifiedId}`)}
+        page={page}
+        total={data?.pagination.total ?? 0}
+        totalPages={data?.pagination.totalPages ?? 1}
+      />
     );
-  }
+  };
 
   return (
     <div className="mx-auto max-w-[1100px] space-y-6 p-8">
@@ -403,9 +453,10 @@ export default function AuditTrailPage() {
                     <button
                       className={cn(
                         "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/50",
-                        loanId === record.id && "bg-accent"
+                        (loanId === record.loanId || loanId === record.id) &&
+                          "bg-accent"
                       )}
-                      onClick={() => setLoanId(record.id)}
+                      onClick={() => setLoanId(record.loanId)}
                       type="button"
                     >
                       <span className="font-mono text-[12px]">
