@@ -51,7 +51,7 @@ export default function VerifiedRecordsPage() {
         action={
           <div className="flex items-center gap-2">
             <Button
-              className="h-8.5 rounded-lg text-xs"
+              className="h-8.5 text-xs"
               onClick={() => navigate("/consumer/export")}
               variant="outline"
             >
@@ -59,7 +59,7 @@ export default function VerifiedRecordsPage() {
               Export Records
             </Button>
             <Button
-              className="h-8.5 rounded-lg text-xs"
+              className="h-8.5 text-xs"
               onClick={() => navigate("/consumer/audit")}
               variant="ghost"
             >

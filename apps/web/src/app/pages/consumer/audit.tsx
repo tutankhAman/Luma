@@ -428,7 +428,7 @@ export default function AuditTrailPage() {
       <PageHeader
         action={
           <Button
-            className="h-8.5 rounded-lg text-xs"
+            className="h-8.5 text-xs"
             onClick={() => navigate("/consumer/verified")}
             variant="outline"
           >
