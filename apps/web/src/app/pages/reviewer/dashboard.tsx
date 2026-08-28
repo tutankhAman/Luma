@@ -301,7 +301,12 @@ export default function ReviewerDashboard() {
         />
       </KpiStrip>
 
-      {latestBatch ? <AiBatchSummary batchId={latestBatch.id} /> : null}
+      {latestBatch ? (
+        <AiBatchSummary
+          batchId={latestBatch.id}
+          fileName={latestBatch.fileName}
+        />
+      ) : null}
 
       <div className="grid items-stretch gap-4 lg:grid-cols-5">
         <div className="flex flex-col lg:col-span-3">

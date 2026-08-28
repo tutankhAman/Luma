@@ -130,16 +130,19 @@ const buildSummarizePrompt = (params: {
   bySeverity: Record<string, number>;
   byType: Record<string, number>;
   failedValidation: number;
+  fileName?: string;
   passedValidation: number;
   totalImported: number;
-}): string =>
-  [
+}): string => {
+  const fileDisplayName = params.fileName ?? params.batchId;
+  return [
     "You are a loan data quality analyst summarizing a batch of validated loans for a Data Operator.",
-    `Batch ${params.batchId}: ${params.totalImported} loans imported (${params.passedValidation} passed, ${params.failedValidation} failed validation).`,
+    `File "${fileDisplayName}": ${params.totalImported} loans imported (${params.passedValidation} passed, ${params.failedValidation} failed validation).`,
     `Exceptions by type: ${JSON.stringify(params.byType)}.`,
     `Exceptions by severity: ${JSON.stringify(params.bySeverity)}.`,
-    "Write a concise 3-5 sentence summary highlighting the most common issues, severity distribution, and what needs reviewer attention. No markdown, plain prose.",
+    `Write a concise 3-5 sentence summary highlighting the most common issues, severity distribution, and what needs reviewer attention. Refer to the file by its name "${fileDisplayName}", never by its internal ID. No markdown, plain prose.`,
   ].join("\n");
+};
 
 const buildClassifyPrompt = (params: {
   currentSeverity: string;
@@ -428,6 +431,7 @@ export const summarizeBatch = async (
     bySeverity: bySeverityMap,
     byType: byTypeMap,
     failedValidation,
+    fileName: batch.fileName,
     passedValidation,
     totalImported,
   });
@@ -440,7 +444,7 @@ export const summarizeBatch = async (
     const topType =
       Object.entries(byTypeMap).sort((a, b) => b[1] - a[1])[0]?.[0] ??
       "no issues";
-    summaryText = `Mock summary: batch ${batchId} — ${totalImported} loans (${passedValidation} passed, ${failedValidation} failed). Top exception type: ${topType}. Severity spread: ${JSON.stringify(bySeverityMap)}.`;
+    summaryText = `Mock summary for ${batch.fileName}: ${totalImported} loans imported (${passedValidation} passed, ${failedValidation} failed). Top exception type: ${topType}. Severity spread: ${JSON.stringify(bySeverityMap)}.`;
   } else {
     if (!isAiConfigured()) {
       throw new AiUnavailableError(AI_UNAVAILABLE_MSG);

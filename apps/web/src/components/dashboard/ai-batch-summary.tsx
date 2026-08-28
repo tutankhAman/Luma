@@ -13,13 +13,31 @@ interface SummaryData {
   timestamp: string;
 }
 
-function SummaryBody({ data }: { data: SummaryData }) {
+function SummaryBody({
+  data,
+  fileName,
+}: {
+  data: SummaryData;
+  fileName?: string;
+}) {
   return (
     <>
       <p className="text-[13.5px] text-foreground/90 leading-relaxed">
         {data.summary ?? "No summary generated for this batch yet."}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-primary/15 border-t pt-2.5 text-[11px] text-muted-foreground">
+        {fileName ? (
+          <>
+            <span className="font-medium text-foreground/80">
+              <i
+                aria-hidden="true"
+                className="ri-file-3-line mr-1 text-[12px]"
+              />
+              {fileName}
+            </span>
+            <span aria-hidden="true">·</span>
+          </>
+        ) : null}
         <span className="font-mono">{data.model}</span>
         <span aria-hidden="true">·</span>
         <span>
@@ -33,7 +51,13 @@ function SummaryBody({ data }: { data: SummaryData }) {
   );
 }
 
-export function AiBatchSummary({ batchId }: { batchId: string }) {
+export function AiBatchSummary({
+  batchId,
+  fileName,
+}: {
+  batchId: string;
+  fileName?: string;
+}) {
   const [nonce, setNonce] = useState(0);
   const { data, error, isFetching, refetch } = useQuery({
     queryFn: () => aiApi.summarizeBatch(batchId),
@@ -50,7 +74,7 @@ export function AiBatchSummary({ batchId }: { batchId: string }) {
       );
     }
     if (data) {
-      return <SummaryBody data={data} />;
+      return <SummaryBody data={data} fileName={fileName} />;
     }
     return (
       <div className="space-y-2">
@@ -73,11 +97,20 @@ export function AiBatchSummary({ batchId }: { batchId: string }) {
             <i aria-hidden="true" className="ri-sparkling-2-line text-[14px]" />
           </span>
           <div>
-            <h3 className="font-semibold text-[14px] tracking-tight">
-              AI batch summary
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-[14px] tracking-tight">
+                AI batch summary
+              </h3>
+              {fileName ? (
+                <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 font-medium text-[11.5px] text-foreground">
+                  {fileName}
+                </span>
+              ) : null}
+            </div>
             <p className="text-[11.5px] text-muted-foreground">
-              Automated anomaly & validation insight
+              {fileName
+                ? `Automated anomaly & validation insight for ${fileName}`
+                : "Automated anomaly & validation insight"}
             </p>
           </div>
         </div>
