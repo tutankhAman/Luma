@@ -59,6 +59,9 @@ export function useExceptionReview() {
     void queryClient.invalidateQueries({
       queryKey: ["exception", exceptionId],
     });
+    void queryClient.invalidateQueries({ queryKey: ["loan"] });
+    void queryClient.invalidateQueries({ queryKey: ["loans"] });
+    void queryClient.invalidateQueries({ queryKey: ["audit"] });
     void queryClient.invalidateQueries({ queryKey: ["summary"] });
   };
 
@@ -74,7 +77,10 @@ export function useExceptionReview() {
       }),
     onError: (error: Error) =>
       toast.error("Approve failed", { description: error.message }),
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (_data, variables) => {
+      toast.success("Exception approved and resolved");
+      invalidate(variables.id);
+    },
   });
 
   const reject = useMutation({
@@ -82,7 +88,10 @@ export function useExceptionReview() {
       exceptionsApi.reject(input.id, input.note),
     onError: (error: Error) =>
       toast.error("Reject failed", { description: error.message }),
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (_data, variables) => {
+      toast.success("Exception rejected");
+      invalidate(variables.id);
+    },
   });
 
   return { approve, reject };

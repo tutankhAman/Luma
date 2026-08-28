@@ -44,6 +44,7 @@ export type LoanListItem = z.infer<typeof loanListItemSchema>;
 
 export const loanExceptionItemSchema = z.object({
   aiRecommendation: z.unknown().nullable(),
+  correctedValue: z.string().nullable().optional(),
   createdAt: z.string(),
   exceptionType: exceptionTypeSchema,
   field: z.string().nullable(),

@@ -222,6 +222,7 @@ router.get(
       employmentLength: loan.employmentLength,
       exceptions: loan.exceptions.map((exc) => ({
         aiRecommendation: (exc.aiRecommendation as unknown) ?? null,
+        correctedValue: exc.correctedValue ?? null,
         createdAt: exc.createdAt.toISOString(),
         exceptionType: exc.exceptionType,
         field: exc.field,

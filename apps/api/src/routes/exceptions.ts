@@ -221,6 +221,73 @@ router.post(
   }
 );
 
+const VALID_LOAN_FIELDS = new Set([
+  "borrowerId",
+  "loanId",
+  "loanType",
+  "borrowerState",
+  "creditGrade",
+  "currentBalance",
+  "interestRate",
+  "originalPrincipal",
+  "termMonths",
+  "paymentStatus",
+  "daysPastDue",
+  "servicerName",
+  "documentStatus",
+  "sourceSystem",
+]);
+
+function coerceLoanFieldValue(fieldName: string, value: string): unknown {
+  if (
+    fieldName === "currentBalance" ||
+    fieldName === "interestRate" ||
+    fieldName === "originalPrincipal"
+  ) {
+    return Number(value) || value;
+  }
+  if (fieldName === "termMonths" || fieldName === "daysPastDue") {
+    return Number.parseInt(value, 10) || 0;
+  }
+  return value;
+}
+
+async function syncApprovedCorrectionToLoan(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  loanId: string,
+  field: string | null,
+  correctedValue: string | null
+): Promise<void> {
+  if (!(field && correctedValue && VALID_LOAN_FIELDS.has(field))) {
+    return;
+  }
+  const coerced = coerceLoanFieldValue(field, correctedValue);
+  await tx.loan.update({
+    data: { [field]: coerced as never },
+    where: { id: loanId },
+  });
+}
+
+async function syncLoanValidationStatus(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  loanId: string,
+  exceptionId: string
+): Promise<void> {
+  const remainingOpen = await tx.exception.count({
+    where: {
+      id: { not: exceptionId },
+      loanId,
+      status: "open",
+    },
+  });
+  if (remainingOpen === 0) {
+    await tx.loan.update({
+      data: { validationStatus: "passed" },
+      where: { id: loanId },
+    });
+  }
+}
+
 router.post(
   "/:id/approve",
   async (req: Request, res: Response): Promise<void> => {
@@ -272,6 +339,16 @@ router.post(
         },
         where: { id: exceptionId },
       });
+
+      const finalCorrected =
+        parsedBody.data.correctedValue ?? existing.correctedValue;
+      await syncApprovedCorrectionToLoan(
+        tx,
+        existing.loanId,
+        existing.field,
+        finalCorrected
+      );
+      await syncLoanValidationStatus(tx, existing.loanId, exceptionId);
 
       await tx.auditLog.create({
         data: {

@@ -55,17 +55,35 @@ function VerifyLoanSection({
 }) {
   const verifyLoan = useVerifyLoan(loanId);
   return (
-    <div className="rounded-lg border border-border bg-muted/50 p-3">
-      <div className="flex items-center justify-between gap-2">
+    <div
+      className={cn(
+        "rounded-xl border p-4 transition-colors",
+        allResolved
+          ? "border-primary/40 bg-primary/[0.04]"
+          : "border-border bg-muted/40"
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-medium text-[13px]">Verify loan</p>
-          <p className="text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-[13.5px]">Verify loan</p>
+            {allResolved ? (
+              <span className="rounded-full bg-success/15 px-2 py-0.5 font-semibold text-[10px] text-success uppercase tracking-wider">
+                Ready to seal
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
             {allResolved
-              ? "All exceptions closed — create the verified record."
-              : "Resolve every exception first."}
+              ? "All exceptions resolved — create immutable verified record."
+              : "Resolve all exceptions above before verifying."}
           </p>
         </div>
         <Button
+          className={cn(
+            allResolved &&
+              "bg-primary font-medium text-primary-foreground hover:bg-primary/90"
+          )}
           disabled={!allResolved || verifyLoan.isPending}
           onClick={() => verifyLoan.mutate()}
           size="sm"
@@ -76,7 +94,7 @@ function VerifyLoanSection({
                 aria-hidden="true"
                 className="ri-loader-4-line animate-spin text-base"
               />
-              Verifying...
+              Sealing...
             </>
           ) : (
             <>
@@ -84,7 +102,7 @@ function VerifyLoanSection({
                 aria-hidden="true"
                 className="ri-shield-check-line text-base"
               />
-              Verify
+              {allResolved ? "Seal & Verify" : "Verify"}
             </>
           )}
         </Button>
@@ -204,29 +222,64 @@ export function ReviewerActions({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-border border-t pt-3">
-        <Button
+      {resolved ? (
+        <div
           className={cn(
-            isAiAccepted &&
-              "bg-primary font-medium text-primary-foreground ring-2 ring-success/40 ring-offset-2 ring-offset-background hover:bg-primary/90"
+            "rounded-xl border p-3.5",
+            exceptionStatus === "approved"
+              ? "border-success/30 bg-success/8 text-success"
+              : "border-destructive/30 bg-destructive/8 text-destructive"
           )}
-          disabled={resolved || !exceptionId}
-          onClick={() => setConfirmAction("approve")}
-          size="sm"
         >
-          <i aria-hidden="true" className="ri-checkbox-circle-line text-base" />
-          {isAiAccepted ? "Approve with AI Fix" : "Approve exception"}
-        </Button>
-        <Button
-          disabled={resolved || !exceptionId}
-          onClick={() => setConfirmAction("reject")}
-          size="sm"
-          variant="destructive"
-        >
-          <i aria-hidden="true" className="ri-close-circle-line text-base" />
-          Reject exception
-        </Button>
-      </div>
+          <div className="flex items-center gap-2 font-semibold text-[13px]">
+            <i
+              aria-hidden="true"
+              className={
+                exceptionStatus === "approved"
+                  ? "ri-checkbox-circle-fill text-base"
+                  : "ri-close-circle-fill text-base"
+              }
+            />
+            <span>
+              {exceptionStatus === "approved"
+                ? "Exception approved & resolved"
+                : "Exception rejected"}
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] text-foreground/80 leading-relaxed">
+            {exceptionStatus === "approved"
+              ? "This exception has been approved and its values applied to the loan record."
+              : "This exception has been rejected by reviewer."}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 border-border border-t pt-3">
+          <Button
+            className={cn(
+              isAiAccepted &&
+                "bg-primary font-medium text-primary-foreground ring-2 ring-success/40 ring-offset-2 ring-offset-background hover:bg-primary/90"
+            )}
+            disabled={!exceptionId}
+            onClick={() => setConfirmAction("approve")}
+            size="sm"
+          >
+            <i
+              aria-hidden="true"
+              className="ri-checkbox-circle-line text-base"
+            />
+            {isAiAccepted ? "Approve with AI Fix" : "Approve exception"}
+          </Button>
+          <Button
+            disabled={!exceptionId}
+            onClick={() => setConfirmAction("reject")}
+            size="sm"
+            variant="destructive"
+          >
+            <i aria-hidden="true" className="ri-close-circle-line text-base" />
+            Reject exception
+          </Button>
+        </div>
+      )}
 
       <VerifyLoanSection allResolved={allResolved} loanId={loanId} />
 
