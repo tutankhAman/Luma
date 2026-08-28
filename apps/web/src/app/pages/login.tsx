@@ -181,12 +181,13 @@ export default function LoginPage() {
           {/* Centrally Aligned Glassmorphic Brand Panel */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-black/40 px-6 py-3.5 shadow-2xl backdrop-blur-md">
-              <span
-                aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-xl bg-white font-bold text-black text-sm shadow-md"
-              >
-                L
-              </span>
+              <img
+                alt="Luma Logo"
+                className="size-8 shrink-0 drop-shadow-md"
+                height={32}
+                src="/luma.svg"
+                width={32}
+              />
               <span className="font-bold text-[22px] text-white tracking-tight">
                 Luma
               </span>
@@ -211,12 +212,13 @@ export default function LoginPage() {
       <section className="flex h-full w-full flex-col justify-between overflow-y-auto p-6 sm:p-8 lg:w-1/2">
         {/* Header Branding */}
         <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-xs shadow-xs"
-          >
-            L
-          </span>
+          <img
+            alt="Luma Logo"
+            className="size-7 shrink-0"
+            height={28}
+            src="/luma.svg"
+            width={28}
+          />
           <span className="font-semibold text-base tracking-tight">Luma</span>
         </div>
 
