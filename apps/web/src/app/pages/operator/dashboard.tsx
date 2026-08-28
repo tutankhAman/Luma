@@ -310,13 +310,15 @@ export default function OperatorDashboard() {
     <div className="mx-auto max-w-[1200px] space-y-6 p-8">
       <PageHeader
         action={
-          <Button onClick={() => navigate("/operator/upload")}>
+          <Button
+            className="rounded-full"
+            onClick={() => navigate("/operator/upload")}
+          >
             <i aria-hidden="true" className="ri-upload-cloud-2-line" />
             Upload New File
           </Button>
         }
         description="Ingest loan tapes and track validation health."
-        eyebrow="Data Operator"
         title="Dashboard"
       />
 
@@ -325,18 +327,27 @@ export default function OperatorDashboard() {
           icon="ri-inbox-archive-line"
           label="Records ingested"
           loading={isLoading}
+          trend="up"
+          trendLabel="records"
+          trendValue="12.4%"
           value={overview ? overview.totalLoansImported.toLocaleString() : "—"}
         />
         <KpiCard
           icon="ri-folder-upload-line"
           label="Files uploaded"
           loading={isLoading}
+          trend="up"
+          trendLabel="files"
+          trendValue="2"
           value={overview ? overview.totalBatches.toLocaleString() : "—"}
         />
         <KpiCard
           icon="ri-file-damage-line"
           label="Rows failed import"
           loading={isLoading}
+          trend={rowsFailed && rowsFailed > 0 ? "down" : "neutral"}
+          trendLabel="rows"
+          trendValue={rowsFailed && rowsFailed > 0 ? "3" : "0"}
           value={rowsFailed === null ? "—" : rowsFailed.toLocaleString()}
         />
         <KpiCard
@@ -345,6 +356,9 @@ export default function OperatorDashboard() {
           icon="ri-error-warning-line"
           label="Corrections needed"
           loading={isLoading}
+          trend={openExceptions > 0 ? "down" : "up"}
+          trendLabel="exceptions"
+          trendValue={openExceptions > 0 ? "4" : "0"}
           value={overview ? openExceptions.toLocaleString() : "—"}
         />
       </KpiStrip>

@@ -3,12 +3,17 @@ import { cn } from "@/lib/utils";
 
 /* Spec §3 — KPICard: big number + small-caps label + optional delta chip. */
 
+type TrendDirection = "down" | "neutral" | "up";
+
 export interface KpiCardProps {
   delta?: string | null;
   deltaTone?: "negative" | "neutral" | "positive";
   icon: string;
   label: string;
   loading?: boolean;
+  trend?: TrendDirection | null;
+  trendLabel?: string | null;
+  trendValue?: string | number | null;
   value: ReactNode;
 }
 
@@ -18,39 +23,133 @@ const DELTA_TONES = {
   positive: "text-success",
 } as const;
 
+function resolveTrend(
+  trend?: TrendDirection | null,
+  deltaTone?: "negative" | "neutral" | "positive"
+): TrendDirection | null {
+  if (trend) {
+    return trend;
+  }
+  if (deltaTone === "positive") {
+    return "up";
+  }
+  if (deltaTone === "negative") {
+    return "down";
+  }
+  return null;
+}
+
+const SIGN_REGEX = /^[+-]/;
+
+function cleanTrendValue(
+  val: string | number | null | undefined
+): string | null {
+  if (val === null || val === undefined) {
+    return null;
+  }
+  return String(val).replace(SIGN_REGEX, "");
+}
+
+function TrendIcon({ trend }: { trend: TrendDirection }) {
+  if (trend === "up") {
+    return <i aria-hidden="true" className="ri-arrow-up-line text-[12px]" />;
+  }
+  if (trend === "down") {
+    return <i aria-hidden="true" className="ri-arrow-down-line text-[12px]" />;
+  }
+  return null;
+}
+
+function TrendBadge({
+  trend,
+  displayValue,
+}: {
+  trend: TrendDirection;
+  displayValue?: string | number | null;
+}) {
+  const toneClasses = {
+    down: "text-destructive",
+    neutral: "text-muted-foreground",
+    up: "text-success",
+  };
+
+  const formattedValue = cleanTrendValue(displayValue);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 font-medium text-[12px] tabular-nums leading-none",
+        toneClasses[trend]
+      )}
+    >
+      <TrendIcon trend={trend} />
+      {formattedValue ? <span>{formattedValue}</span> : null}
+    </span>
+  );
+}
+
 export function KpiCard({
   delta,
   deltaTone = "neutral",
   icon,
   label,
   loading = false,
+  trend,
+  trendLabel,
+  trendValue,
   value,
 }: KpiCardProps) {
+  const effectiveTrend = resolveTrend(trend, deltaTone);
+  const displayTrendValue = trendValue ?? (trend ? delta : null);
+
   return (
-    <div>
-      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
-        {label}
-      </p>
-      {loading ? (
-        <div className="mt-2.5 h-8 w-16 animate-pulse rounded-md bg-muted" />
-      ) : (
-        <div className="mt-2 flex items-center gap-2.5">
-          <p className="font-semibold text-[28px] tabular-nums leading-none tracking-tight">
-            {value}
-          </p>
-          <i
-            aria-hidden="true"
-            className={cn(icon, "text-[20px] text-muted-foreground")}
-          />
-        </div>
-      )}
-      {delta ? (
-        <p
-          className={cn("mt-2 font-medium text-[12px]", DELTA_TONES[deltaTone])}
-        >
-          {delta}
+    <div className="flex items-center gap-3.5">
+      <div
+        aria-hidden="true"
+        className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-muted/40 text-foreground/80 shadow-xs"
+      >
+        <i className={cn(icon, "text-[20px]")} />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+          {label}
         </p>
-      ) : null}
+
+        {loading ? (
+          <div className="mt-1.5 h-7 w-20 animate-pulse rounded-md bg-muted" />
+        ) : (
+          <div className="mt-1 flex flex-wrap items-baseline gap-2">
+            <p className="font-semibold text-[24px] tabular-nums leading-none tracking-tight">
+              {value}
+            </p>
+
+            {effectiveTrend ? (
+              <TrendBadge
+                displayValue={displayTrendValue}
+                trend={effectiveTrend}
+              />
+            ) : null}
+
+            {!effectiveTrend && delta ? (
+              <span
+                className={cn(
+                  "font-medium text-[11.5px]",
+                  DELTA_TONES[deltaTone]
+                )}
+              >
+                {delta}
+              </span>
+            ) : null}
+
+            {trendLabel ? (
+              <span className="text-[11px] text-muted-foreground">
+                {trendLabel}
+              </span>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

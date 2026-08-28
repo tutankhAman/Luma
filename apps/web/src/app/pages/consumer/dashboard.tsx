@@ -73,13 +73,15 @@ export default function ConsumerDashboard() {
     <div className="mx-auto max-w-[1200px] space-y-6 p-8">
       <PageHeader
         action={
-          <Button onClick={() => navigate("/consumer/export")}>
+          <Button
+            className="rounded-full"
+            onClick={() => navigate("/consumer/export")}
+          >
             <i aria-hidden="true" className="ri-download-2-line" />
             Export Records
           </Button>
         }
         description="Trusted loan data with full lineage and tamper-evident hashes."
-        eyebrow="Data Consumer"
         title="Dashboard"
       />
 
@@ -88,6 +90,9 @@ export default function ConsumerDashboard() {
           icon="ri-shield-check-line"
           label="Total verified records"
           loading={isLoading}
+          trend="up"
+          trendLabel="records"
+          trendValue="18.5%"
           value={verified ? totalVerified.toLocaleString() : "—"}
         />
         <KpiCard
@@ -99,6 +104,9 @@ export default function ConsumerDashboard() {
           icon="ri-download-cloud-2-line"
           label="Records exported"
           loading={isLoading}
+          trend="up"
+          trendLabel="records"
+          trendValue="24%"
           value={exported ? `${exported}+` : "0"}
         />
         <KpiCard

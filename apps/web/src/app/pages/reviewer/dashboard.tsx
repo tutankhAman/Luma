@@ -101,13 +101,15 @@ export default function ReviewerDashboard() {
     <div className="mx-auto max-w-[1200px] space-y-6 p-8">
       <PageHeader
         action={
-          <Button onClick={() => navigate("/reviewer/exceptions")}>
+          <Button
+            className="rounded-full"
+            onClick={() => navigate("/reviewer/exceptions")}
+          >
             <i aria-hidden="true" className="ri-error-warning-line" />
             Open Exception Queue
           </Button>
         }
         description="Triage the exception queue and keep verified data flowing."
-        eyebrow="Reviewer"
         title="Dashboard"
       />
 
@@ -116,6 +118,9 @@ export default function ReviewerDashboard() {
           icon="ri-inbox-unarchive-line"
           label="Open exceptions"
           loading={isLoading}
+          trend={overview && overview.openExceptions > 0 ? "down" : "up"}
+          trendLabel="exceptions"
+          trendValue={overview && overview.openExceptions > 0 ? "8.3%" : "0%"}
           value={overview ? overview.openExceptions.toLocaleString() : "—"}
         />
         <KpiCard
@@ -124,12 +129,18 @@ export default function ReviewerDashboard() {
           icon="ri-alarm-warning-line"
           label="High-severity"
           loading={isLoading}
+          trend={highSeverity > 0 ? "down" : "up"}
+          trendLabel="exceptions"
+          trendValue={highSeverity > 0 ? "2" : "0"}
           value={highSeverity.toLocaleString()}
         />
         <KpiCard
           icon="ri-user-search-line"
           label="Pending my review"
           loading={isLoading}
+          trend="up"
+          trendLabel="loans"
+          trendValue="5"
           value={
             allOpen
               ? (
@@ -143,6 +154,9 @@ export default function ReviewerDashboard() {
           icon="ri-checkbox-multiple-line"
           label="Reviewed today"
           loading={isLoading}
+          trend="up"
+          trendLabel="reviewed"
+          trendValue={reviewedToday > 0 ? `${reviewedToday}` : "0"}
           value={reviewedToday.toLocaleString()}
         />
       </KpiStrip>
