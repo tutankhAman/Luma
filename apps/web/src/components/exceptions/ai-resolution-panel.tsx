@@ -1,18 +1,21 @@
 import type { ExceptionDetail, ExceptionListItem } from "@repo/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExceptionStatusBadge, SeverityBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiDecision, useExplainException } from "@/hooks/use-ai";
 import { useExceptionReview } from "@/hooks/use-exceptions";
+import { cn } from "@/lib/utils";
 
 function AiAnalysisBox({
   analysis,
   loading,
+  isAccepted,
 }: {
   analysis: ExceptionDetail["aiRecommendation"];
   loading: boolean;
+  isAccepted?: boolean;
 }) {
   if (loading) {
     return (
@@ -25,9 +28,23 @@ function AiAnalysisBox({
   }
 
   return (
-    <div className="relative rounded-xl border border-primary/25 bg-primary/[0.05] p-4">
-      <span className="absolute top-[-10px] left-4 rounded-full bg-primary px-2 py-0.5 font-bold text-[10px] text-primary-foreground uppercase tracking-wide">
-        AI Analysis
+    <div
+      className={cn(
+        "relative rounded-xl border p-4 transition-colors",
+        isAccepted
+          ? "border-success/40 bg-success/[0.04]"
+          : "border-primary/25 bg-primary/[0.05]"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-[-10px] left-4 rounded-full px-2 py-0.5 font-bold text-[10px] uppercase tracking-wide",
+          isAccepted
+            ? "bg-success text-success-foreground"
+            : "bg-primary text-primary-foreground"
+        )}
+      >
+        {isAccepted ? "AI Suggestion Accepted" : "AI Analysis"}
       </span>
       {analysis ? (
         <div className="space-y-3 pt-1">
@@ -36,14 +53,22 @@ function AiAnalysisBox({
           </p>
           {analysis.fieldsToChange.map((change) => (
             <p
-              className="rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 font-mono text-[12px]"
+              className={cn(
+                "rounded-lg border px-2.5 py-1.5 font-mono text-[12px]",
+                isAccepted
+                  ? "border-success/30 bg-success/10 text-success"
+                  : "border-border bg-muted/60"
+              )}
               key={`${change.field}-${change.suggestedValue}`}
             >
               {change.field}:{" "}
               <span className="text-destructive line-through">
                 {change.currentValue ?? "?"}
               </span>{" "}
-              → <span className="text-success">{change.suggestedValue}</span>
+              →{" "}
+              <span className="font-semibold text-success">
+                {change.suggestedValue}
+              </span>
             </p>
           ))}
           <p className="flex flex-wrap gap-x-3 text-[11px] text-muted-foreground/60">
@@ -62,6 +87,19 @@ function AiAnalysisBox({
   );
 }
 
+function getDecisionPrompt(
+  resolved: boolean,
+  decisionState: "accepted" | "rejected" | null
+): string {
+  if (resolved) {
+    return "This exception is resolved. Your decision is recorded in the audit trail.";
+  }
+  if (decisionState === "accepted") {
+    return "Click Approve to finalize with the staged AI correction.";
+  }
+  return "Approve to resolve as-is (or after correction), or reject to block verification.";
+}
+
 export function AiResolutionPanel({
   exception,
 }: {
@@ -69,9 +107,26 @@ export function AiResolutionPanel({
 }) {
   const [analysis, setAnalysis] =
     useState<ExceptionDetail["aiRecommendation"]>(null);
+  const [decisionState, setDecisionState] = useState<
+    "accepted" | "rejected" | null
+  >(null);
+
   const explain = useExplainException();
   const aiDecision = useAiDecision();
   const { approve, reject } = useExceptionReview();
+
+  useEffect(() => {
+    if (exception) {
+      setAnalysis(
+        (exception.aiRecommendation as ExceptionDetail["aiRecommendation"]) ??
+          null
+      );
+      setDecisionState(null);
+    } else {
+      setAnalysis(null);
+      setDecisionState(null);
+    }
+  }, [exception]);
 
   const runAnalysis = async () => {
     if (!exception) {
@@ -79,9 +134,13 @@ export function AiResolutionPanel({
     }
     const result = await explain.mutateAsync(exception.id);
     setAnalysis(result.recommendation);
+    setDecisionState(null);
   };
 
-  const reset = () => setAnalysis(null);
+  const handleReset = () => {
+    setAnalysis(null);
+    setDecisionState(null);
+  };
 
   if (!exception) {
     return (
@@ -140,7 +199,11 @@ export function AiResolutionPanel({
           </p>
         </div>
 
-        <AiAnalysisBox analysis={analysis} loading={explain.isPending} />
+        <AiAnalysisBox
+          analysis={analysis}
+          isAccepted={decisionState === "accepted"}
+          loading={explain.isPending}
+        />
 
         {analysis || explain.isPending ? null : (
           <Button
@@ -153,7 +216,7 @@ export function AiResolutionPanel({
           </Button>
         )}
 
-        {analysis ? (
+        {analysis && decisionState === null ? (
           <div className="grid grid-cols-2 gap-3">
             <Button
               className="border border-border bg-card hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
@@ -161,7 +224,9 @@ export function AiResolutionPanel({
               onClick={() => {
                 aiDecision.mutate(
                   { decision: "rejected", exceptionId: exception.id },
-                  { onSettled: reset }
+                  {
+                    onSuccess: () => setDecisionState("rejected"),
+                  }
                 );
               }}
               variant="outline"
@@ -174,7 +239,9 @@ export function AiResolutionPanel({
               onClick={() => {
                 aiDecision.mutate(
                   { decision: "accepted", exceptionId: exception.id },
-                  { onSettled: reset }
+                  {
+                    onSuccess: () => setDecisionState("accepted"),
+                  }
                 );
               }}
             >
@@ -183,14 +250,44 @@ export function AiResolutionPanel({
           </div>
         ) : null}
 
+        {decisionState === "accepted" ? (
+          <div className="rounded-xl border border-success/30 bg-success/8 p-3.5 text-success">
+            <div className="flex items-center gap-2 font-semibold text-[13px]">
+              <i
+                aria-hidden="true"
+                className="ri-checkbox-circle-fill text-base"
+              />
+              <span>AI suggestion accepted</span>
+            </div>
+            <p className="mt-1 text-[12px] text-foreground/80 leading-relaxed">
+              Correction is staged. Please click <strong>Approve</strong> below
+              to submit your final reviewer decision and resolve this exception.
+            </p>
+          </div>
+        ) : null}
+
+        {decisionState === "rejected" ? (
+          <div className="rounded-xl border border-border bg-muted/50 p-3.5 text-muted-foreground">
+            <div className="flex items-center gap-2 font-medium text-[13px]">
+              <i
+                aria-hidden="true"
+                className="ri-close-circle-line text-base"
+              />
+              <span>AI suggestion dismissed</span>
+            </div>
+            <p className="mt-1 text-[12px] leading-relaxed">
+              You can approve the loan as-is without edits, or reject the record
+              below.
+            </p>
+          </div>
+        ) : null}
+
         <div className="space-y-3 border-border border-t pt-5">
           <p className="font-medium text-[12px] text-muted-foreground uppercase tracking-wider">
             Reviewer decision
           </p>
           <p className="text-[12px] text-muted-foreground">
-            {resolved
-              ? "This exception is resolved. Your decision is recorded in the audit trail."
-              : "Approve to resolve as-is (or after correction), or reject to block verification."}
+            {getDecisionPrompt(resolved, decisionState)}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <Button
@@ -200,9 +297,12 @@ export function AiResolutionPanel({
                 reject.mutate(
                   {
                     id: exception.id,
-                    note: "Rejected from AI resolution panel",
+                    note:
+                      decisionState === "rejected"
+                        ? "Rejected after dismissing AI suggestion"
+                        : "Rejected from AI resolution panel",
                   },
-                  { onSettled: reset }
+                  { onSettled: handleReset }
                 )
               }
               variant="outline"
@@ -210,19 +310,31 @@ export function AiResolutionPanel({
               Reject
             </Button>
             <Button
-              className="bg-primary font-medium text-primary-foreground hover:bg-primary/90"
+              className={cn(
+                "bg-primary font-medium text-primary-foreground hover:bg-primary/90",
+                decisionState === "accepted" &&
+                  "ring-2 ring-success/40 ring-offset-2 ring-offset-background"
+              )}
               disabled={resolved || approve.isPending}
-              onClick={() =>
+              onClick={() => {
+                const suggestedValue =
+                  decisionState === "accepted"
+                    ? analysis?.fieldsToChange?.[0]?.suggestedValue
+                    : undefined;
                 approve.mutate(
                   {
+                    correctedValue: suggestedValue,
                     id: exception.id,
-                    note: "Approved from AI resolution panel",
+                    note:
+                      decisionState === "accepted"
+                        ? `Approved with AI correction (${analysis?.model ?? "AI"}): ${analysis?.reasoning ?? ""}`
+                        : "Approved from AI resolution panel",
                   },
-                  { onSettled: reset }
-                )
-              }
+                  { onSettled: handleReset }
+                );
+              }}
             >
-              Approve
+              {decisionState === "accepted" ? "Approve & Seal" : "Approve"}
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground/60 italic">
