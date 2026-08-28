@@ -178,6 +178,20 @@ export default function LoginPage() {
             src="/login-bg.webp"
             width={2160}
           />
+          {/* Bottom Glassmorphic Info Pane */}
+          <div className="absolute inset-x-3.5 bottom-3.5 rounded-xl border border-white/15 bg-black/45 p-4 text-white shadow-xl backdrop-blur-md">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-400" />
+              <span className="font-semibold text-[13px] tracking-tight">
+                Loan Tape Verification
+              </span>
+            </div>
+            <p className="max-w-[480px] text-[12px] text-white/80 leading-relaxed">
+              Ingest multi-source tapes, resolve data discrepancies with rule
+              checks, and export verified mortgage records with cryptographic
+              seals.
+            </p>
+          </div>
         </div>
       </section>
 
