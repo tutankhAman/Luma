@@ -20,10 +20,14 @@ const FILE_TYPES: FileType[] = [
   "loan_tape",
   "servicer_update",
   "document_manifest",
+  "fannie_mae",
+  "freddie_mac",
 ];
 
 const FILE_TYPE_LABELS: Record<FileType, string> = {
   document_manifest: "Document manifest",
+  fannie_mae: "Fannie Mae — SF Loan Performance",
+  freddie_mac: "Freddie Mac — SF Loan-Level",
   loan_tape: "Loan tape",
   servicer_update: "Servicer update",
 };

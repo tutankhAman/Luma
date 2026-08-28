@@ -20,6 +20,18 @@ const ACCEPTED = [
     name: "document_manifest.csv",
     type: "Document manifest",
   },
+  {
+    description:
+      "Fannie Mae Single-Family Loan Performance — pipe-delimited, 108 cols, registration-gated (sample at capitalmarkets.fanniemae.com). Folded per loanId (first-wins immutable, latest-wins balance/rate/delinquency).",
+    name: "fannie_mae.csv",
+    type: "Fannie Mae",
+  },
+  {
+    description:
+      "Freddie Mac Single-Family Loan-Level — pipe-delimited, 108 cols, free non-commercial via Clarity. Same fold and tolerant ≥40-col gate.",
+    name: "freddie_mac.csv",
+    type: "Freddie Mac",
+  },
 ];
 
 export default function UploadPage() {
