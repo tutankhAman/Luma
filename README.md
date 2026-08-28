@@ -1,133 +1,268 @@
-# Luma
+# Luma — Loan Data Verification Copilot
 
-Turborepo + Bun monorepo.
+Loan Data Verification Copilot for Intain Campus FinTech Challenge 2026. Ingests messy loan CSVs, validates records, manages exceptions with AI assistance, and produces traceable verified records with audit trail and hash-based integrity.
 
-- `apps/api` — Express + Prisma + Better Auth (port `4000`)
-- `apps/web` — Vite + React (port `3000`)
-- `packages/types` — shared Zod types
-- `packages/typescript-config` — shared tsconfigs
+Built from the problem statement Modules A–H. This document covers setup, environment variables, run commands, credentials, and pointers to required deliverables.
+
+## Stack
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Monorepo | Turborepo + Bun workspaces | Shared `packages/types` |
+| Frontend | Vite, React 19, React Router 7, Tailwind CSS, shadcn/ui, TanStack Query | Role-based SPA with client routing |
+| Backend | Node.js, Express 5, TypeScript, Zod, Better Auth | REST API with cookie sessions |
+| Database | PostgreSQL 16, Prisma 7 | ACID audit trail, migrations |
+| AI | Google Gemini via Vercel AI SDK, `MOCK_AI=true` fallback | Structured `generateObject`/`generateText` |
+| Auth | Better Auth (Prisma adapter, RBAC) | Cookie-based, `requireAuth`/`requireRole` |
+| File handling | Multer + csv-parser, streaming by 5000-row chunks | Constant memory, resumable |
 
 ## Prerequisites
 
-- **Bun** `1.4.0` (`bun --version`)
-- **Node** `>=24` (`node --version`)
-- **Docker** + Docker Compose (for Postgres)
-- **Git**
+- Bun 1.4.0 (`bun --version`)
+- Node >=24 (`node --version`)
+- Docker and Docker Compose
+- Git
+- OpenSSL (for generating `BETTER_AUTH_SECRET`)
 
-## Init
+## Environment Variables
 
-```sh
-# 1. clone
-git clone <repo-url> Luma
-cd Luma
+Copy `apps/api/.env.example` to `apps/api/.env`:
 
-# 2. install (also installs lefthook hook via `prepare`)
-bun install --frozen-lockfile
-
-# 3. env
+```
 cp apps/api/.env.example apps/api/.env
-# edit apps/api/.env if needed — generate a secret:
-# openssl rand -base64 32
 ```
 
-`apps/api/.env` defaults (works with `docker-compose.yml`):
+`apps/api/.env.example`:
 
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/luma"
 BETTER_AUTH_SECRET="replace-with-openssl-rand-base64-32"
 BETTER_AUTH_URL="http://localhost:4000"
 FRONTEND_URL="http://localhost:3000"
+VITE_API_URL="http://localhost:4000"
 PORT=4000
+GEMINI_API_KEY=""
+MOCK_AI="true"
+AI_MODEL_ID="gemini-3.5-flash-lite"
 ```
 
-## Run
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection string |
+| `BETTER_AUTH_SECRET` | yes | At least 32 characters. Generate: `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | yes | Backend URL for Better Auth |
+| `FRONTEND_URL` | yes | Frontend URL for CORS and trusted origins |
+| `VITE_API_URL` | no | Frontend API base, defaults to `http://localhost:4000` |
+| `PORT` | no | API port, defaults to `4000` |
+| `GEMINI_API_KEY` | no | Gemini API key. Leave empty with `MOCK_AI=true` for local development |
+| `MOCK_AI` | no | `true` uses deterministic mock responses, `false` calls Gemini |
+| `AI_MODEL_ID` | no | Model id, defaults to `gemini-3.5-flash-lite` |
+
+`.env` is gitignored. `.env.example` is the template.
+
+## Quick Start (Local)
 
 ```sh
-# 1. start postgres
-docker compose up -d
-# check: docker compose ps ; pg_isready -h localhost -p 5432 -U postgres
+# 1. Clone and install
+git clone https://github.com/tutankhAman/Luma.git
+cd Luma
+bun install
 
-# 2. prisma — generate client + run migrations
+# 2. Environment
+cp apps/api/.env.example apps/api/.env
+# edit BETTER_AUTH_SECRET: openssl rand -base64 32
+
+# 3. Database
+docker compose up -d
+# verify: docker compose ps
+# health: pg_isready -h localhost -p 5432 -U postgres
+
+# 4. Prisma
 bun --filter api exec prisma generate
 bun --filter api exec prisma migrate dev
-# alternatives:
-# bunx prisma migrate deploy --schema apps/api/prisma/schema.prisma
-# bunx prisma db push --schema apps/api/prisma/schema.prisma
+# alternative deploy: bunx prisma migrate deploy --schema apps/api/prisma/schema.prisma
 
-# 3. seed (creates 3 users, password: `password`)
+# 5. Seed users (password: password)
 bun --filter api run seed
-# operator@luma.dev (data_operator)
-# reviewer@luma.dev (reviewer)
-# consumer@luma.dev (data_consumer)
 
-# 4. dev (runs api + web via turbo)
+# 6. Run
 bun run dev
-# api  -> http://localhost:4000  (health: /api/health)
-# web  -> http://localhost:3000  (proxies /api to :4000)
-
-# single app only
-# bun --filter api run dev
-# bun --filter web run dev
+# api  -> http://localhost:4000  health: GET /api/health
+# web  -> http://localhost:3000  proxies /api to :4000
 ```
 
-## Build / Check
+Single service:
 
 ```sh
-bun run build        # turbo build (all)
-bun run check-types  # turbo typecheck
-bun x ultracite check
-bun x ultracite fix
+bun --filter api run dev
+bun --filter web run dev
 ```
 
-## Scripts
+Seeded and synthetic datasets: `loan_tape.csv` (137 rows, seed 42) and `loan_tape_6k.csv` (6000 rows) at repository root cover all 15 intentional data issues. Upload via Operator role.
 
-| Command | Description |
+## Test Credentials
+
+All passwords are `password`:
+
+| Role | Email | Access |
+|---|---|---|
+| Data Operator | `operator@luma.dev` | Upload CSVs, view import history, validation summary, failed import rows |
+| Reviewer | `reviewer@luma.dev` | Exception queue, AI review, approve/reject/edit, verify loans |
+| Data Consumer | `consumer@luma.dev` | Verified records, audit trail, CSV export, data quality score |
+
+`users.json` equivalent is seeded in `apps/api/src/seed.ts`.
+
+## Roles and Modules
+
+| Module | Implementation |
 |---|---|
-| `bun run dev` | `turbo run dev` — watch api + web |
-| `bun run build` | `turbo run build` |
-| `bun run check-types` | `turbo run check-types` |
-| `bun run check` / `bun run fix` | `ultracite check/fix` (Biome) |
-| `bun --filter api run seed` | seed users via `apps/api/src/seed.ts` |
-| `docker compose up -d` / `down` | start/stop postgres |
-| `docker compose logs postgres` | db logs |
+| A: Data Ingestion | `POST /api/uploads` (multipart, 500MB limit, .csv only), streaming `csv-parser` 5000-row chunks, `skipDuplicates`, `UploadBatch.processedCount` resume, `FailedRows` capped at 1000 in `metadata` |
+| B: Validation Engine | 10 per-loan rules + 3 batch-scoped duplicate checks (`validation.service.ts`), `stale_record` >90 days, `invalid_state`, `conflicting_source` from servicer updates, writes `Exception` and `AuditLog` |
+| C: Exception Queue | `GET /api/exceptions` (filter by status/severity/type/search/batchId, paginated), `GET /api/exceptions/:id`, `POST /comment`, `POST /approve`, `POST /reject`, `PATCH /api/loans/:id/fields` |
+| D: AI Review Assistant | `POST /api/ai/explain`, `classify-severity`, `draft-note`, `summarize-batch`, `suggest-rule` (Gemini + mock fallback, rate-limited 20/min), all prompts/models logged |
+| E: Verified Loan Record | `POST /api/loans/:id/verify` after all exceptions closed, `canonicalData` snapshot, `recordHash` SHA256, `VerifiedLoan` table |
+| F: Audit Trail | Append-only `AuditLog` in same transaction as mutation, 11 event types, `GET /api/audit/:loanId` |
+| G: Dashboards | Operator (upload, import history, validation summary, corrections needed = failed imports), Reviewer (queue stats, AI panel), Consumer (quality score, verified records) |
+| H: Verified Records API | `GET /loans`, `GET /loans/:id`, `GET /exceptions`, `GET /verified-loans`, `GET /verified-loans/:id`, `GET /audit/:loanId`, `GET /summary` |
+
+Roles enforced by `requireAuth` + `requireRole` middleware. `GET /api/exceptions` is reviewer-only; operator uses `GET /api/uploads` and `GET /api/loans?validationStatus=failed`. `POST /api/ai/summarize-batch` allows `reviewer` and `data_operator`; `suggest-rule` allows both; other AI routes are reviewer-only.
+
+## API Reference
+
+Base URL: `http://localhost:4000` (dev). Auth: cookie session. Error format: `{ code, error, fields? }`.
+
+| Method | Path | Role |
+|---|---|---|
+| POST | `/api/auth/sign-in/email` | public |
+| POST | `/api/auth/sign-out` | auth |
+| GET | `/api/auth/get-session` | auth |
+| POST | `/api/uploads` | `data_operator` |
+| GET | `/api/uploads` | `data_operator` |
+| GET | `/api/uploads/:batchId` | `data_operator` |
+| GET | `/api/uploads/:batchId/summary` | `data_operator` |
+| GET | `/api/loans` | `data_operator`, `reviewer`, `data_consumer` (verified only) |
+| GET | `/api/loans/:id` | `data_operator`, `reviewer`, `data_consumer` (verified only) |
+| PATCH | `/api/loans/:id/fields` | `reviewer` |
+| POST | `/api/loans/:id/verify` | `reviewer` |
+| GET | `/api/exceptions` | `reviewer` |
+| GET | `/api/exceptions/:id` | `reviewer` |
+| POST | `/api/exceptions/:id/comment` | `reviewer` |
+| POST | `/api/exceptions/:id/approve` | `reviewer` |
+| POST | `/api/exceptions/:id/reject` | `reviewer` |
+| POST | `/api/exceptions/:id/decision` | `reviewer` |
+| POST | `/api/ai/explain` | `reviewer` |
+| POST | `/api/ai/summarize-batch` | `reviewer`, `data_operator` |
+| POST | `/api/ai/classify-severity` | `reviewer` |
+| POST | `/api/ai/suggest-rule` | `reviewer`, `data_operator` |
+| POST | `/api/ai/draft-note` | `reviewer` |
+| GET | `/api/verified-loans` | `reviewer`, `data_consumer` |
+| GET | `/api/verified-loans/:id` | `reviewer`, `data_consumer` |
+| GET | `/api/verified-loans/export` | `data_consumer` |
+| GET | `/api/audit/:loanId` | all roles |
+| GET | `/api/summary` | all roles |
+| GET | `/api/health` | public |
+| GET | `/api/me` | auth |
+
+Full contract: `.context/api-contract.md`.
+
+## Validation
+
+Per-loan rules: `missing_field`, `date_error` (invalid format, `maturity < origination`), `balance_error` (negative principal, `current > original`), `rate_out_of_range` (0-40%), `status_inconsistency` (payment status vs `daysPastDue`, closed with balance), `stale_record` (>90 days `last_updated_at`), `invalid_state`. Batch-scoped: `duplicate` (loanId, borrower+amount+origination, repeated borrower spike). Duplicate detection uses DB-level `groupBy` and batched `IN` queries (5k windows), not in-memory arrays.
+
+Upload `loan_tape.csv` yields 137 rows, 8 failedRows (missing ids, bad date), 129 imported, 60 loans with exceptions (28 critical, 15 high, 15 medium, 5 low). `servicer_update.csv` produces `conflicting_source`. `document_manifest.csv` updates `documentStatus` and creates `missing_field` for incomplete docs.
+
+## AI Controls
+
+- Recommendations rendered in separate `AISuggestionCard` with model, prompt summary, timestamp, confidence.
+- Human must `Accept`/`Edit`/`Reject` via `POST /api/exceptions/:id/decision` before any data change.
+- Every AI output and decision writes `AuditLog` `AI_RECOMMENDATION`.
+- Fallback: `MOCK_AI=true` returns deterministic mock; when `GEMINI_API_KEY` missing and not mocked, API returns `200` with `{ summary: null, code: "AI_UNAVAILABLE" }`, not 500.
+
+## Audit Trail and Hashing
+
+Events: `FILE_UPLOADED`, `LOAN_IMPORTED` (per chunk), `VALIDATION_RUN`, `EXCEPTION_CREATED`, `AI_RECOMMENDATION`, `REVIEWER_COMMENT`, `FIELD_EDITED`, `LOAN_APPROVED`, `LOAN_REJECTED`, `VERIFIED_RECORD_CREATED`, `RECORD_EXPORTED`. All writes are inside the same `prisma.$transaction` as the trigger. `recordHash` is `SHA256(JSON.stringify(canonicalData))`. `GET /api/audit/:loanId` returns chronological timeline.
+
+## Demo Flow (5 Minutes)
+
+1. Log in as Data Operator `operator@luma.dev`.
+2. Upload `loan_tape.csv` (`/operator/upload`, fileType `loan_tape`). Poll `GET /api/uploads/:batchId` until `done`.
+3. Open batch detail `/operator/uploads/:batchId`: check import summary, failed rows, validation summary, generate AI batch summary.
+4. Open `/operator/loans` filtered by `validationStatus=failed` (read-only inspection).
+5. Log in as Reviewer `reviewer@luma.dev`.
+6. Open `/reviewer/exceptions`, filter by severity, open a `balance_error` loan.
+7. Click Explain, review recommendation (model, reasoning, confidence), Accept/Edit/Reject.
+8. Add comment, approve or reject exceptions.
+9. Verify loan (`POST /api/loans/:id/verify`) once all exceptions closed.
+10. Log in as Data Consumer `consumer@luma.dev`.
+11. View `/consumer/dashboard` verified records and quality score, open a verified loan.
+12. Inspect audit trail, show hash and lineage.
+13. `GET /api/verified-loans` and `GET /api/verified-loans/export` (CSV).
+14. Open `/ai-log` in-app.
 
 ## Project Structure
 
 ```
 Luma/
 ├── apps/
-│   ├── api/        # Express, Prisma (prisma/schema.prisma), Better Auth
-│   └── web/        # Vite React, proxy /api -> localhost:4000
+│   ├── api/                # Express API, Prisma schema and migrations, services
+│   │   ├── prisma/schema.prisma
+│   │   ├── src/routes/     # uploads, loans, exceptions, verified-loans, audit, summary, ai
+│   │   ├── src/services/   # ingestion.service.ts, validation.service.ts, ai.service.ts, etc.
+│   │   └── src/middleware/ # require-auth, require-role, rate-limit
+│   └── web/                # Vite React SPA, role layouts, dashboards
+│       ├── src/app/pages/  # operator, reviewer, consumer, auth
+│       ├── src/components/ # ui, batch, loan, audit
+│       └── src/hooks/      # TanStack Query hooks
 ├── packages/
-│   ├── types/
+│   ├── types/              # Shared Zod schemas and types
 │   └── typescript-config/
-├── docker-compose.yml  # postgres:16-alpine, db `luma`
-├── lefthook.yml        # pre-commit: lint + typecheck + build (mirrors CI)
+├── docker-compose.yml      # postgres:16-alpine
 ├── turbo.json
-└── biome.jsonc
+├── biome.jsonc             # Ultracite (Biome)
+├── lefthook.yml            # pre-commit: lint + typecheck + build
+└── .context/               # problem.md, api-contract.md, architecture-flow.md, ui-and-flow.md, AI_DEVELOPMENT_LOG.md
 ```
 
-## CI
+## Scripts
 
-`.github/workflows/ci.yml` runs on `push`/`pull_request` to `main` as three separate checks:
+| Command | Description |
+|---|---|
+| `bun install` | Install dependencies |
+| `bun run dev` | Run api (4000) + web (3000) via Turbo |
+| `bun --filter api run dev` | API only |
+| `bun --filter web run dev` | Web only |
+| `bun run build` | `turbo run build` |
+| `bun run check-types` | `turbo run check-types` |
+| `bun x ultracite check` | Lint |
+| `bun x ultracite fix` | Fix lint |
+| `bun --filter api run seed` | Seed users |
+| `bun --filter api test` | Unit tests |
+| `bun --filter api test:integration` | Integration tests (requires DB) |
+| `docker compose up -d` | Start Postgres |
+| `docker compose down` | Stop Postgres |
 
-- `lint` — install + `ultracite check`
-- `typecheck` — install + generate Prisma client + `check-types`
-- `build` — install + generate Prisma client + `build`
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `build` on push/PR to `main`. Branch protection requires all three checks green and branch up-to-date before merge. Same checks run locally on pre-commit via lefthook (`prisma generate` + `check-types` + `build`).
 
-Same steps run locally on pre-commit via lefthook.
+## Architecture Notes
 
-Branch protection is enabled on `main`:
+System design, data model, API design, validation engine, AI feature, audit trail, and trade-offs are documented in `.context/architecture-flow.md` and `.context/implementation-plan.md`. API details in `.context/api-contract.md`. UI flow in `.context/ui-and-flow.md`.
 
-- Direct pushes to `main` are blocked — all changes must go through a pull request
-- All three checks (`lint`, `typecheck`, `build`) are required and must be green before a PR can be merged
-- The PR branch must be up to date with `main` before merging
+## AI Development Log
 
-Workflow:
+Required deliverable is tracked in `.context/AI_DEVELOPMENT_LOG.md` and rendered in-app at `/ai-log`. It lists tools, prompts (8 representative), human review process, estimated AI-generated code percentage, 5 rejected-output examples, and lessons learned. See also `AGENTS.md` for code standards.
 
-1. Create a feature branch from `main`
-2. Make changes and push the branch
-3. Open a pull request against `main`
-4. Wait for the CI checks to run on the PR
-5. If checks fail, fix and push again — merge stays blocked until green
-6. Merge only when all required checks pass
+## Sample Outputs
+
+Synthetic datasets at repository root: `loan_tape.csv` (137 rows) and `loan_tape_6k.csv` (6000 rows). After verification, export verified records via `GET /api/verified-loans/export` (CSV) and audit trail via `GET /api/audit/:loanId` (JSON). Example responses are in `.context/api-contract.md` Appendix.
+
+## Test Data
+
+`users.json` equivalent: seeded users above. `validation_rules.json` logic is inline in `validation.service.ts` with thresholds (interest 0-40, stale 90 days). `expected_exception_sample` corresponds to `loan_tape.csv` expectations noted in Validation section.
+
+## Deployment
+
+Local runnable setup is primary. For hosted deployment, set `BETTER_AUTH_URL` and `FRONTEND_URL` to production URLs, configure `DATABASE_URL` to managed Postgres, and deploy `apps/api` (Node 24) and `apps/web` (static build from `dist/`). Current CI builds both packages; no secrets are committed.
+
+## License
+
+Private for challenge submission.
