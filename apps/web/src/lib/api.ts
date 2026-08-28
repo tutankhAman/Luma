@@ -32,8 +32,10 @@ import type {
 } from "@repo/types";
 import axios from "axios";
 
+export const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 export const api = axios.create({
-  baseURL: "/api",
+  baseURL: `${API_BASE}/api`,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
@@ -251,8 +253,8 @@ export const verifiedLoansApi = {
   },
   exportCsv: (batchId?: string): string =>
     batchId
-      ? `/api/verified-loans/export?batchId=${encodeURIComponent(batchId)}`
-      : "/api/verified-loans/export",
+      ? `${API_BASE}/api/verified-loans/export?batchId=${encodeURIComponent(batchId)}`
+      : `${API_BASE}/api/verified-loans/export`,
   exportUrl: (options?: {
     batchId?: string;
     format?: "csv" | "json";
@@ -266,8 +268,8 @@ export const verifiedLoansApi = {
     }
     const query = params.toString();
     return query
-      ? `/api/verified-loans/export?${query}`
-      : "/api/verified-loans/export";
+      ? `${API_BASE}/api/verified-loans/export?${query}`
+      : `${API_BASE}/api/verified-loans/export`;
   },
   list: async (
     query: VerifiedLoanListQuery
