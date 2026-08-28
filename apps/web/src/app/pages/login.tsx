@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 const ROLE_HOME: Record<Role, string> = {
   data_consumer: "/consumer/dashboard",
@@ -51,7 +52,7 @@ function AuthInput({
   label,
   onChange,
   placeholder,
-  type,
+  type = "text",
   value,
 }: {
   autoComplete?: string;
@@ -59,9 +60,13 @@ function AuthInput({
   label: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  type: string;
+  type?: string;
   value: string;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const effectiveType = isPassword && showPassword ? "text" : type;
+
   return (
     <div className="space-y-1.5">
       <label
@@ -70,16 +75,38 @@ function AuthInput({
       >
         {label}
       </label>
-      <input
-        autoComplete={autoComplete}
-        className="h-10 w-full rounded-xl border border-input bg-background px-3.5 text-[13.5px] outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={true}
-        type={type}
-        value={value}
-      />
+      <div className="relative">
+        <input
+          autoComplete={autoComplete}
+          className={cn(
+            "h-10 w-full rounded-xl border border-input bg-background px-3.5 text-[13.5px] outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20",
+            isPassword && "pr-10"
+          )}
+          id={id}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          required={true}
+          type={effectiveType}
+          value={value}
+        />
+        {isPassword ? (
+          <button
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none"
+            onClick={() => setShowPassword(!showPassword)}
+            type="button"
+          >
+            <i
+              aria-hidden="true"
+              className={
+                showPassword
+                  ? "ri-eye-off-line text-base"
+                  : "ri-eye-line text-base"
+              }
+            />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -162,7 +189,7 @@ export default function LoginPage() {
 
   const fillDemoAccount = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword("password123");
+    setPassword("password");
     toast.success(`Demo credentials filled for ${demoEmail}`);
   };
 
