@@ -168,15 +168,17 @@ export default function LoginPage() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
-      {/* Left: Full Bleed Wallpaper Image Panel */}
-      <section className="relative hidden h-full w-1/2 overflow-hidden bg-muted lg:block">
-        <img
-          alt="Luma Verification Platform"
-          className="size-full object-cover object-center"
-          height={3840}
-          src="/login-bg.webp"
-          width={2160}
-        />
+      {/* Left: Container with 2xl rounded corners taking half the width */}
+      <section className="relative hidden h-full w-1/2 p-3 sm:p-4 lg:block">
+        <div className="relative size-full overflow-hidden rounded-2xl border border-border bg-muted shadow-sm">
+          <img
+            alt="Luma Verification Platform"
+            className="size-full object-cover object-center"
+            height={3840}
+            src="/login-bg.webp"
+            width={2160}
+          />
+        </div>
       </section>
 
       {/* Right: Auth Form Section */}
