@@ -28,8 +28,9 @@ export interface PublicRowGateResult {
 
 // Stable indices from the 108-col sample. 0 is the leading "" from
 // the leading "|". Keep the indices explicit so judges can audit the
-// Fannie/Freddie glossary → code mapping.
-const IDX = {
+// Fannie/Freddie glossary → code mapping. Exported so ingestion.service
+// reuses the single source of truth (review WARN-1).
+export const IDX = {
   AMORT_TYPE: 34,
   CREDIT_SCORE: 23,
   CURR_RATE: 8,
@@ -87,7 +88,7 @@ const cleanString = (value: unknown): string | null => {
   return s === "" ? null : s;
 };
 
-const parseDecimal = (value: unknown): number | null => {
+export const parseDecimal = (value: unknown): number | null => {
   if (value === null || value === undefined) {
     return null;
   }
@@ -423,12 +424,12 @@ export const PUBLIC_DATA_FORMAT_REGISTRY: Record<
   { columnIndices: typeof IDX; layoutVersion: string; minFields: number }
 > = {
   fannie_mae: {
-    columnIndices: IDX,
+    columnIndices: { ...IDX },
     layoutVersion: "v1-108-col-sample",
     minFields: PUBLIC_DATA_MIN_FIELDS,
   },
   freddie_mac: {
-    columnIndices: IDX,
+    columnIndices: { ...IDX },
     layoutVersion: "v1-108-col-sample",
     minFields: PUBLIC_DATA_MIN_FIELDS,
   },

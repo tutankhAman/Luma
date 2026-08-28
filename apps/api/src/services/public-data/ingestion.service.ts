@@ -7,92 +7,94 @@ import {
   MAX_FAILED_ROWS_STORED,
 } from "../ingestion.service.js";
 import {
+  deriveDelinquency,
   gatePublicRow,
+  IDX,
   mapPublicRowToLoanPart,
   PUBLIC_DATA_MIN_FIELDS,
   type PublicSourceFormat,
+  parseDecimal,
   parsePublicDate,
 } from "./field-map.js";
 
 export const PUBLIC_DATA_CHUNK_SIZE = 5000;
 
+/**
+ * Incremental fold assumes contiguous loanId runs (file sorted by loanId
+ * then period — true for the 757-row Fannie Mae sample and for Freddie
+ * Mac acquisitions). Non-contiguous uploads (A,B,A) emit two loans for A
+ * and surface as `duplicate` exceptions rather than merging — bounded
+ * O(1)/run vs whole-file Map buffering.
+ */
+const normalizeLeadingPipe = (fields: string[]): string[] => {
+  // csv-parser with `headers:false, separator:"|"` yields `0:""` for a
+  // leading "|". Files without the leading pipe have 107 cols where
+  // loanId sits at 0 and period at 1. Detect via 107-length + loanId-like
+  // first field + parsable period at 1 and realign by prepending "".
+  if (
+    fields.length === 107 &&
+    fields[0] !== "" &&
+    parsePublicDate(fields[1]) !== null
+  ) {
+    return ["", ...fields];
+  }
+  return fields;
+};
+
 const patchBalance = (existing: LoanCreateData, fields: string[]): void => {
-  // biome-ignore lint/style/useDestructuring: pipe layout uses fixed indices
-  const currUpbRaw = fields[11];
-  if (currUpbRaw === undefined) {
+  const raw = fields[IDX.CURR_UPB];
+  if (raw === undefined) {
     return;
   }
-  const trimmed = String(currUpbRaw).trim().replace(/,/g, "");
-  if (trimmed === "") {
+  const trimmed = String(raw).trim();
+  if (trimmed === "" || trimmed === "0.00" || trimmed === "0") {
     return;
   }
-  const n = Number(trimmed);
-  if (Number.isNaN(n) || !Number.isFinite(n)) {
-    return;
-  }
-  if (n === 0 && (trimmed === "0.00" || trimmed === "0")) {
-    return;
-  }
-  if (n !== 0) {
+  const n = parseDecimal(raw);
+  if (n !== null && n !== 0) {
     existing.currentBalance = n;
   }
 };
 
 const patchRate = (existing: LoanCreateData, fields: string[]): void => {
-  const rateRaw = fields[8]?.trim() || fields[7]?.trim() || "";
+  const cur = String(fields[IDX.CURR_RATE] ?? "").trim();
+  const orig = String(fields[IDX.ORIG_RATE] ?? "").trim();
+  const rateRaw = cur || orig;
   if (rateRaw === "") {
     return;
   }
-  const r = Number(rateRaw.replace(/,/g, ""));
-  if (!Number.isNaN(r) && Number.isFinite(r)) {
+  const r = parseDecimal(rateRaw);
+  if (r !== null) {
     existing.interestRate = r;
   }
 };
 
 const patchPeriod = (existing: LoanCreateData, fields: string[]): void => {
-  const periodParsed = parsePublicDate(fields[2]);
+  const periodParsed = parsePublicDate(fields[IDX.PERIOD]);
   if (periodParsed !== null) {
     existing.lastUpdatedAt = periodParsed;
   }
 };
 
 const patchDelinquency = (existing: LoanCreateData, fields: string[]): void => {
-  // biome-ignore lint/style/useDestructuring: pipe layout uses fixed indices
-  const delinqRaw = fields[15];
-  if (delinqRaw === undefined) {
+  const raw = fields[IDX.DELINQ];
+  if (raw === undefined) {
     return;
   }
-  const s = String(delinqRaw).trim();
-  if (s === "") {
-    existing.daysPastDue = 0;
-    existing.paymentStatus = "current";
-    return;
-  }
-  const n = Number(s);
-  if (!Number.isNaN(n) && Number.isFinite(n)) {
-    const iv = Math.trunc(n);
-    if (iv <= 0) {
-      existing.daysPastDue = 0;
-      existing.paymentStatus = "current";
-    } else {
-      existing.daysPastDue = iv * 30;
-      existing.paymentStatus = "delinquent";
-    }
-  } else if (s !== "") {
-    existing.paymentStatus = s;
-    existing.daysPastDue = null;
-  }
+  const { daysPastDue, paymentStatus } = deriveDelinquency(raw);
+  existing.daysPastDue = daysPastDue;
+  existing.paymentStatus = paymentStatus;
 };
 
 const patchMaturity = (existing: LoanCreateData, fields: string[]): void => {
-  const maturityParsed = parsePublicDate(fields[18]);
+  const maturityParsed = parsePublicDate(fields[IDX.MATURITY]);
   if (maturityParsed !== null) {
     existing.maturityDate = maturityParsed;
   }
 };
 
 const patchServicer = (existing: LoanCreateData, fields: string[]): void => {
-  const servicer = String(fields[5] ?? "").trim();
+  const servicer = String(fields[IDX.SERVICER] ?? "").trim();
   if (servicer !== "") {
     existing.servicerName = servicer;
   }
@@ -167,7 +169,8 @@ export const processPublicDataIngestion = async (
     hasFailed = true;
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`[PublicData] Batch ${batchId} FAILED: ${message}\n`);
-    const recordCount = totalFoldedLoans + totalFailedRows;
+    const pendingForCount = currentLoan === null ? 0 : 1;
+    const recordCount = totalFoldedLoans + pendingForCount + totalFailedRows;
     const truncated = totalFailedRows > MAX_FAILED_ROWS_STORED;
     let existingMeta: Record<string, unknown> = {};
     try {
@@ -424,20 +427,28 @@ export const processPublicDataIngestion = async (
     arr: string[],
     rowNumber: number
   ): Promise<void> => {
+    const normalized = normalizeLeadingPipe(arr);
     if (
-      arr.every((v) => v === null || v === undefined || String(v).trim() === "")
+      normalized.every(
+        (v) => v === null || v === undefined || String(v).trim() === ""
+      )
     ) {
       return;
     }
     totalSourceRows += 1;
 
     // Gate accounting for unmapped tracking even on failed rows
-    const gate = gatePublicRow(arr, format);
+    const gate = gatePublicRow(normalized, format);
     if (gate.unmappedNonEmpty !== undefined) {
       totalUnmappedNonEmpty += gate.unmappedNonEmpty;
     }
 
-    const result = mapPublicRowToLoanPart(arr, batchId, rowNumber, format);
+    const result = mapPublicRowToLoanPart(
+      normalized,
+      batchId,
+      rowNumber,
+      format
+    );
     if (!result.success) {
       totalFailedRows += 1;
       if (failedRows.length < MAX_FAILED_ROWS_STORED) {
@@ -457,8 +468,8 @@ export const processPublicDataIngestion = async (
     }
 
     if (incomingLoanId === currentLoanId) {
-      // Same contiguous run — patch mutables with latest row
-      patchMutableFields(currentLoan, arr);
+      // Same contiguous run — patch mutables with latest row (normalized for leading-pipe shift)
+      patchMutableFields(currentLoan, normalized);
       return;
     }
 

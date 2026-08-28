@@ -400,4 +400,63 @@ describe("processPublicDataIngestion", () => {
       fs.rmSync(tmpDir, { force: true, recursive: true });
     }
   });
+
+  it("handles pipe file without leading '|' (107 cols) via tolerant realignment", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pub-nolead-"));
+    const filePath = path.join(tmpDir, "nolead.csv");
+    const batchId = "batch_pub_nolead";
+    const arr108 = buildPipeFields({ 1: "L-NOLEAD", 2: "082009" });
+    const arr107 = arr108.slice(1);
+    const content = arr107.join("|");
+    fs.writeFileSync(filePath, content, "utf8");
+    try {
+      await processPublicDataIngestion(filePath, batchId, "fannie_mae");
+      const { calls } = (
+        fakePrisma.loan.createMany as unknown as {
+          mock: { calls: unknown[][] };
+        }
+      ).mock;
+      let total = 0;
+      for (const c of calls) {
+        total += (c[0] as { data: unknown[] }).data.length;
+      }
+      expect(total).toBe(1);
+      expect(calls.length).toBeGreaterThan(0);
+      const [firstCall] = calls as unknown as [
+        [{ data: Record<string, unknown>[] }],
+      ];
+      const [firstArg] = firstCall;
+      const [inserted] = firstArg.data;
+      expect(inserted).toBeDefined();
+      expect((inserted as Record<string, unknown>).loanId).toBe("L-NOLEAD");
+    } finally {
+      fs.rmSync(tmpDir, { force: true, recursive: true });
+    }
+  });
+
+  it("non-contiguous loanId (A,B,A) creates two loans for A — surfaces as duplicate", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pub-noncont-"));
+    const filePath = path.join(tmpDir, "noncont.csv");
+    const batchId = "batch_pub_noncont";
+    const a1 = buildPipeFields({ 1: "L-DUP", 2: "082009" });
+    const b = buildPipeFields({ 1: "L-OTHER", 2: "082009" });
+    const a2 = buildPipeFields({ 1: "L-DUP", 2: "092009", 11: "54000.00" });
+    const content = [pipeRow(a1), pipeRow(b), pipeRow(a2)].join("\n");
+    fs.writeFileSync(filePath, content, "utf8");
+    try {
+      await processPublicDataIngestion(filePath, batchId, "freddie_mac");
+      const { calls } = (
+        fakePrisma.loan.createMany as unknown as {
+          mock: { calls: unknown[][] };
+        }
+      ).mock;
+      let total = 0;
+      for (const c of calls) {
+        total += (c[0] as { data: unknown[] }).data.length;
+      }
+      expect(total).toBe(3);
+    } finally {
+      fs.rmSync(tmpDir, { force: true, recursive: true });
+    }
+  });
 });
