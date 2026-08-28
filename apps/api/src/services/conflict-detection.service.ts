@@ -270,27 +270,31 @@ export const detectServicerConflicts = async (
     }
 
     if (exceptionsToCreate.length > 0) {
-      await prisma.$transaction(async (tx) => {
-        const createdExceptions = await tx.exception.createManyAndReturn({
-          data: exceptionsToCreate as never,
-          select: { id: true, loanId: true },
-          skipDuplicates: false,
-        });
-
-        if (createdExceptions.length > 0) {
-          await tx.auditLog.createMany({
-            data: createdExceptions.map((exc) => ({
-              eventType: "EXCEPTION_CREATED",
-              exceptionId: exc.id,
-              loanId: exc.loanId,
-              metadata: {
-                conflictBatchId: servicerBatchId,
-                exceptionType: "conflicting_source",
-              },
-            })) as never,
+      await prisma.$transaction(
+        async (tx) => {
+          const createdExceptions = await tx.exception.createManyAndReturn({
+            data: exceptionsToCreate as never,
+            select: { id: true, loanId: true },
+            skipDuplicates: false,
           });
-        }
-      });
+
+          if (createdExceptions.length > 0) {
+            await tx.auditLog.createMany({
+              data: createdExceptions.map((exc) => ({
+                eventType: "EXCEPTION_CREATED",
+                exceptionId: exc.id,
+                loanId: exc.loanId,
+                metadata: {
+                  conflictBatchId: servicerBatchId,
+                  exceptionType: "conflicting_source",
+                },
+              })) as never,
+            });
+          }
+        },
+        // Bulk conflict writes on 5k+ row servicer files exceed the 5s default
+        { maxWait: 5000, timeout: 30_000 }
+      );
 
       totalExceptions += exceptionsToCreate.length;
       for (const e of exceptionsToCreate) {
