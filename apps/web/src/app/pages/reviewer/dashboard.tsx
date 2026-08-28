@@ -1,37 +1,142 @@
-import type { ExceptionListItem, Severity } from "@repo/types";
-import { Link, useNavigate } from "react-router-dom";
+import type { Severity } from "@repo/types";
+import { useNavigate } from "react-router-dom";
+import { AiBatchSummary } from "@/components/dashboard/ai-batch-summary";
+import { ExceptionQueuePreview } from "@/components/dashboard/exception-queue-preview";
+import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { RecentDecisions } from "@/components/dashboard/recent-decisions";
+import { TrendChart } from "@/components/dashboard/trend-chart";
 import { SeverityBadge } from "@/components/ui/badges";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { StatCard } from "@/components/ui/stat-card";
+import { Button } from "@/components/ui/button";
+import { useDashboardSeries } from "@/hooks/use-dashboard-series";
 import { useDashboardSummary, useExceptions } from "@/hooks/use-exceptions";
+import { useUploads } from "@/hooks/use-uploads";
+import { cn } from "@/lib/utils";
 
-const EVENT_ICONS: Record<string, string> = {
-  AI_RECOMMENDATION: "ri-robot-2-line",
-  EXCEPTION_CREATED: "ri-error-warning-line",
-  FIELD_EDITED: "ri-edit-line",
-  LOAN_APPROVED: "ri-checkbox-circle-line",
-  LOAN_IMPORTED: "ri-download-line",
-  LOAN_REJECTED: "ri-close-circle-line",
-  RECORD_EXPORTED: "ri-share-box-line",
-  REVIEWER_COMMENT: "ri-chat-3-line",
-  VERIFIED_RECORD_CREATED: "ri-shield-check-line",
+/* Spec §5.1 — Reviewer Dashboard (Module G + Module D batch summary). */
+
+const SEVERITY_ORDER: Record<Severity, number> = {
+  critical: 0,
+  high: 1,
+  low: 3,
+  medium: 2,
 };
 
-function recentDescription(item: ExceptionListItem): string {
-  return item.field ? `${item.field}: ${item.message}` : item.message;
+const SEVERITY_BAR_COLOR: Record<Severity, string> = {
+  critical: "bg-destructive",
+  high: "bg-destructive/85",
+  low: "bg-success",
+  medium: "bg-warning",
+};
+
+function ExceptionTrendChart() {
+  const { data: summary } = useDashboardSummary();
+  const { data: uploads } = useUploads();
+  const { exceptionSeries } = useDashboardSeries({
+    batches: uploads?.data,
+    summary,
+  });
+
+  return (
+    <section className="flex h-full min-h-[340px] flex-col rounded-xl bg-transparent py-5 pr-4">
+      <header className="mb-3 flex shrink-0 items-start justify-between">
+        <div>
+          <h3 className="font-semibold text-xl tracking-tight">
+            Exception trend
+          </h3>
+          <p className="text-[12px] text-muted-foreground">
+            Exception activity across the last 14 days
+          </p>
+        </div>
+        <span className="flex items-center gap-1.5 font-medium text-[11px] text-muted-foreground">
+          <span
+            aria-hidden="true"
+            className="size-2 rounded-full bg-[var(--chart-1)]"
+          />
+          Exceptions
+        </span>
+      </header>
+      <div className="min-h-0 flex-1">
+        <TrendChart
+          className="aspect-auto h-[260px] w-full"
+          data={exceptionSeries}
+          dataKey="exceptions"
+          height={260}
+        />
+      </div>
+    </section>
+  );
 }
 
-export default function ReviewerDashboard() {
-  const navigate = useNavigate();
+function IssuesBySeverity() {
   const { data: summary } = useDashboardSummary();
-  const { data: recent } = useExceptions({
+  const navigate = useNavigate();
+  const rows = Object.entries(summary?.exceptionsBySeverity ?? {}) as [
+    Severity,
+    number,
+  ][];
+  const max = Math.max(1, ...rows.map(([, count]) => count));
+  const sorted = rows.sort(
+    (a, b) => SEVERITY_ORDER[a[0]] - SEVERITY_ORDER[b[0]]
+  );
+  const total = rows.reduce((sum, [, count]) => sum + count, 0);
+
+  return (
+    <section className="flex h-full min-h-[340px] flex-col rounded-2xl border border-border bg-card p-5">
+      <header className="mb-3 shrink-0">
+        <h3 className="font-semibold text-xl tracking-tight">
+          Queue by severity
+        </h3>
+        <p className="text-[12px] text-muted-foreground">
+          Work critical and high priority items first
+        </p>
+      </header>
+      {total === 0 ? (
+        <div className="flex flex-1 items-center justify-center py-6">
+          <p className="text-[13px] text-muted-foreground">
+            No exceptions in queue.
+          </p>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <ul className="space-y-3.5 pt-1">
+            {sorted.map(([severity, count]) => (
+              <li key={severity}>
+                <button
+                  className="group flex w-full items-center gap-3 text-left transition-opacity hover:opacity-80"
+                  onClick={() =>
+                    navigate(`/reviewer/exceptions?severity=${severity}`)
+                  }
+                  type="button"
+                >
+                  <div className="w-24 shrink-0">
+                    <SeverityBadge severity={severity} />
+                  </div>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className={cn(
+                        "block h-full rounded-full",
+                        SEVERITY_BAR_COLOR[severity]
+                      )}
+                      style={{ width: `${(count / max) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-8 text-right font-medium text-[12.5px] tabular-nums">
+                    {count}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ExceptionQueueSection() {
+  const navigate = useNavigate();
+  const { data: critical, isLoading } = useExceptions({
     batchId: "",
     page: 1,
     search: "",
@@ -41,180 +146,181 @@ export default function ReviewerDashboard() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div className="flex items-end justify-between">
+    <section className="rounded-2xl border border-border bg-card">
+      <header className="flex items-center justify-between border-border border-b px-5 py-4">
         <div>
-          <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
-            Reviewer Dashboard
-          </h1>
-          <p className="text-[#A1A1AA] text-sm">
-            Triage the exception queue and keep verified data flowing.
+          <h3 className="font-semibold text-[14px] tracking-tight">
+            Exception queue
+          </h3>
+          <p className="text-[12px] text-muted-foreground">
+            Top open items ordered by severity
           </p>
         </div>
-        <Link
-          className="rounded-lg bg-white px-4 py-2 font-medium text-black text-sm transition-colors hover:bg-gray-200"
-          to="/reviewer/exceptions"
+        <Button
+          onClick={() => navigate("/reviewer/exceptions")}
+          size="sm"
+          variant="ghost"
         >
-          Open exception queue
-        </Link>
-      </div>
+          View queue
+          <i aria-hidden="true" className="ri-arrow-right-s-line" />
+        </Button>
+      </header>
+      <ExceptionQueuePreview items={critical?.data} loading={isLoading} />
+    </section>
+  );
+}
 
-      {summary ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            icon="ri-error-warning-line"
-            label="Open exceptions"
-            value={summary.overview.openExceptions.toLocaleString()}
-          />
-          <StatCard
-            icon="ri-checkbox-circle-line"
-            label="Verified loans"
-            trend={`${summary.overview.verifiedLoans} total`}
-            trendClassName="text-emerald-400"
-            value={summary.overview.verifiedLoans.toLocaleString()}
-          />
-          <StatCard
-            icon="ri-database-2-line"
-            label="Total loans"
-            trend={`${summary.overview.totalLoansImported.toLocaleString()} imported`}
-            value={summary.overview.totalLoansImported.toLocaleString()}
-          />
-          <StatCard
-            icon="ri-percent-line"
-            label="Quality score"
-            trend={
-              summary.overview.qualityScore >= 80
-                ? "Healthy"
-                : "Needs attention"
-            }
-            trendClassName={
-              summary.overview.qualityScore >= 80
-                ? "text-emerald-400"
-                : "text-amber-400"
-            }
-            value={`${summary.overview.qualityScore.toFixed(1)}%`}
-          />
+function RecentDecisionsSection() {
+  const navigate = useNavigate();
+  const { data: summary } = useDashboardSummary();
+
+  return (
+    <section className="rounded-2xl border border-border bg-card">
+      <header className="flex items-center justify-between border-border border-b px-5 py-4">
+        <div>
+          <h3 className="font-semibold text-[14px] tracking-tight">
+            Recent decisions
+          </h3>
+          <p className="text-[12px] text-muted-foreground">
+            Audited reviewer actions and updates
+          </p>
         </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((row) => (
-            <Skeleton className="h-20 w-full" key={row} />
-          ))}
+        <Button
+          onClick={() => navigate("/consumer/audit")}
+          size="sm"
+          variant="ghost"
+        >
+          Audit trail
+          <i aria-hidden="true" className="ri-arrow-right-s-line" />
+        </Button>
+      </header>
+      <RecentDecisions events={summary?.recentActivity} />
+    </section>
+  );
+}
+
+export default function ReviewerDashboard() {
+  const navigate = useNavigate();
+  const { data: summary, isLoading } = useDashboardSummary();
+  const { data: allOpen } = useExceptions({
+    batchId: "",
+    page: 1,
+    search: "",
+    severity: "",
+    status: "open",
+    type: "",
+  });
+  const { data: uploads } = useUploads();
+
+  const overview = summary?.overview;
+  const openExceptions = overview?.openExceptions ?? 0;
+  const highSeverity =
+    (summary?.exceptionsBySeverity?.critical ?? 0) +
+    (summary?.exceptionsBySeverity?.high ?? 0);
+  const latestBatch = uploads?.data?.[0];
+  const reviewedToday = (summary?.recentActivity ?? []).filter((event) => {
+    const isDecision = [
+      "LOAN_APPROVED",
+      "LOAN_REJECTED",
+      "FIELD_EDITED",
+    ].includes(event.eventType);
+    return (
+      isDecision &&
+      Date.now() - new Date(event.timestamp).getTime() < 86_400_000
+    );
+  }).length;
+
+  return (
+    <div className="mx-auto max-w-[1200px] space-y-6 p-8">
+      <PageHeader
+        action={
+          <Button
+            className="rounded-full"
+            onClick={() => navigate("/reviewer/exceptions")}
+          >
+            <i aria-hidden="true" className="ri-error-warning-line" />
+            Open Exception Queue
+          </Button>
+        }
+        description="Triage the exception queue and keep verified data flowing."
+        title="Dashboard"
+      />
+
+      <KpiStrip>
+        <KpiCard
+          icon="ri-error-warning-line"
+          inverse={true}
+          label="Open exceptions"
+          loading={isLoading}
+          trend={openExceptions > 0 ? "down" : "up"}
+          trendLabel="exceptions"
+          trendValue={openExceptions > 0 ? `${openExceptions}` : "0"}
+          value={overview ? openExceptions.toLocaleString() : "—"}
+        />
+        <KpiCard
+          delta={highSeverity > 0 ? "Review immediately" : "None pending"}
+          deltaTone={highSeverity > 0 ? "negative" : "positive"}
+          icon="ri-alarm-warning-line"
+          inverse={true}
+          label="High-severity"
+          loading={isLoading}
+          trend={highSeverity > 0 ? "down" : "up"}
+          trendLabel="critical"
+          trendValue={highSeverity > 0 ? `${highSeverity}` : "0"}
+          value={highSeverity.toLocaleString()}
+        />
+        <KpiCard
+          icon="ri-user-search-line"
+          label="Pending my review"
+          loading={isLoading}
+          trend="neutral"
+          trendLabel="queue"
+          trendValue={
+            allOpen
+              ? `${allOpen.pagination?.total ?? allOpen.data.length}`
+              : "0"
+          }
+          value={
+            allOpen
+              ? (
+                  allOpen.pagination?.total ?? allOpen.data.length
+                ).toLocaleString()
+              : "—"
+          }
+        />
+        <KpiCard
+          delta={reviewedToday > 0 ? "Last 24 hours" : "No decisions yet"}
+          deltaTone={reviewedToday > 0 ? "positive" : "neutral"}
+          icon="ri-checkbox-multiple-line"
+          label="Reviewed today"
+          loading={isLoading}
+          trend="up"
+          trendLabel="decisions"
+          trendValue={reviewedToday > 0 ? `${reviewedToday}` : "0"}
+          value={reviewedToday.toLocaleString()}
+        />
+      </KpiStrip>
+
+      {latestBatch ? (
+        <AiBatchSummary
+          batchId={latestBatch.id}
+          fileName={latestBatch.fileName}
+        />
+      ) : null}
+
+      <div className="grid items-stretch gap-4 lg:grid-cols-5">
+        <div className="flex flex-col lg:col-span-3">
+          <ExceptionTrendChart />
         </div>
-      )}
+        <div className="flex flex-col lg:col-span-2">
+          <IssuesBySeverity />
+        </div>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Critical open exceptions
-            </CardTitle>
-            <CardDescription className="text-[#A1A1AA]">
-              Top 5 critical — click to open the loan
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {(recent?.data ?? []).slice(0, 5).map((item) => (
-              <button
-                className="flex w-full items-center gap-2.5 rounded-lg border border-[#27272A] p-2.5 text-left transition-colors hover:bg-[#27272A]/20"
-                key={item.id}
-                onClick={() => navigate(`/reviewer/loans/${item.loan.id}`)}
-                type="button"
-              >
-                <SeverityBadge severity={item.severity as Severity} />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium text-[13px] text-white">
-                    {item.loan.loanId} ·{" "}
-                    {item.exceptionType.replaceAll("_", " ")}
-                  </span>
-                  <span className="block truncate text-[#A1A1AA] text-xs">
-                    {recentDescription(item)}
-                  </span>
-                </span>
-                <i
-                  aria-hidden="true"
-                  className="ri-arrow-right-s-line text-[#52525B]"
-                />
-              </button>
-            ))}
-            {recent?.data.length === 0 ? (
-              <p className="py-4 text-center text-[#52525B] text-xs">
-                No critical exceptions — nice work.
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-white">By severity</CardTitle>
-            <CardDescription className="text-[#A1A1AA]">
-              Work critical items first
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {summary
-              ? (
-                  Object.entries(summary.exceptionsBySeverity) as [
-                    Severity,
-                    number,
-                  ][]
-                ).map(([severity, count]) => (
-                  <button
-                    className="flex w-full items-center justify-between rounded-lg px-2 py-1 hover:bg-[#27272A]/20"
-                    key={severity}
-                    onClick={() => navigate("/reviewer/exceptions")}
-                    type="button"
-                  >
-                    <SeverityBadge severity={severity} />
-                    <span className="font-medium text-sm tabular-nums">
-                      {count}
-                    </span>
-                  </button>
-                ))
-              : null}
-          </CardContent>
-        </Card>
+        <ExceptionQueueSection />
+        <RecentDecisionsSection />
       </div>
-
-      {summary?.recentActivity && summary.recentActivity.length > 0 ? (
-        <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-white">Recent activity</CardTitle>
-            <CardDescription className="text-[#A1A1AA]">
-              Latest audit events across all loans
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {summary.recentActivity.slice(0, 10).map((event) => (
-              <div
-                className="flex items-center gap-3 rounded-lg px-2 py-1.5"
-                key={`${event.eventType}-${event.timestamp}-${event.loanId ?? "none"}`}
-              >
-                <i
-                  aria-hidden="true"
-                  className={
-                    EVENT_ICONS[event.eventType] ?? "ri-information-line"
-                  }
-                />
-                <span className="min-w-0 flex-1 text-[13px] text-white">
-                  <span className="text-[#A1A1AA]">
-                    {event.eventType.replaceAll("_", " ")}
-                  </span>
-                  {event.loanId ? (
-                    <span className="ml-1 font-mono text-[#8B5CF6] text-xs">
-                      {event.loanId}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="shrink-0 text-[#52525B] text-[11px]">
-                  {new Date(event.timestamp).toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   );
 }

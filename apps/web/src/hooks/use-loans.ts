@@ -1,4 +1,8 @@
-import type { LoanDetail, LoanFieldsPatchBody } from "@repo/types";
+import type {
+  LoanDetail,
+  LoanFieldsPatchBody,
+  LoanListQuery,
+} from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loansApi } from "@/lib/api";
@@ -52,11 +56,23 @@ export function useVerifyLoan(loanId: string) {
       toast.error("Verification failed", { description: error.message });
     },
     onSuccess: (result) => {
-      toast.success("Loan verified", {
+      toast.success("Loan verified and sealed", {
         description: `Record hash: ${result.verifiedLoan.recordHash.slice(0, 18)}…`,
       });
       void queryClient.invalidateQueries({ queryKey: ["loan", loanId] });
+      void queryClient.invalidateQueries({ queryKey: ["loan"] });
+      void queryClient.invalidateQueries({ queryKey: ["loans"] });
+      void queryClient.invalidateQueries({ queryKey: ["exceptions"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit", loanId] });
       void queryClient.invalidateQueries({ queryKey: ["summary"] });
     },
+  });
+}
+
+export function useLoanList(query: LoanListQuery) {
+  return useQuery({
+    placeholderData: (previous) => previous,
+    queryFn: () => loansApi.list(query),
+    queryKey: ["loans", query],
   });
 }

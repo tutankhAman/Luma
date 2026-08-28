@@ -47,7 +47,7 @@ export function BatchTable({
 
   if (!batches?.length) {
     return (
-      <p className="p-6 text-center text-[#A1A1AA] text-sm">
+      <p className="p-6 text-center text-muted-foreground text-sm">
         No uploads yet — ingest your first loan tape above.
       </p>
     );
@@ -56,23 +56,23 @@ export function BatchTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-[#27272A] border-b bg-[#09090B] hover:bg-[#27272A]/20">
-          <TableHead className="px-6 py-4 font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+        <TableRow className="bg-muted/40">
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             File Name
           </TableHead>
-          <TableHead className="px-6 py-4 font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             Type
           </TableHead>
-          <TableHead className="px-6 py-4 text-right font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+          <TableHead className="px-6 py-4 text-right font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             Records
           </TableHead>
-          <TableHead className="px-6 py-4 text-right font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+          <TableHead className="px-6 py-4 text-right font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             Failed
           </TableHead>
-          <TableHead className="px-6 py-4 font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             Status
           </TableHead>
-          <TableHead className="px-6 py-4 font-medium text-[#A1A1AA] text-[11px] uppercase tracking-widest">
+          <TableHead className="px-6 py-4 font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
             Uploaded At
           </TableHead>
         </TableRow>
@@ -80,7 +80,7 @@ export function BatchTable({
       <TableBody>
         {batches.map((batch) => (
           <TableRow
-            className="cursor-pointer border-[#27272A]/50 border-b transition-colors hover:bg-[#27272A]/20"
+            className="cursor-pointer transition-colors hover:bg-accent/50"
             key={batch.id}
             onClick={() => navigate(`/operator/uploads/${batch.id}`)}
             onKeyDown={(event) => {
@@ -90,34 +90,36 @@ export function BatchTable({
             }}
             tabIndex={0}
           >
-            <TableCell className="flex items-center gap-3 px-6 py-4 font-medium text-white">
+            <TableCell className="flex items-center gap-3 px-6 py-4 font-medium">
               <i
                 aria-hidden="true"
-                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} text-[#52525B] text-base`}
+                className={`${FILE_TYPE_ICONS[batch.fileType] ?? "ri-file-line"} text-base text-muted-foreground/60`}
               />
               {batch.fileName}
             </TableCell>
-            <TableCell className="px-6 py-4 text-[#A1A1AA]">
+            <TableCell className="px-6 py-4 text-muted-foreground">
               {batch.fileType.replace(/_/g, " ")}
             </TableCell>
-            <TableCell className="px-6 py-4 text-right font-mono text-[#A1A1AA] tabular-nums">
+            <TableCell className="px-6 py-4 text-right font-mono text-muted-foreground tabular-nums">
               {batch.recordCount.toLocaleString()}
             </TableCell>
             <TableCell className="px-6 py-4 text-right tabular-nums">
               {batch.failedCount > 0 ? (
                 <div className="flex justify-end">
-                  <span className="rounded bg-rose-500/10 px-2 py-0.5 font-medium text-rose-400 text-xs">
+                  <span className="rounded-full border border-destructive/25 bg-destructive/8 px-2 py-0.5 font-medium text-destructive text-xs">
                     {batch.failedCount}
                   </span>
                 </div>
               ) : (
-                <span className="font-mono text-[#52525B] text-xs">0</span>
+                <span className="font-mono text-muted-foreground/60 text-xs">
+                  0
+                </span>
               )}
             </TableCell>
             <TableCell className="px-6 py-4">
               <BatchStatusBadge status={batch.status} />
             </TableCell>
-            <TableCell className="px-6 py-4 text-[#52525B] text-sm tabular-nums">
+            <TableCell className="px-6 py-4 text-[13px] text-muted-foreground tabular-nums">
               {formatDate(batch.createdAt)}
             </TableCell>
           </TableRow>

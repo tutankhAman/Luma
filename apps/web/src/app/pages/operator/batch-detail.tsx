@@ -2,8 +2,10 @@ import type { FailedRow } from "@repo/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { AiSummaryPanel } from "@/components/batch/ai-summary-panel";
 import { BatchStatusBadge } from "@/components/ui/badges";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -26,12 +28,13 @@ import {
   ValidationSummaryCard,
 } from "@/components/upload/validation-summary";
 import { useUploadBatch, useUploadBatchSummary } from "@/hooks/use-uploads";
+import { downloadAsCsv } from "@/lib/download";
 
 function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
   if (!rows?.length) {
     return (
       <CardContent>
-        <p className="text-center text-[#A1A1AA] text-sm">
+        <p className="text-center text-muted-foreground text-sm">
           All rows imported cleanly.
         </p>
       </CardContent>
@@ -53,10 +56,10 @@ function FailedRowsTable({ rows }: { rows?: FailedRow[] }) {
               <TableCell className="pl-4 tabular-nums">
                 {row.rowNumber}
               </TableCell>
-              <TableCell className="max-w-md truncate text-[#A1A1AA] text-xs">
+              <TableCell className="max-w-md truncate text-muted-foreground text-xs">
                 {row.rawData}
               </TableCell>
-              <TableCell className="text-rose-400 text-xs">
+              <TableCell className="text-destructive text-xs">
                 {row.reason}
               </TableCell>
             </TableRow>
@@ -92,7 +95,7 @@ export default function BatchDetailPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <h1 className="font-semibold text-[28px] text-white tracking-tight">
+        <h1 className="font-semibold text-[28px] tracking-tight">
           {batch?.fileName ?? "Batch"}
         </h1>
         {batch ? <BatchStatusBadge status={batch.status} /> : null}
@@ -116,20 +119,20 @@ export default function BatchDetailPage() {
       ) : null}
 
       {batch?.status === "failed" ? (
-        <Card className="rounded-[24px] border border-rose-500/30 bg-rose-500/10 shadow-none">
+        <Card className="rounded-xl border border-destructive/30 bg-destructive/8 shadow-none">
           <CardHeader className="p-5 pb-3">
-            <CardTitle className="flex items-center gap-2 font-semibold text-rose-400 text-sm">
+            <CardTitle className="flex items-center gap-2 font-semibold text-destructive text-sm">
               <i aria-hidden="true" className="ri-error-warning-line text-lg" />
               Ingestion Failed
             </CardTitle>
-            <CardDescription className="mt-1 text-[13px] text-rose-200/90">
+            <CardDescription className="mt-1 text-[13px] text-destructive/90">
               The CSV stream stopped before completing. Fix the source file and
               re-upload — partially imported rows are kept and a retry is
               idempotent.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <pre className="custom-scrollbar-hide max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-rose-500/20 bg-black/50 p-3 font-mono text-[11px] text-rose-300/80">
+            <pre className="custom-scrollbar-hide max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-destructive/25 bg-destructive/5 p-3 font-mono text-[11px] text-destructive/90">
               {String(
                 (batch.metadata as Record<string, unknown> | null)?.error ??
                   `Unknown error — check the API logs for batch ${batch.id}`
@@ -148,11 +151,35 @@ export default function BatchDetailPage() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Failed rows</CardTitle>
-          <CardDescription>
-            Rows that could not be normalized (capped at first 1,000).
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Failed rows</CardTitle>
+            <CardDescription>
+              Rows that could not be normalized (capped at first 1,000).
+            </CardDescription>
+          </div>
+          {batch?.failedRows?.length ? (
+            <Button
+              onClick={() => {
+                const rows = batch.failedRows ?? [];
+                downloadAsCsv(
+                  `failed_rows_${batch.id}.csv`,
+                  ["row_number", "raw_data", "reason"],
+                  rows.map((row) => [
+                    String(row.rowNumber),
+                    row.rawData,
+                    row.reason,
+                  ])
+                );
+                toast.success(`Downloaded ${rows.length} failed rows`);
+              }}
+              size="sm"
+              variant="outline"
+            >
+              <i aria-hidden="true" className="ri-download-2-line" />
+              Download failed rows
+            </Button>
+          ) : null}
         </CardHeader>
         <FailedRowsTable rows={batch?.failedRows} />
       </Card>

@@ -1,0 +1,51 @@
+<svg
+  fill="none"
+  height="201"
+  viewBox="0 0 201 201"
+  width="201"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <title>Luma Logo</title>
+  <g clip-path="url(#clip0_68_6)">
+    <path
+      d="M80.4 0L120.6 0V60.6176C120.769 71.5731 129.703 80.4 140.697 80.4H201V120.6H157.351C146.69 120.6 136.464 116.364 128.926 108.826L92.1741 72.0741C84.6356 64.5356 80.4 54.3102 80.4 43.6486V0Z"
+      fill="url(#paint0_linear_68_6)"
+    />
+    <path
+      d="M120.6 201H80.4001V140.382C80.2308 129.427 71.2973 120.6 60.3026 120.6H0.000109744V80.3999L43.6488 80.3999C54.3103 80.3999 64.5357 84.6355 72.0742 92.174L108.826 128.926C116.365 136.464 120.6 146.69 120.6 157.351L120.6 201Z"
+      fill="url(#paint1_linear_68_6)"
+    />
+  </g>
+  <defs>
+    <linearGradient
+      gradientUnits="userSpaceOnUse"
+      id="paint0_linear_68_6"
+      x1="100.5"
+      x2="100.5"
+      y1="-5.01041"
+      y2="169.81"
+    >
+      <stop stop-color="#75D8FC" />
+      <stop offset="1" stop-color="#0072E5" />
+    </linearGradient>
+    <linearGradient
+      gradientUnits="userSpaceOnUse"
+      id="paint1_linear_68_6"
+      x1="100.5"
+      x2="100.5"
+      y1="-5.0105"
+      y2="169.81"
+    >
+      <stop stop-color="#75D8FC" />
+      <stop offset="1" stop-color="#0072E5" />
+    </linearGradient>
+    <clipPath id="clip0_68_6">
+      <rect
+        fill="white"
+        height="201"
+        transform="matrix(-1 0 0 1 201 0)"
+        width="201"
+      />
+    </clipPath>
+  </defs>
+</svg>

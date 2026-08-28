@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { reviewerDecisionSchema, validationResultSchema } from "./common.js";
+import { aiRecommendationSchema } from "./exception.js";
 
 export const canonicalDataSchema = z.object({
   borrowerId: z.string().nullable(),
@@ -43,16 +44,20 @@ export const verifiedLoanListItemSchema = z.object({
 export type VerifiedLoanListItem = z.infer<typeof verifiedLoanListItemSchema>;
 
 export const verifiedLoanDetailSchema = z.object({
+  aiDecision: z.enum(["accepted", "edited", "rejected"]).nullable().optional(),
+  aiRecommendation: aiRecommendationSchema.nullable().optional(),
   aiRecommendationUsed: z.boolean(),
   canonicalData: canonicalDataSchema,
   id: z.string(),
   loanId: z.string(),
   recordHash: z.string(),
   reviewerDecision: reviewerDecisionSchema.nullable().optional(),
+  reviewerNote: z.string().nullable().optional(),
   sourceBatchRef: z.string(),
   validationResult: validationResultSchema,
   verifiedAt: z.string(),
   verifiedById: z.string(),
+  verifiedByName: z.string().nullable().optional(),
 });
 export type VerifiedLoanDetail = z.infer<typeof verifiedLoanDetailSchema>;
 

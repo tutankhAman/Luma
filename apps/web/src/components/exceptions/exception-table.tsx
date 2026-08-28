@@ -14,27 +14,84 @@ import { cn } from "@/lib/utils";
 
 const SEVERITY_ORDER = { critical: 0, high: 1, low: 3, medium: 2 } as const;
 const SEVERITY_DOT = {
-  critical: "bg-rose-400",
-  high: "bg-orange-400",
-  low: "bg-sky-400",
-  medium: "bg-amber-400",
+  critical: "bg-destructive",
+  high: "bg-destructive",
+  low: "bg-success",
+  medium: "bg-warning",
 } as const;
 
 type SortKey = "createdAt" | "severity";
 
-const RAW_VALUE_PATTERN = /\(([^)]+)\)/;
+const BORROWER_PATTERN = /borrower\s+([A-Za-z0-9_-]+)/i;
+const RATE_PATTERN = /interest_rate\s+([0-9.]+)/i;
+const STATE_PATTERN = /borrower_state\s+([A-Za-z0-9_-]+)/i;
+const STATUS_PATTERN = /payment_status\s+([A-Za-z0-9_-]+)/i;
+const DATE_PATTERN = /\b(\d{4}-\d{2}-\d{2})\b/;
+const PAREN_PATTERN = /\(([^)]+)\)/;
 
-function rawValue(message: string): string {
-  const match = message.match(RAW_VALUE_PATTERN);
-  return match?.[1] ?? "—";
+function extractRawValue(item: ExceptionListItem): string {
+  if (item.aiRecommendation?.fieldsToChange?.[0]?.currentValue) {
+    return item.aiRecommendation.fieldsToChange[0].currentValue;
+  }
+
+  const msg = item.message;
+
+  const borrowerMatch = msg.match(BORROWER_PATTERN);
+  if (borrowerMatch?.[1]) {
+    return borrowerMatch[1];
+  }
+
+  const rateMatch = msg.match(RATE_PATTERN);
+  if (rateMatch?.[1]) {
+    return `${rateMatch[1]}%`;
+  }
+
+  const stateMatch = msg.match(STATE_PATTERN);
+  if (stateMatch?.[1]) {
+    return stateMatch[1];
+  }
+
+  const statusMatch = msg.match(STATUS_PATTERN);
+  if (statusMatch?.[1]) {
+    return statusMatch[1];
+  }
+
+  const dateMatch = msg.match(DATE_PATTERN);
+  if (dateMatch?.[1]) {
+    return dateMatch[1];
+  }
+
+  if (item.exceptionType === "missing_field") {
+    return "Missing";
+  }
+
+  if (item.exceptionType === "balance_error") {
+    return "Invalid Balance";
+  }
+
+  if (item.exceptionType === "date_error") {
+    return "Invalid Date";
+  }
+
+  const parenMatch = msg.match(PAREN_PATTERN);
+  if (parenMatch?.[1]) {
+    return parenMatch[1];
+  }
+
+  return "—";
 }
 
 function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 py-14">
-      <i aria-hidden="true" className="ri-inbox-line text-3xl text-[#52525B]" />
-      <p className="font-medium text-[#A1A1AA] text-sm">No exceptions found</p>
-      <p className="text-[#52525B] text-[12px]">
+      <i
+        aria-hidden="true"
+        className="ri-inbox-line text-3xl text-muted-foreground/60"
+      />
+      <p className="font-medium text-muted-foreground text-sm">
+        No exceptions found
+      </p>
+      <p className="text-[12px] text-muted-foreground/60">
         Try adjusting the filters, or ingest a new batch to validate.
       </p>
     </div>
@@ -75,8 +132,8 @@ export function ExceptionQueueTable({
   const sortButton = (key: SortKey, label: string) => (
     <button
       className={cn(
-        "inline-flex items-center gap-1 hover:text-white",
-        sortKey === key && "text-white"
+        "inline-flex items-center gap-1 hover:text-foreground",
+        sortKey === key && "text-foreground"
       )}
       onClick={() => setSortKey(key)}
       type="button"
@@ -90,7 +147,7 @@ export function ExceptionQueueTable({
     return (
       <div className="space-y-2">
         {[0, 1, 2, 3, 4].map((row) => (
-          <Skeleton className="h-10 w-full bg-[#27272A]" key={row} />
+          <Skeleton className="h-10 w-full" key={row} />
         ))}
       </div>
     );
@@ -104,26 +161,26 @@ export function ExceptionQueueTable({
     <div className="space-y-3">
       <Table>
         <TableHeader>
-          <TableRow className="border-[#27272A] border-b bg-[#09090B] hover:bg-[#09090B]">
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+          <TableRow className="bg-muted/40">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               Loan ID
             </TableHead>
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               Error Type
             </TableHead>
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               Field
             </TableHead>
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               Raw Value
             </TableHead>
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               {sortButton("severity", "Severity")}
             </TableHead>
-            <TableHead className="text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-[11px] text-muted-foreground uppercase tracking-wider">
               AI Confidence
             </TableHead>
-            <TableHead className="text-right text-[#A1A1AA] text-[11px] uppercase tracking-wider">
+            <TableHead className="text-right text-[11px] text-muted-foreground uppercase tracking-wider">
               Action
             </TableHead>
           </TableRow>
@@ -132,13 +189,13 @@ export function ExceptionQueueTable({
           {sorted.map((exception) => (
             <TableRow
               className={cn(
-                "cursor-pointer border-[#27272A]/50 border-b transition-colors hover:bg-[#27272A]/20",
-                selectedId === exception.id && "bg-[#2E1065]/20"
+                "cursor-pointer transition-colors hover:bg-accent/50",
+                selectedId === exception.id && "bg-accent"
               )}
               key={exception.id}
               onClick={() => onSelect(exception)}
             >
-              <TableCell className="flex items-center gap-2 font-mono text-[13px] text-white">
+              <TableCell className="flex items-center gap-2 font-mono text-[13px]">
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -148,15 +205,15 @@ export function ExceptionQueueTable({
                 />
                 {exception.loan.loanId ?? "—"}
               </TableCell>
-              <TableCell className="font-medium text-[13px] text-rose-400">
+              <TableCell className="font-medium text-[13px] text-destructive">
                 {exception.exceptionType.replaceAll("_", " ")}
               </TableCell>
-              <TableCell className="text-[#A1A1AA] text-[13px]">
+              <TableCell className="text-[13px] text-muted-foreground">
                 {exception.field ?? "—"}
               </TableCell>
               <TableCell>
-                <span className="rounded bg-rose-500/10 px-2 py-0.5 font-mono text-[12px] text-white">
-                  {rawValue(exception.message)}
+                <span className="rounded-full border border-destructive/25 bg-destructive/8 px-2 py-0.5 font-mono text-[12px] text-destructive">
+                  {extractRawValue(exception)}
                 </span>
               </TableCell>
               <TableCell>
@@ -164,17 +221,19 @@ export function ExceptionQueueTable({
               </TableCell>
               <TableCell>
                 {exception.aiRecommendation ? (
-                  <span className="flex items-center gap-1 text-[#8B5CF6] text-[13px]">
+                  <span className="flex items-center gap-1 text-[13px] text-primary">
                     <i aria-hidden="true" className="ri-sparkling-2-line" />
                     {Math.round(exception.aiRecommendation.confidence * 100)}%
                   </span>
                 ) : (
-                  <span className="text-[#52525B] text-[13px]">—</span>
+                  <span className="text-[13px] text-muted-foreground/60">
+                    —
+                  </span>
                 )}
               </TableCell>
               <TableCell className="text-right">
                 <Button
-                  className="h-8 border-[#27272A] text-[12px] text-white hover:bg-[#27272A]"
+                  className="h-8 text-[12px]"
                   onClick={(event) => {
                     event.stopPropagation();
                     onSelect(exception);
@@ -192,13 +251,13 @@ export function ExceptionQueueTable({
 
       {pagination && pagination.totalPages > 1 ? (
         <div className="flex items-center justify-between px-4 pb-3">
-          <p className="text-[#A1A1AA] text-[12px] tabular-nums">
+          <p className="text-[12px] text-muted-foreground tabular-nums">
             Page {pagination.page} of {pagination.totalPages} ·{" "}
             {pagination.total} exceptions
           </p>
           <div className="flex gap-2">
             <Button
-              className="border-[#27272A] text-white hover:bg-[#27272A]"
+              className="text-muted-foreground"
               disabled={pagination.page <= 1}
               onClick={() => onPageChange(pagination.page - 1)}
               size="sm"
@@ -208,7 +267,7 @@ export function ExceptionQueueTable({
               Prev
             </Button>
             <Button
-              className="border-[#27272A] text-white hover:bg-[#27272A]"
+              className="text-muted-foreground"
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => onPageChange(pagination.page + 1)}
               size="sm"
@@ -230,7 +289,7 @@ function SeverityDotLabel({
   severity: keyof typeof SEVERITY_DOT;
 }) {
   return (
-    <span className="flex items-center gap-1.5 text-[#A1A1AA] text-[13px] capitalize">
+    <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground capitalize">
       <span
         aria-hidden="true"
         className={cn("size-1.5 rounded-full", SEVERITY_DOT[severity])}

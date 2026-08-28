@@ -33,7 +33,7 @@ export function Forbidden({ requiredRole }: { requiredRole?: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-[#A1A1AA] text-sm">
+          <p className="text-muted-foreground text-sm">
             You do not have permission to view this page
             {requiredRole ? ` (requires ${requiredRole})` : ""}. The API will
             return 403 for any data request.

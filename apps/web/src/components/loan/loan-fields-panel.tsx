@@ -105,7 +105,13 @@ interface EditingState {
   value: string;
 }
 
-export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
+export function LoanFieldsPanel({
+  loan,
+  className,
+}: {
+  loan: LoanDetail;
+  className?: string;
+}) {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const updateFields = useUpdateLoanFields(loan.id);
 
@@ -129,10 +135,10 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
   };
 
   return (
-    <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-2xl">
+    <Card className={cn("rounded-[24px] border border-border", className)}>
       <CardHeader>
-        <CardTitle className="text-white">Loan fields</CardTitle>
-        <CardDescription className="text-[#A1A1AA]">
+        <CardTitle>Loan fields</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Pencil marks reviewer-editable fields. Every edit is audit logged with
           a reason.
         </CardDescription>
@@ -148,10 +154,10 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
             if (isEditing && editing) {
               return (
                 <div
-                  className="col-span-1 space-y-2 rounded-lg border border-[#8B5CF6]/30 bg-[#2E1065]/20 p-3 sm:col-span-2"
+                  className="col-span-1 space-y-2 rounded-lg border border-primary/30 bg-primary/[0.06] p-3 sm:col-span-2"
                   key={key}
                 >
-                  <p className="font-medium text-[#8B5CF6] text-xs">
+                  <p className="font-medium text-primary text-xs">
                     Editing {meta.label}
                   </p>
                   <Input
@@ -193,13 +199,13 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
 
             return (
               <div
-                className="flex items-center justify-between gap-2 border-[#27272A]/50 border-b py-2"
+                className="flex items-center justify-between gap-2 border-border/60 border-b py-2"
                 key={key}
               >
-                <dt className="text-[#A1A1AA] text-xs">{meta.label}</dt>
+                <dt className="text-muted-foreground text-xs">{meta.label}</dt>
                 <dd
                   className={cn(
-                    "flex items-center gap-1.5 text-right text-sm text-white",
+                    "flex items-center gap-1.5 text-right text-sm",
                     editable && "font-medium"
                   )}
                 >
@@ -207,7 +213,7 @@ export function LoanFieldsPanel({ loan }: { loan: LoanDetail }) {
                   {editable ? (
                     <button
                       aria-label={`Edit ${meta.label}`}
-                      className="text-[#52525B] transition-colors hover:text-[#8B5CF6]"
+                      className="text-muted-foreground/60 transition-colors hover:text-primary"
                       onClick={() =>
                         startEdit(
                           key as LoanEditableField,

@@ -22,21 +22,19 @@ export function AiSummaryPanel({ batchId }: { batchId: string }) {
   };
 
   return (
-    <Card className="rounded-[24px] border border-[#8B5CF6]/20 bg-[#18181B] shadow-2xl">
+    <Card className="rounded-xl border border-primary/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <i
               aria-hidden="true"
-              className="ri-robot-2-line text-[#8B5CF6] text-base"
+              className="ri-robot-2-line text-base text-primary"
             />
-            <CardTitle className="text-sm text-white">
-              AI Batch Summary
-            </CardTitle>
+            <CardTitle className="text-sm">AI Batch Summary</CardTitle>
           </div>
           {summary ? (
             <button
-              className="text-[#52525B] transition-colors hover:text-[#A1A1AA]"
+              className="text-muted-foreground/60 transition-colors hover:text-muted-foreground"
               onClick={() => setExpanded(!expanded)}
               type="button"
             >
@@ -51,7 +49,7 @@ export function AiSummaryPanel({ batchId }: { batchId: string }) {
             </button>
           ) : null}
         </div>
-        <CardDescription className="text-[#A1A1AA] text-xs">
+        <CardDescription className="text-muted-foreground text-xs">
           Generate a natural-language overview of this batch's exceptions and
           validation outcomes.
         </CardDescription>
@@ -59,11 +57,9 @@ export function AiSummaryPanel({ batchId }: { batchId: string }) {
 
       {summary && expanded ? (
         <CardContent className="pt-0">
-          <div className="space-y-2 rounded-lg border border-[#8B5CF6]/20 bg-[#2E1065]/10 p-3">
-            <p className="whitespace-pre-wrap text-[13px] text-white">
-              {summary.summary}
-            </p>
-            <div className="flex gap-x-3 text-[#52525B] text-[11px]">
+          <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/[0.05] p-3">
+            <p className="whitespace-pre-wrap text-[13px]">{summary.summary}</p>
+            <div className="flex gap-x-3 text-[11px] text-muted-foreground/60">
               <span>{summary.model}</span>
               <span>{new Date(summary.timestamp).toLocaleString()}</span>
             </div>

@@ -2,9 +2,11 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 const ROLE_HOME: Record<Role, string> = {
   data_consumer: "/consumer/dashboard",
@@ -12,13 +14,19 @@ const ROLE_HOME: Record<Role, string> = {
   reviewer: "/reviewer/dashboard",
 };
 
+const DEMO_ACCOUNTS = [
+  { email: "operator@luma.dev", label: "Operator", role: "data_operator" },
+  { email: "reviewer@luma.dev", label: "Reviewer", role: "reviewer" },
+  { email: "consumer@luma.dev", label: "Consumer", role: "data_consumer" },
+];
+
 export function RoleRedirect() {
   const { isPending, user } = useSession();
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <Skeleton className="h-10 w-56" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Skeleton className="h-10 w-56 rounded-full" />
       </div>
     );
   }
@@ -38,21 +46,13 @@ export function RoleRedirect() {
   return <Navigate replace to={ROLE_HOME[normalized]} />;
 }
 
-const STEPS = [
-  { description: "Create your operator account", title: "Create an account" },
-  {
-    description: "Upload tapes and resolve exceptions",
-    title: "Start verifying loans",
-  },
-];
-
 function AuthInput({
   autoComplete,
   id,
   label,
   onChange,
   placeholder,
-  type,
+  type = "text",
   value,
 }: {
   autoComplete?: string;
@@ -60,36 +60,73 @@ function AuthInput({
   label: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  type: string;
+  type?: string;
   value: string;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const effectiveType = isPassword && showPassword ? "text" : type;
+
   return (
-    <div>
-      <label className="mb-2 block text-[#A1A1AA] text-[12px]" htmlFor={id}>
+    <div className="space-y-1.5">
+      <label
+        className="block font-medium text-[12px] text-foreground"
+        htmlFor={id}
+      >
         {label}
       </label>
-      <input
-        autoComplete={autoComplete}
-        className="w-full rounded-xl border-transparent bg-[#18181B] px-4 py-3 text-[14px] text-white transition-colors [color-scheme:dark] placeholder:text-[#52525B] focus:border-[#27272A] focus:outline-none focus:ring-1 focus:ring-[#27272A]"
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={true}
-        type={type}
-        value={value}
-      />
+      <div className="relative">
+        <input
+          autoComplete={autoComplete}
+          className={cn(
+            "h-10 w-full rounded-xl border border-input bg-background px-3.5 text-[13.5px] outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20",
+            isPassword && "pr-10"
+          )}
+          id={id}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          required={true}
+          type={effectiveType}
+          value={value}
+        />
+        {isPassword ? (
+          <button
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground/60 transition-colors hover:text-foreground focus:outline-none"
+            onClick={() => setShowPassword(!showPassword)}
+            type="button"
+          >
+            <i
+              aria-hidden="true"
+              className={
+                showPassword
+                  ? "ri-eye-off-line text-base"
+                  : "ri-eye-line text-base"
+              }
+            />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function submitLabel(submitting: boolean, mode: "signin" | "register"): string {
+function getSubmitButtonContent(
+  submitting: boolean,
+  mode: "signin" | "register"
+) {
   if (submitting) {
-    return "Please wait...";
+    return (
+      <>
+        <i
+          aria-hidden="true"
+          className="ri-loader-4-line animate-spin text-sm"
+        />
+        Please wait…
+      </>
+    );
   }
-  if (mode === "register") {
-    return "Create account";
-  }
-  return "Sign in";
+  return mode === "register" ? "Create account" : "Sign in";
 }
 
 export default function LoginPage() {
@@ -150,71 +187,104 @@ export default function LoginPage() {
     }
   };
 
+  const fillDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("password");
+    toast.success(`Demo credentials filled for ${demoEmail}`);
+  };
+
   return (
-    <div className="flex min-h-screen gap-4 bg-black p-4 font-sans">
-      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-auth-gradient pt-40 pr-12 pb-12 pl-12 lg:flex">
-        <div className="mb-10 flex items-center gap-2 font-medium text-white">
-          <span
-            aria-hidden="true"
-            className="size-5 rounded-full border border-white"
+    <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
+      {/* Left: Container with 2xl rounded corners taking half the width */}
+      <section className="relative hidden h-full w-1/2 p-2 sm:p-2.5 lg:block">
+        <div className="relative size-full overflow-hidden rounded-2xl border border-border bg-muted shadow-xs">
+          <img
+            alt="Luma Verification Platform"
+            className="size-full object-cover object-center"
+            height={3840}
+            src="/login-bg.webp"
+            width={2160}
           />
-          Luma
+          {/* Centrally Aligned Glassmorphic Brand Panel (Fully Rounded Pill) */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/40 px-7 py-3.5 shadow-2xl backdrop-blur-md">
+              <img
+                alt="Luma Logo"
+                className="size-8 shrink-0 drop-shadow-md"
+                height={32}
+                src="/luma.svg"
+                width={32}
+              />
+              <span className="font-bold text-[22px] text-white tracking-tight">
+                Luma
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom Glassmorphic Info Pane */}
+          <div className="absolute inset-x-3.5 bottom-3.5 rounded-2xl border border-white/15 bg-black/45 p-4 text-white shadow-xl backdrop-blur-md">
+            <p className="mb-1 font-semibold text-[13px] tracking-tight">
+              Loan Tape Verification
+            </p>
+            <p className="max-w-[480px] text-[12px] text-white/80 leading-relaxed">
+              Ingest multi-source tapes, resolve data discrepancies with rule
+              checks, and export verified mortgage records with cryptographic
+              seals.
+            </p>
+          </div>
         </div>
-        <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
-          Loan data verification,
-          <br />
-          made trustworthy
-        </h1>
-        <p className="mb-12 max-w-[280px] text-center text-[#A1A1AA] text-[15px] leading-snug">
-          Turn messy loan tapes into validated, traceable records with AI
-          assistance at every step.
-        </p>
-        <ol className="w-full max-w-[340px] space-y-3">
-          {STEPS.map((step, index) => {
-            const active = index === 0;
-            return (
-              <li
-                className={`flex items-center gap-4 rounded-xl p-4 ${
-                  active
-                    ? "bg-white font-medium text-black"
-                    : "bg-[#18181B]/60 text-[#A1A1AA]"
-                } text-[14px]`}
-                key={step.title}
-              >
-                <span
-                  className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
-                    active ? "bg-black text-white" : "border border-[#A1A1AA]"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                <span>
-                  <span className="block">{step.title}</span>
-                  <span
-                    className={`block text-[12px] ${active ? "text-black/60" : "text-[#52525B]"}`}
-                  >
-                    {step.description}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
       </section>
 
-      <section className="flex w-full flex-col items-center justify-center bg-black lg:w-1/2">
-        <div className="w-full max-w-[380px]">
-          <h2 className="mb-1.5 font-semibold text-[22px] text-white">
-            {mode === "register" ? "Create your account" : "Welcome back"}
-          </h2>
-          <p className="mb-8 text-[#A1A1AA] text-[13px]">
-            {mode === "register"
-              ? "Start turning messy loan data into trusted records."
-              : "Sign in to continue to Luma Copilot."}
-          </p>
+      {/* Right: Auth Form Section */}
+      <section className="flex h-full w-full flex-col justify-between overflow-y-auto p-6 sm:p-8 lg:w-1/2">
+        {/* Header Branding */}
+        <div className="flex items-center gap-2.5">
+          <img
+            alt="Luma Logo"
+            className="size-7 shrink-0"
+            height={28}
+            src="/luma.svg"
+            width={28}
+          />
+          <span className="font-semibold text-base tracking-tight">Luma</span>
+        </div>
+
+        {/* Form Container */}
+        <div className="mx-auto my-auto w-full max-w-[380px] py-2">
+          <div className="mb-6 space-y-1.5">
+            <h1 className="font-semibold text-[24px] text-foreground tracking-tight">
+              {mode === "register" ? "Create your account" : "Welcome back"}
+            </h1>
+            <p className="text-[13px] text-muted-foreground">
+              {mode === "register"
+                ? "Start turning unverified loan tapes into verified assets."
+                : "Sign in to access loan ingestion, review, and verification."}
+            </p>
+          </div>
+
+          {/* Quick Demo Selector */}
+          {mode === "signin" ? (
+            <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
+              <p className="mb-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+                Quick Demo Accounts
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    className="rounded-full border border-border/80 bg-background px-3 py-1 font-medium text-[11.5px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 active:scale-95"
+                    key={acc.email}
+                    onClick={() => fillDemoAccount(acc.email)}
+                    type="button"
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <form
-            className="space-y-4"
+            className="space-y-3.5"
             onSubmit={(event) => void handleSubmit(event)}
           >
             {mode === "register" ? (
@@ -249,28 +319,28 @@ export default function LoginPage() {
                 type="password"
                 value={password}
               />
-              <span className="mt-2 block text-[#A1A1AA] text-[12px]">
-                {mode === "register"
-                  ? "Must be at least 8 characters."
-                  : "Demo accounts: operator / reviewer / consumer @luma.dev"}
-              </span>
+              {mode === "register" ? (
+                <span className="mt-1.5 block text-[11.5px] text-muted-foreground">
+                  Must be at least 8 characters.
+                </span>
+              ) : null}
             </div>
 
-            <button
-              className="mt-8 w-full rounded-xl bg-white py-3 font-medium text-[14px] text-black transition-colors hover:bg-gray-200 disabled:opacity-50"
+            <Button
+              className="mt-2 h-10 w-full rounded-full text-[13.5px]"
               disabled={submitting}
               type="submit"
             >
-              {submitLabel(submitting, mode)}{" "}
-            </button>
+              {getSubmitButtonContent(submitting, mode)}
+            </Button>
           </form>
 
-          <p className="mt-8 text-center text-[#A1A1AA] text-[13px]">
+          <div className="mt-6 text-center text-[12.5px] text-muted-foreground">
             {mode === "register"
               ? "Already have an account?"
               : "Don't have an account?"}
             <button
-              className="ml-1 font-medium text-white hover:underline"
+              className="ml-1.5 font-medium text-primary hover:underline"
               onClick={() =>
                 setMode(mode === "register" ? "signin" : "register")
               }
@@ -278,7 +348,13 @@ export default function LoginPage() {
             >
               {mode === "register" ? "Sign in" : "Create one"}
             </button>
-          </p>
+          </div>
+        </div>
+
+        {/* Footer Copyright / Status */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground/70">
+          <span>© 2026 Luma Systems</span>
+          <span>Cryptographic Verification Pipeline</span>
         </div>
       </section>
     </div>

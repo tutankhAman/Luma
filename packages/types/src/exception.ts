@@ -174,6 +174,22 @@ export type AiClassifySeverityResponse = z.infer<
   typeof aiClassifySeverityResponseSchema
 >;
 
+export const aiDraftNoteRequestSchema = z.object({
+  exceptionId: z.string().min(1),
+});
+export type AiDraftNoteRequest = z.infer<typeof aiDraftNoteRequestSchema>;
+
+export const aiDraftNoteResponseSchema = z.object({
+  code: z.string().optional(),
+  error: z.string().optional(),
+  exceptionId: z.string(),
+  model: z.string(),
+  note: z.string().nullable(),
+  promptSummary: z.string(),
+  timestamp: z.string(),
+});
+export type AiDraftNoteResponse = z.infer<typeof aiDraftNoteResponseSchema>;
+
 export const aiSuggestRuleRequestSchema = z.object({
   prompt: z.string().min(1).max(500),
 });

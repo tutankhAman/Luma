@@ -3,13 +3,6 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -28,6 +21,12 @@ const FILE_TYPES: FileType[] = [
   "servicer_update",
   "document_manifest",
 ];
+
+const FILE_TYPE_LABELS: Record<FileType, string> = {
+  document_manifest: "Document manifest",
+  loan_tape: "Loan tape",
+  servicer_update: "Servicer update",
+};
 
 export function CsvDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,24 +81,24 @@ export function CsvDropzone() {
   };
 
   return (
-    <Card className="rounded-[24px] border border-[#27272A] bg-[#18181B] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.03),0px_4px_8px_-2px_rgba(0,0,0,0.02)]">
-      <CardHeader className="p-8 pb-0">
-        <CardTitle className="font-medium text-lg text-white tracking-tight">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <header className="border-border border-b px-6 py-5">
+        <h3 className="font-semibold text-base tracking-tight">
           Upload loan data
-        </CardTitle>
-        <CardDescription className="mt-1 text-[#A1A1AA]">
-          Max size 500 MB — ingestion runs in the background and you can track
-          progress per batch.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-0 p-8 pt-5">
+        </h3>
+        <p className="mt-0.5 text-[12.5px] text-muted-foreground">
+          Max size 500 MB — ingestion runs in the background with auto-detected
+          schemas and validation tracking.
+        </p>
+      </header>
+      <div className="space-y-0 p-6">
         <button
           aria-label="Upload CSV file"
           className={cn(
-            "group flex h-[240px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200",
+            "group flex h-[240px] w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200",
             dragging
-              ? "border-[#8B5CF6]/50 bg-[#27272A]/30"
-              : "border-[#27272A] bg-[#09090B]/50 hover:border-[#8B5CF6]/50 hover:bg-[#27272A]/30"
+              ? "border-primary bg-primary/[0.04]"
+              : "border-border/80 bg-muted/30 hover:border-primary/50 hover:bg-accent/40"
           )}
           onClick={openPicker}
           onDragLeave={() => setDragging(false)}
@@ -114,23 +113,30 @@ export function CsvDropzone() {
           }}
           type="button"
         >
-          <i
-            aria-hidden="true"
-            className="ri-upload-cloud-2-line mb-3 text-4xl text-[#52525B] transition-colors group-hover:text-white"
-          />
           {file ? (
-            <>
-              <p className="font-medium text-sm text-white">{file.name}</p>
-              <p className="mt-1 text-[#A1A1AA] text-xs">
-                {(file.size / 1024 / 1024).toFixed(2)} MB — click to replace
+            <div className="flex flex-col items-center">
+              <span className="mb-2.5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <i aria-hidden="true" className="ri-file-text-line text-2xl" />
+              </span>
+              <p className="font-medium text-foreground text-sm">{file.name}</p>
+              <p className="mt-0.5 text-muted-foreground text-xs">
+                {(file.size / 1024 / 1024).toFixed(2)} MB · click to replace
               </p>
-            </>
+            </div>
           ) : (
             <>
-              <p className="font-medium text-[#A1A1AA] text-sm">
+              <span className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground/60 transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                <i
+                  aria-hidden="true"
+                  className="ri-upload-cloud-2-line text-2xl"
+                />
+              </span>
+              <p className="font-medium text-foreground text-sm">
                 Drag &amp; drop your CSV here, or click to browse
               </p>
-              <p className="mt-1 text-[#52525B] text-xs">.csv files only</p>
+              <p className="mt-1 text-muted-foreground text-xs">
+                .csv files up to 500 MB
+              </p>
             </>
           )}
           <input
@@ -143,10 +149,10 @@ export function CsvDropzone() {
           />
         </button>
 
-        <div className="mt-6 flex items-center justify-between gap-3 border-[#27272A] border-t pt-6">
-          <div className="flex flex-col justify-center space-y-1.5">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-border border-t pt-5">
+          <div className="flex items-center gap-3">
             <Label
-              className="font-medium text-[#A1A1AA] text-xs uppercase tracking-wider"
+              className="font-medium text-[11.5px] text-muted-foreground uppercase tracking-wider"
               htmlFor="file-type"
             >
               File type
@@ -156,7 +162,7 @@ export function CsvDropzone() {
               value={fileType}
             >
               <SelectTrigger
-                className="w-52 rounded-lg border-[#27272A]"
+                className="w-52 rounded-xl"
                 id="file-type"
                 size="sm"
               >
@@ -165,14 +171,14 @@ export function CsvDropzone() {
               <SelectContent>
                 {FILE_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {type.replace(/_/g, " ")}
+                    {FILE_TYPE_LABELS[type]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <Button
-            className="ml-auto rounded-xl bg-white px-6 py-2.5 font-medium text-[14px] text-black transition-all hover:bg-zinc-800"
+            className="ml-auto rounded-full px-6 py-2.5 font-medium text-[14px]"
             disabled={!file || createUpload.isPending}
             onClick={startUpload}
           >
@@ -185,20 +191,23 @@ export function CsvDropzone() {
                 Uploading...
               </>
             ) : (
-              <>Start ingestion</>
+              <>
+                <i aria-hidden="true" className="ri-upload-cloud-2-line" />
+                Start Ingestion
+              </>
             )}
           </Button>
         </div>
 
         {progress === null ? null : (
-          <div className="space-y-1">
+          <div className="mt-4 space-y-1">
             <Progress value={progress} />
-            <p className="text-right text-[#A1A1AA] text-xs tabular-nums">
+            <p className="text-right text-muted-foreground text-xs tabular-nums">
               {progress}%
             </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

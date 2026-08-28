@@ -1,5 +1,11 @@
-import type { ExceptionListItem } from "@repo/types";
+import type {
+  ExceptionListItem,
+  ExceptionStatus,
+  ExceptionType,
+  Severity,
+} from "@repo/types";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AiResolutionPanel } from "@/components/exceptions/ai-resolution-panel";
 import { ExceptionQueueTable } from "@/components/exceptions/exception-table";
 import { FilterBar } from "@/components/exceptions/filter-bar";
@@ -10,9 +16,23 @@ import {
 } from "@/hooks/use-exceptions-filters";
 
 export default function ExceptionQueuePage() {
-  const [filters, setFilters] = useState<ExceptionListFilters>(
-    EMPTY_EXCEPTION_FILTERS
-  );
+  const [searchParams] = useSearchParams();
+  const initialSeverity = (searchParams.get("severity") ?? "") as Severity | "";
+  const initialStatus = (searchParams.get("status") ?? "open") as
+    | ExceptionStatus
+    | "";
+  const initialType = (searchParams.get("type") ?? "") as ExceptionType | "";
+  const initialBatchId = searchParams.get("batchId") ?? "";
+  const initialSearch = searchParams.get("search") ?? "";
+
+  const [filters, setFilters] = useState<ExceptionListFilters>(() => ({
+    ...EMPTY_EXCEPTION_FILTERS,
+    batchId: initialBatchId,
+    search: initialSearch,
+    severity: initialSeverity,
+    status: initialStatus,
+    type: initialType,
+  }));
   const [selected, setSelected] = useState<ExceptionListItem | null>(null);
   const { data, isLoading, isFetching } = useExceptions(filters);
 
@@ -27,26 +47,26 @@ export default function ExceptionQueuePage() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="custom-scrollbar-hide flex-1 overflow-y-auto bg-black p-10">
+      <div className="custom-scrollbar-hide flex-1 overflow-y-auto bg-background p-10">
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="mb-2 font-semibold text-[28px] text-white tracking-tight">
+            <h1 className="mb-2 font-semibold text-[28px] tracking-tight">
               Exception Queue
             </h1>
-            <p className="text-[#A1A1AA] text-[14px]">
+            <p className="text-[14px] text-muted-foreground">
               Review validation failures and apply AI-suggested corrections.
             </p>
           </div>
           {isFetching ? (
             <i
               aria-hidden="true"
-              className="ri-loader-4-line animate-spin text-[#A1A1AA]"
+              className="ri-loader-4-line animate-spin text-muted-foreground"
             />
           ) : null}
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-[#27272A] bg-[#18181B]">
-          <div className="border-[#27272A] border-b bg-[#09090B]/50 p-4">
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="border-border border-b bg-muted/40 p-4">
             <FilterBar filters={filters} onChange={patch} />
           </div>
           <ExceptionQueueTable

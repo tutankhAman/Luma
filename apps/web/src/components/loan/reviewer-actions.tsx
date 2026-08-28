@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddComment, useExceptionReview } from "@/hooks/use-exceptions";
 import { useVerifyLoan } from "@/hooks/use-loans";
+import { cn } from "@/lib/utils";
 
 function confirmLabel(
   pending: boolean,
@@ -23,28 +25,169 @@ function confirmLabel(
   return action === "approve" ? "Confirm approve" : "Confirm reject";
 }
 
+function getDialogTitle(
+  action: "approve" | "reject" | null,
+  isAiAccepted: boolean
+): string {
+  if (action === "approve") {
+    return isAiAccepted ? "Approve with AI Fix?" : "Approve this exception?";
+  }
+  return "Reject this exception?";
+}
+
+function getDialogDescription(
+  action: "approve" | "reject" | null,
+  isAiAccepted: boolean
+): string {
+  if (action === "approve") {
+    return isAiAccepted
+      ? "The exception will be approved with the staged AI corrected value and recorded in the audit trail."
+      : "The exception will be marked approved and the decision audit logged.";
+  }
+  return "The loan cannot be verified while this exception is rejected.";
+}
+
+function VerifyLoanSection({
+  allResolved,
+  loanId,
+  verifiedRecord,
+}: {
+  allResolved: boolean;
+  loanId: string;
+  verifiedRecord?: { recordHash: string; verifiedAt: string } | null;
+}) {
+  const verifyLoan = useVerifyLoan(loanId);
+
+  if (verifiedRecord) {
+    return (
+      <div className="space-y-3 rounded-xl border border-success/30 bg-success/[0.08] p-4 text-success">
+        <div className="flex items-center gap-2 font-semibold text-[13.5px]">
+          <i
+            aria-hidden="true"
+            className="ri-shield-check-fill text-lg text-success"
+          />
+          <span>Loan sealed & verified</span>
+        </div>
+        <p className="text-[12px] text-foreground/85 leading-relaxed">
+          Cryptographic record sealed with immutable hash:
+          <span className="mt-1.5 block select-all break-all rounded-lg border border-success/25 bg-success/10 p-2 font-medium font-mono text-[11px] text-success">
+            {verifiedRecord.recordHash}
+          </span>
+        </p>
+        <div className="pt-1">
+          <Link
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "w-full rounded-full font-medium"
+            )}
+            to="/reviewer/exceptions"
+          >
+            <i aria-hidden="true" className="ri-arrow-left-line text-base" />
+            Back to Review Queue
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-4 transition-colors",
+        allResolved
+          ? "border-primary/40 bg-primary/[0.04]"
+          : "border-border bg-muted/40"
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-[13.5px]">Verify loan</p>
+            {allResolved ? (
+              <span className="rounded-full bg-success/15 px-2 py-0.5 font-semibold text-[10px] text-success uppercase tracking-wider">
+                Ready to seal
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+            {allResolved
+              ? "All exceptions resolved — create immutable verified record."
+              : "Resolve all exceptions above before verifying."}
+          </p>
+        </div>
+        <Button
+          className={cn(
+            allResolved &&
+              "bg-primary font-medium text-primary-foreground hover:bg-primary/90"
+          )}
+          disabled={!allResolved || verifyLoan.isPending}
+          onClick={() => verifyLoan.mutate()}
+          size="sm"
+        >
+          {verifyLoan.isPending ? (
+            <>
+              <i
+                aria-hidden="true"
+                className="ri-loader-4-line animate-spin text-base"
+              />
+              Sealing...
+            </>
+          ) : (
+            <>
+              <i
+                aria-hidden="true"
+                className="ri-shield-check-line text-base"
+              />
+              {allResolved ? "Seal & Verify" : "Verify"}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ReviewerActions({
   allResolved,
   exceptionId,
   exceptionStatus,
   loanId,
+  note,
+  onNoteChange,
+  onNoteDrafted,
+  requestingDraft,
+  stagedValue,
+  decisionState,
+  verifiedRecord,
 }: {
   allResolved: boolean;
   exceptionId: string | null;
   exceptionStatus: string;
   loanId: string;
+  note: string;
+  onNoteChange: (note: string) => void;
+  onNoteDrafted?: () => void;
+  requestingDraft?: boolean;
+  stagedValue?: string;
+  decisionState?: "accepted" | "rejected" | "edited" | null;
+  verifiedRecord?: { recordHash: string; verifiedAt: string } | null;
 }) {
-  const [note, setNote] = useState("");
-  const [correctedValue, setCorrectedValue] = useState("");
+  const [correctedValue, setCorrectedValue] = useState(stagedValue ?? "");
   const [confirmAction, setConfirmAction] = useState<
     "approve" | "reject" | null
   >(null);
 
   const { approve, reject } = useExceptionReview();
   const addComment = useAddComment();
-  const verifyLoan = useVerifyLoan(loanId);
+
+  useEffect(() => {
+    if (stagedValue !== undefined) {
+      setCorrectedValue(stagedValue);
+    }
+  }, [stagedValue]);
 
   const resolved = exceptionStatus !== "open";
+  const isAiAccepted = decisionState === "accepted";
 
   const runConfirm = () => {
     if (!(exceptionId && confirmAction)) {
@@ -70,16 +213,33 @@ export function ReviewerActions({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label className="text-[#A1A1AA]" htmlFor="reviewer-note">
+        <Label className="text-muted-foreground" htmlFor="reviewer-note">
           Reviewer note
         </Label>
         <Textarea
           id="reviewer-note"
-          onChange={(event) => setNote(event.target.value)}
+          onChange={(event) => onNoteChange(event.target.value)}
           placeholder="Document your reasoning for the audit trail..."
           rows={2}
           value={note}
         />
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-primary transition-colors hover:bg-primary/8 disabled:opacity-50"
+            disabled={requestingDraft || !exceptionId}
+            onClick={() => onNoteDrafted?.()}
+            type="button"
+          >
+            <i
+              aria-hidden="true"
+              className={cn(
+                "ri-sparkling-2-line text-[12px]",
+                requestingDraft && "animate-pulse"
+              )}
+            />
+            {requestingDraft ? "Drafting…" : "Generate reviewer note (AI)"}
+          </button>
+        </div>
         <div className="flex gap-2">
           <Button
             disabled={!note.trim() || addComment.isPending || !exceptionId}
@@ -87,10 +247,9 @@ export function ReviewerActions({
               if (!exceptionId) {
                 return;
               }
-              addComment.mutate(
-                { exceptionId, note: note.trim() },
-                { onSuccess: () => setNote("") }
-              );
+              void addComment
+                .mutateAsync({ exceptionId, note: note.trim() })
+                .then(() => onNoteChange(""));
             }}
             size="sm"
             variant="outline"
@@ -101,61 +260,70 @@ export function ReviewerActions({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-[#27272A] border-t pt-3">
-        <Button
-          disabled={resolved || !exceptionId}
-          onClick={() => setConfirmAction("approve")}
-          size="sm"
+      {resolved ? (
+        <div
+          className={cn(
+            "rounded-xl border p-3.5",
+            exceptionStatus === "approved"
+              ? "border-success/30 bg-success/8 text-success"
+              : "border-destructive/30 bg-destructive/8 text-destructive"
+          )}
         >
-          <i aria-hidden="true" className="ri-checkbox-circle-line text-base" />
-          Approve exception
-        </Button>
-        <Button
-          disabled={resolved || !exceptionId}
-          onClick={() => setConfirmAction("reject")}
-          size="sm"
-          variant="destructive"
-        >
-          <i aria-hidden="true" className="ri-close-circle-line text-base" />
-          Reject exception
-        </Button>
-      </div>
-
-      <div className="rounded-lg border border-[#27272A] bg-[#09090B]/60 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="font-medium text-[13px] text-white">Verify loan</p>
-            <p className="text-[#A1A1AA] text-[11px]">
-              {allResolved
-                ? "All exceptions closed — create the verified record."
-                : "Resolve every exception first."}
-            </p>
+          <div className="flex items-center gap-2 font-semibold text-[13px]">
+            <i
+              aria-hidden="true"
+              className={
+                exceptionStatus === "approved"
+                  ? "ri-checkbox-circle-fill text-base"
+                  : "ri-close-circle-fill text-base"
+              }
+            />
+            <span>
+              {exceptionStatus === "approved"
+                ? "Exception approved & resolved"
+                : "Exception rejected"}
+            </span>
           </div>
+          <p className="mt-1 text-[12px] text-foreground/80 leading-relaxed">
+            {exceptionStatus === "approved"
+              ? "This exception has been approved and its values applied to the loan record."
+              : "This exception has been rejected by reviewer."}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 border-border border-t pt-3">
           <Button
-            disabled={!allResolved || verifyLoan.isPending}
-            onClick={() => verifyLoan.mutate()}
+            className={cn(
+              isAiAccepted &&
+                "bg-primary font-medium text-primary-foreground ring-2 ring-success/40 ring-offset-2 ring-offset-background hover:bg-primary/90"
+            )}
+            disabled={!exceptionId}
+            onClick={() => setConfirmAction("approve")}
             size="sm"
           >
-            {verifyLoan.isPending ? (
-              <>
-                <i
-                  aria-hidden="true"
-                  className="ri-loader-4-line animate-spin text-base"
-                />
-                Verifying...
-              </>
-            ) : (
-              <>
-                <i
-                  aria-hidden="true"
-                  className="ri-shield-check-line text-base"
-                />
-                Verify
-              </>
-            )}
+            <i
+              aria-hidden="true"
+              className="ri-checkbox-circle-line text-base"
+            />
+            {isAiAccepted ? "Approve with AI Fix" : "Approve exception"}
+          </Button>
+          <Button
+            disabled={!exceptionId}
+            onClick={() => setConfirmAction("reject")}
+            size="sm"
+            variant="destructive"
+          >
+            <i aria-hidden="true" className="ri-close-circle-line text-base" />
+            Reject exception
           </Button>
         </div>
-      </div>
+      )}
+
+      <VerifyLoanSection
+        allResolved={allResolved}
+        loanId={loanId}
+        verifiedRecord={verifiedRecord}
+      />
 
       <Dialog
         onOpenChange={(open) => {
@@ -168,14 +336,10 @@ export function ReviewerActions({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmAction === "approve"
-                ? "Approve this exception?"
-                : "Reject this exception?"}
+              {getDialogTitle(confirmAction, isAiAccepted)}
             </DialogTitle>
             <DialogDescription>
-              {confirmAction === "approve"
-                ? "The exception will be marked approved and the decision audit logged."
-                : "The loan cannot be verified while this exception is rejected."}
+              {getDialogDescription(confirmAction, isAiAccepted)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

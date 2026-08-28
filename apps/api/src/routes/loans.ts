@@ -69,8 +69,10 @@ router.get(
     }
     if (search) {
       where.OR = [
+        { id: { equals: search } },
         { loanId: { contains: search, mode: "insensitive" } },
         { borrowerId: { contains: search, mode: "insensitive" } },
+        { servicerName: { contains: search, mode: "insensitive" } },
       ];
     }
     // Data consumers only ever see verified loans — deny-by-default scoping.
@@ -220,11 +222,13 @@ router.get(
       employmentLength: loan.employmentLength,
       exceptions: loan.exceptions.map((exc) => ({
         aiRecommendation: (exc.aiRecommendation as unknown) ?? null,
+        correctedValue: exc.correctedValue ?? null,
         createdAt: exc.createdAt.toISOString(),
         exceptionType: exc.exceptionType,
         field: exc.field,
         id: exc.id,
         message: exc.message,
+        metadata: (exc.metadata as unknown) ?? null,
         severity: exc.severity,
         status: exc.status,
       })),

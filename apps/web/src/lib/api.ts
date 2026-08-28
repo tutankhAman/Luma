@@ -1,5 +1,6 @@
 import type {
   AiClassifySeverityResponse,
+  AiDraftNoteResponse,
   AiExplainResponse,
   AiSuggestRuleResponse,
   AiSummarizeBatchResponse,
@@ -214,6 +215,12 @@ export const aiApi = {
     );
     return data;
   },
+  draftNote: async (exceptionId: string): Promise<AiDraftNoteResponse> => {
+    const { data } = await api.post<AiDraftNoteResponse>("/ai/draft-note", {
+      exceptionId,
+    });
+    return data;
+  },
   explain: async (exceptionId: string): Promise<AiExplainResponse> => {
     const { data } = await api.post<AiExplainResponse>("/ai/explain", {
       exceptionId,
@@ -246,6 +253,22 @@ export const verifiedLoansApi = {
     batchId
       ? `/api/verified-loans/export?batchId=${encodeURIComponent(batchId)}`
       : "/api/verified-loans/export",
+  exportUrl: (options?: {
+    batchId?: string;
+    format?: "csv" | "json";
+  }): string => {
+    const params = new URLSearchParams();
+    if (options?.batchId) {
+      params.set("batchId", options.batchId);
+    }
+    if (options?.format) {
+      params.set("format", options.format);
+    }
+    const query = params.toString();
+    return query
+      ? `/api/verified-loans/export?${query}`
+      : "/api/verified-loans/export";
+  },
   list: async (
     query: VerifiedLoanListQuery
   ): Promise<VerifiedLoanListResponse> => {
