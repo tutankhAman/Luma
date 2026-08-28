@@ -167,141 +167,139 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background p-3 font-sans sm:p-4">
-      <div className="flex w-full overflow-hidden rounded-[28px] border border-border bg-card shadow-lg">
-        {/* Left: Pure Wallpaper Image Panel */}
-        <section className="relative hidden w-1/2 overflow-hidden bg-muted lg:block">
-          <img
-            alt="Luma Verification Platform"
-            className="size-full object-cover object-center"
-            height={3840}
-            src="/login-bg.webp"
-            width={2160}
-          />
-        </section>
+    <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
+      {/* Left: Full Bleed Wallpaper Image Panel */}
+      <section className="relative hidden h-full w-1/2 overflow-hidden bg-muted lg:block">
+        <img
+          alt="Luma Verification Platform"
+          className="size-full object-cover object-center"
+          height={3840}
+          src="/login-bg.webp"
+          width={2160}
+        />
+      </section>
 
-        {/* Right: Auth Form Section */}
-        <section className="flex w-full flex-col justify-between p-8 sm:p-12 lg:w-1/2">
-          {/* Header Branding */}
-          <div className="flex items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-xs shadow-xs"
-            >
-              L
-            </span>
-            <span className="font-semibold text-base tracking-tight">Luma</span>
-          </div>
+      {/* Right: Auth Form Section */}
+      <section className="flex h-full w-full flex-col justify-between overflow-y-auto p-6 sm:p-10 lg:w-1/2">
+        {/* Header Branding */}
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-xs shadow-xs"
+          >
+            L
+          </span>
+          <span className="font-semibold text-base tracking-tight">Luma</span>
+        </div>
 
-          {/* Form Container */}
-          <div className="mx-auto w-full max-w-[380px] py-8">
-            <div className="mb-6 space-y-1.5">
-              <h1 className="font-semibold text-[24px] text-foreground tracking-tight">
-                {mode === "register" ? "Create your account" : "Welcome back"}
-              </h1>
-              <p className="text-[13px] text-muted-foreground">
-                {mode === "register"
-                  ? "Start turning unverified loan tapes into verified assets."
-                  : "Sign in to access loan ingestion, review, and verification."}
-              </p>
-            </div>
-
-            {/* Quick Demo Selector */}
-            {mode === "signin" ? (
-              <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
-                <p className="mb-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-                  Quick Demo Accounts
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {DEMO_ACCOUNTS.map((acc) => (
-                    <button
-                      className="rounded-full border border-border/80 bg-background px-3 py-1 font-medium text-[11.5px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 active:scale-95"
-                      key={acc.email}
-                      onClick={() => fillDemoAccount(acc.email)}
-                      type="button"
-                    >
-                      {acc.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <form
-              className="space-y-3.5"
-              onSubmit={(event) => void handleSubmit(event)}
-            >
-              {mode === "register" ? (
-                <AuthInput
-                  autoComplete="name"
-                  id="name"
-                  label="Full name"
-                  onChange={setName}
-                  placeholder="Jane Operator"
-                  type="text"
-                  value={name}
-                />
-              ) : null}
-              <AuthInput
-                autoComplete="email"
-                id="email"
-                label="Email address"
-                onChange={setEmail}
-                placeholder="operator@luma.dev"
-                type="email"
-                value={email}
-              />
-              <div>
-                <AuthInput
-                  autoComplete={
-                    mode === "register" ? "new-password" : "current-password"
-                  }
-                  id="password"
-                  label="Password"
-                  onChange={setPassword}
-                  placeholder="••••••••"
-                  type="password"
-                  value={password}
-                />
-                {mode === "register" ? (
-                  <span className="mt-1.5 block text-[11.5px] text-muted-foreground">
-                    Must be at least 8 characters.
-                  </span>
-                ) : null}
-              </div>
-
-              <Button
-                className="mt-2 h-10 w-full rounded-full text-[13.5px]"
-                disabled={submitting}
-                type="submit"
-              >
-                {getSubmitButtonContent(submitting, mode)}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center text-[12.5px] text-muted-foreground">
+        {/* Form Container */}
+        <div className="mx-auto my-auto w-full max-w-[380px] py-4">
+          <div className="mb-6 space-y-1.5">
+            <h1 className="font-semibold text-[24px] text-foreground tracking-tight">
+              {mode === "register" ? "Create your account" : "Welcome back"}
+            </h1>
+            <p className="text-[13px] text-muted-foreground">
               {mode === "register"
-                ? "Already have an account?"
-                : "Don't have an account?"}
-              <button
-                className="ml-1.5 font-medium text-primary hover:underline"
-                onClick={() =>
-                  setMode(mode === "register" ? "signin" : "register")
-                }
-                type="button"
-              >
-                {mode === "register" ? "Sign in" : "Create one"}
-              </button>
-            </div>
+                ? "Start turning unverified loan tapes into verified assets."
+                : "Sign in to access loan ingestion, review, and verification."}
+            </p>
           </div>
 
-          {/* Footer Copyright / Status */}
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground/70">
-            <span>© 2026 Luma Systems</span>
-            <span>Cryptographic Verification Pipeline</span>
+          {/* Quick Demo Selector */}
+          {mode === "signin" ? (
+            <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
+              <p className="mb-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+                Quick Demo Accounts
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    className="rounded-full border border-border/80 bg-background px-3 py-1 font-medium text-[11.5px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 active:scale-95"
+                    key={acc.email}
+                    onClick={() => fillDemoAccount(acc.email)}
+                    type="button"
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <form
+            className="space-y-3.5"
+            onSubmit={(event) => void handleSubmit(event)}
+          >
+            {mode === "register" ? (
+              <AuthInput
+                autoComplete="name"
+                id="name"
+                label="Full name"
+                onChange={setName}
+                placeholder="Jane Operator"
+                type="text"
+                value={name}
+              />
+            ) : null}
+            <AuthInput
+              autoComplete="email"
+              id="email"
+              label="Email address"
+              onChange={setEmail}
+              placeholder="operator@luma.dev"
+              type="email"
+              value={email}
+            />
+            <div>
+              <AuthInput
+                autoComplete={
+                  mode === "register" ? "new-password" : "current-password"
+                }
+                id="password"
+                label="Password"
+                onChange={setPassword}
+                placeholder="••••••••"
+                type="password"
+                value={password}
+              />
+              {mode === "register" ? (
+                <span className="mt-1.5 block text-[11.5px] text-muted-foreground">
+                  Must be at least 8 characters.
+                </span>
+              ) : null}
+            </div>
+
+            <Button
+              className="mt-2 h-10 w-full rounded-full text-[13.5px]"
+              disabled={submitting}
+              type="submit"
+            >
+              {getSubmitButtonContent(submitting, mode)}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-[12.5px] text-muted-foreground">
+            {mode === "register"
+              ? "Already have an account?"
+              : "Don't have an account?"}
+            <button
+              className="ml-1.5 font-medium text-primary hover:underline"
+              onClick={() =>
+                setMode(mode === "register" ? "signin" : "register")
+              }
+              type="button"
+            >
+              {mode === "register" ? "Sign in" : "Create one"}
+            </button>
           </div>
-        </section>
-      </div>
+        </div>
+
+        {/* Footer Copyright / Status */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground/70">
+          <span>© 2026 Luma Systems</span>
+          <span>Cryptographic Verification Pipeline</span>
+        </div>
+      </section>
     </div>
   );
 }
