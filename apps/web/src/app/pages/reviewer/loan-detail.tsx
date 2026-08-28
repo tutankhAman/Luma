@@ -106,100 +106,103 @@ export default function LoanDetailPage() {
         <VerificationStatus verifiedRecord={loan.verifiedRecord} />
       </div>
 
-      <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_400px]">
-        <LoanFieldsPanel className="h-full" loan={loan} />
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_400px]">
+        <LoanFieldsPanel loan={loan} />
 
-        <div className="flex h-full flex-col">
-          <Card className="flex h-full min-h-[640px] flex-col rounded-[24px] border border-border lg:max-h-[860px]">
-            <CardHeader className="shrink-0 border-border/50 border-b pb-3">
-              <CardTitle>Exceptions ({exceptions.length})</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Select an exception to review and act on it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-4 overflow-y-auto p-4">
-              <ExceptionList
-                activeId={activeExceptionId}
-                exceptions={exceptions}
-                onSelect={handleSelectException}
-              />
+        <div className="relative min-h-[440px] lg:h-full lg:min-h-0">
+          <div className="flex flex-col lg:absolute lg:inset-0">
+            <Card className="flex h-full flex-col rounded-[24px] border border-border bg-card shadow-sm">
+              <CardHeader className="shrink-0 border-border/50 border-b pb-3">
+                <CardTitle>Exceptions ({exceptions.length})</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Select an exception to review and act on it.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 space-y-4 overflow-y-auto p-4">
+                <ExceptionList
+                  activeId={activeExceptionId}
+                  exceptions={exceptions}
+                  onSelect={handleSelectException}
+                />
 
-              {activeException ? (
-                <>
-                  {conflicts.length > 0 &&
-                  activeException.exceptionType === "conflicting_source" ? (
-                    <div className="space-y-2">
-                      <button
-                        aria-expanded={conflictOpen}
-                        className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/[0.05] px-3.5 py-2.5 text-left transition-colors hover:bg-primary/10"
-                        onClick={() => setConflictOpen(!conflictOpen)}
-                        type="button"
-                      >
-                        <span className="flex items-center gap-2">
+                {activeException ? (
+                  <>
+                    {conflicts.length > 0 &&
+                    activeException.exceptionType === "conflicting_source" ? (
+                      <div className="space-y-2">
+                        <button
+                          aria-expanded={conflictOpen}
+                          className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/[0.05] px-3.5 py-2.5 text-left transition-colors hover:bg-primary/10"
+                          onClick={() => setConflictOpen(!conflictOpen)}
+                          type="button"
+                        >
+                          <span className="flex items-center gap-2">
+                            <i
+                              aria-hidden="true"
+                              className="ri-split-cells-vertical text-[15px] text-primary"
+                            />
+                            <span className="font-medium text-[13px]">
+                              Compare conflicting records
+                            </span>
+                          </span>
                           <i
                             aria-hidden="true"
-                            className="ri-split-cells-vertical text-[15px] text-primary"
+                            className={`ri-arrow-down-s-line text-muted-foreground transition-transform ${conflictOpen ? "rotate-180" : ""}`}
                           />
-                          <span className="font-medium text-[13px]">
-                            Compare conflicting records
-                          </span>
-                        </span>
-                        <i
-                          aria-hidden="true"
-                          className={`ri-arrow-down-s-line text-muted-foreground transition-transform ${conflictOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      {conflictOpen ? (
-                        <DiffViewer
-                          exception={activeException}
-                          recommendation={
-                            (activeException.aiRecommendation as AiRecommendation | null) ??
-                            null
+                        </button>
+                        {conflictOpen ? (
+                          <DiffViewer
+                            exception={activeException}
+                            recommendation={
+                              (activeException.aiRecommendation as AiRecommendation | null) ??
+                              null
+                            }
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <AiPanel
+                      decisionState={decisionState}
+                      exception={activeException}
+                      onDecision={(type, editedValue, recommendation) => {
+                        setDecisionState(type);
+                        if (type === "accepted" || type === "edited") {
+                          const val =
+                            editedValue ??
+                            recommendation?.fieldsToChange?.[0]
+                              ?.suggestedValue ??
+                            "";
+                          setStagedValue(val);
+                          if (!note && recommendation) {
+                            setNote(
+                              `Approved with AI correction (${recommendation.model}): ${recommendation.reasoning}`
+                            );
                           }
-                        />
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <AiPanel
-                    decisionState={decisionState}
-                    exception={activeException}
-                    onDecision={(type, editedValue, recommendation) => {
-                      setDecisionState(type);
-                      if (type === "accepted" || type === "edited") {
-                        const val =
-                          editedValue ??
-                          recommendation?.fieldsToChange?.[0]?.suggestedValue ??
-                          "";
-                        setStagedValue(val);
-                        if (!note && recommendation) {
-                          setNote(
-                            `Approved with AI correction (${recommendation.model}): ${recommendation.reasoning}`
-                          );
                         }
-                      }
-                    }}
-                  />
-                  <ReviewerActions
-                    allResolved={allResolved}
-                    decisionState={decisionState}
-                    exceptionId={activeException.id}
-                    exceptionStatus={activeException.status}
-                    loanId={loan.id}
-                    note={note}
-                    onNoteChange={setNote}
-                    onNoteDrafted={() => handleNoteDraft(activeException.id)}
-                    requestingDraft={draftNote.isPending}
-                    stagedValue={stagedValue}
-                    verifiedRecord={loan.verifiedRecord}
-                  />
-                </>
-              ) : (
-                <p className="rounded-lg border border-success/25 bg-success/10 p-3 text-success text-xs">
-                  No exceptions on this loan — it can be verified.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                      }}
+                    />
+                    <ReviewerActions
+                      allResolved={allResolved}
+                      decisionState={decisionState}
+                      exceptionId={activeException.id}
+                      exceptionStatus={activeException.status}
+                      loanId={loan.id}
+                      note={note}
+                      onNoteChange={setNote}
+                      onNoteDrafted={() => handleNoteDraft(activeException.id)}
+                      requestingDraft={draftNote.isPending}
+                      stagedValue={stagedValue}
+                      verifiedRecord={loan.verifiedRecord}
+                    />
+                  </>
+                ) : (
+                  <p className="rounded-lg border border-success/25 bg-success/10 p-3 text-success text-xs">
+                    No exceptions on this loan — it can be verified.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
