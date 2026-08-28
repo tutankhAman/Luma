@@ -220,10 +220,10 @@ function ValidationSummaryChart() {
   });
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <header className="mb-4 flex items-start justify-between">
+    <section className="flex h-full min-h-[340px] flex-col rounded-xl bg-transparent p-5">
+      <header className="mb-3 flex shrink-0 items-start justify-between">
         <div>
-          <h3 className="font-semibold text-[14px] tracking-tight">
+          <h3 className="font-semibold text-xl tracking-tight">
             Validation summary
           </h3>
           <p className="text-[12px] text-muted-foreground">
@@ -238,11 +238,14 @@ function ValidationSummaryChart() {
           Exceptions
         </span>
       </header>
-      <TrendChart
-        className="aspect-auto h-[190px] w-full"
-        data={exceptionSeries}
-        dataKey="exceptions"
-      />
+      <div className="min-h-0 flex-1">
+        <TrendChart
+          className="aspect-auto h-[260px] w-full"
+          data={exceptionSeries}
+          dataKey="exceptions"
+          height={260}
+        />
+      </div>
     </section>
   );
 }
@@ -259,38 +262,43 @@ function IssuesByType() {
     .sort((a, b) => b[1] - a[1]);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <header className="mb-4">
-        <h3 className="font-semibold text-[14px] tracking-tight">
-          Issues by type
-        </h3>
+    <section className="flex h-full min-h-[340px] flex-col rounded-xl border border-border bg-card p-5">
+      <header className="mb-3 shrink-0">
+        <h3 className="font-semibold text-xl tracking-tight">Issues by type</h3>
         <p className="text-[12px] text-muted-foreground">
           Where validation effort is going
         </p>
       </header>
       {top.length === 0 ? (
-        <p className="py-8 text-center text-[13px] text-muted-foreground">
-          No issues recorded yet.
-        </p>
+        <div className="flex flex-1 items-center justify-center py-6">
+          <p className="text-[13px] text-muted-foreground">
+            No issues recorded yet.
+          </p>
+        </div>
       ) : (
-        <ul className="space-y-2.5">
-          {top.slice(0, 6).map(([type, count]) => (
-            <li className="flex items-center gap-3" key={type}>
-              <span className="w-36 shrink-0 truncate text-[12.5px] text-muted-foreground">
-                {exceptionTypeLabel(type)}
-              </span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <ul className="space-y-2.5">
+            {top.map(([type, count]) => (
+              <li className="flex items-center gap-3" key={type}>
                 <span
-                  className="block h-full rounded-full bg-[var(--chart-1)]"
-                  style={{ width: `${(count / max) * 100}%` }}
-                />
-              </span>
-              <span className="w-8 text-right font-medium text-[12.5px] tabular-nums">
-                {count}
-              </span>
-            </li>
-          ))}
-        </ul>
+                  className="w-36 shrink-0 truncate text-[12.5px] text-muted-foreground"
+                  title={exceptionTypeLabel(type)}
+                >
+                  {exceptionTypeLabel(type)}
+                </span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full rounded-full bg-[var(--chart-1)]"
+                    style={{ width: `${(count / max) * 100}%` }}
+                  />
+                </span>
+                <span className="w-8 text-right font-medium text-[12.5px] tabular-nums">
+                  {count}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );
@@ -365,11 +373,11 @@ export default function OperatorDashboard() {
         />
       </KpiStrip>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+      <div className="grid items-stretch gap-4 lg:grid-cols-5">
+        <div className="flex flex-col lg:col-span-3">
           <ValidationSummaryChart />
         </div>
-        <div className="lg:col-span-2">
+        <div className="flex flex-col lg:col-span-2">
           <IssuesByType />
         </div>
       </div>

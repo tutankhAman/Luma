@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { ChartConfig } from "@/components/ui/chart";
 import {
@@ -15,6 +16,30 @@ const trendConfig = {
   },
 } satisfies ChartConfig;
 
+const TICK_STEP = 250;
+const MIN_UPPER_BOUND = 1000;
+
+function computeYAxisConfig(data: object[], dataKey: string) {
+  let max = 0;
+  for (const item of data) {
+    const val = (item as Record<string, unknown>)[dataKey];
+    if (typeof val === "number" && val > max) {
+      max = val;
+    }
+  }
+
+  const upper = Math.max(
+    MIN_UPPER_BOUND,
+    Math.ceil(max / TICK_STEP) * TICK_STEP
+  );
+  const ticks: number[] = [];
+  for (let tick = 0; tick <= upper; tick += TICK_STEP) {
+    ticks.push(tick);
+  }
+
+  return { domain: [0, upper] as [number, number], ticks };
+}
+
 export interface TrendChartProps {
   className?: string;
   data: object[];
@@ -27,9 +52,14 @@ export function TrendChart({
   className,
   data,
   dataKey = "value",
-  height = 200,
+  height = 250,
   labelKey = "label",
 }: TrendChartProps) {
+  const yConfig = useMemo(
+    () => computeYAxisConfig(data, dataKey),
+    [data, dataKey]
+  );
+
   return (
     <ChartContainer
       className={className}
@@ -39,7 +69,7 @@ export function TrendChart({
       <AreaChart
         accessibilityLayer
         data={data}
-        margin={{ left: -18, right: 8 }}
+        margin={{ bottom: 0, left: 4, right: 12, top: 8 }}
       >
         <defs>
           <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
@@ -66,9 +96,12 @@ export function TrendChart({
         <YAxis
           allowDecimals={false}
           axisLine={false}
+          domain={yConfig.domain}
+          tickFormatter={(val: number) => val.toLocaleString()}
           tickLine={false}
-          tickMargin={4}
-          width={44}
+          tickMargin={8}
+          ticks={yConfig.ticks}
+          width={42}
         />
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <Area
