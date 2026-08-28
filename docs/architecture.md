@@ -23,7 +23,7 @@ Luma is a Turborepo monorepo with two deployable apps and shared types.
 *   **apps/api** - Express 5 on port 4000, TypeScript, Zod validation. Owns ingestion, validation, AI, and Better Auth server. CORS allows `FRONTEND_URL` with credentials.
 *   **Database** - PostgreSQL 16 through Prisma 7. One database holds Better Auth tables and app tables. Migrations live in `apps/api/prisma`.
 *   **Auth** - Better Auth with Prisma adapter and `admin` plugin. Cookie session is `HttpOnly` and `SameSite=Lax`. Backend resolves sessions in `requireAuth` via `auth.api.getSession`. Role string on `User.role` is narrowed by `normalizeRole` to `data_operator`, `reviewer`, or `data_consumer`.
-*   **File handling** - Multer writes to `os.tmpdir()/luma-uploads` (500 MB limit, `.csv` only). Ingestion uses `fs.createReadStream().pipe(csv-parser)` in 5000 row chunks. The request returns `202 Accepted` immediately; the frontend polls batch status.
+*   **File handling** - Multer writes to `os.tmpdir()/luma-uploads` (500 MB limit, `.csv` only). Ingestion uses `fs.createReadStream().pipe(csv-parser)` in 5000 row chunks. The request returns `202 Accepted` immediately; the frontend polls batch status. Synthetic `loan_tape` uses comma `KNOWN_COLUMNS` (21 cols); public-data `fannie_mae`/`freddie_mac` use pipe `|` headerless 108-col with tolerant gate (≥40 cols + loan_id/period sentinels) and contiguous-run fold.
 
 The split keeps long lived streaming on Express and avoids timeout and memory pressure on the frontend.
 
@@ -140,7 +140,7 @@ erDiagram
 
 **User** - `id`, `email` unique, `role` default `data_consumer`, `name`, `emailVerified`. Better Auth adds `Session` and `Account` tables. Indexed on `email`.
 
-**UploadBatch** - `id`, `fileName`, `filePath`, `fileType` (`loan_tape`, `servicer_update`, `document_manifest`), `recordCount` (final), `processedCount` (resume cursor), `failedCount`, `status` (`pending`, `processing`, `done`, `failed`), `metadata` (stage, `failedRows` array capped at 1000, error string), `uploadedById`, `createdAt`, `updatedAt`. Index on `uploadedById`.
+**UploadBatch** - `id`, `fileName`, `filePath`, `fileType` (`loan_tape`, `servicer_update`, `document_manifest`, `fannie_mae`, `freddie_mac`), `recordCount` (final), `processedCount` (resume cursor), `failedCount`, `status` (`pending`, `processing`, `done`, `failed`), `metadata` (stage, `failedRows` capped at 1000, error, `publicDataSourceRows`/`publicDataFoldedLoans`/`publicDataUnmappedNonEmpty` for pipe ingestion), `uploadedById`, `createdAt`, `updatedAt`. Index on `uploadedById`.
 
 **Loan** - `id`, `loanId` nullable, `borrowerId` nullable, `sourceBatchId` FK, `sourceRowNumber` (lineage), 21 business fields nullable (`loanType`, `originationDate`, `maturityDate`, `originalPrincipal`, `currentBalance`, `interestRate` as Decimal 15,2 and 5,4, `termMonths`, `borrowerState`, `loanPurpose`, `creditGrade`, `employmentLength`, `incomeBand`, `paymentStatus`, `daysPastDue`, `servicerName`, `lastPaymentDate`, `lastUpdatedAt`, `documentStatus`, `sourceSystem`), `validationStatus` (`pending`, `passed`, `failed`, `review`), `importStatus` (`imported`, `failed`). Constraint `@@unique([sourceBatchId, sourceRowNumber])` enables `createMany(skipDuplicates:true)` replay. Indexes on `sourceBatchId`, `validationStatus`, `loanId`.
 
@@ -179,7 +179,7 @@ Middleware order in `createApp`: `cors` -> `auth handler` -> `express.json` -> r
 | Auth | `POST /api/auth/sign-in/email` | public | sets cookie |
 | Auth | `POST /api/auth/sign-out` | auth | clears cookie |
 | Auth | `GET /api/auth/get-session` | auth |  |
-| Uploads | `POST /api/uploads` | `data_operator` | 500 MB, csv only, 202 |
+| Uploads | `POST /api/uploads` | `data_operator` | 500 MB, csv only, 202 — fileType `loan_tape`/`servicer_update`/`document_manifest`/`fannie_mae`/`freddie_mac` (public-data is pipe ingestion with fold, same validation lineage) |
 | Uploads | `GET /api/uploads` | `data_operator` | paginated, filtered by `uploadedById` |
 | Uploads | `GET /api/uploads/:batchId` | `data_operator` | includes `failedRows` |
 | Uploads | `GET /api/uploads/:batchId/summary` | `data_operator` | `totalImported`, `passed`, `failed`, `byType`, `bySeverity` |
@@ -226,7 +226,7 @@ Execution is paginated 5000 at a time. Exceptions are created in bulk per chunk 
 
 Ingestion time failures (missing `loanId` and `borrowerId`, header mismatch, unparseable dates) do not create loans. They are stored in `UploadBatch.metadata.failedRows` as `{ rowNumber, rawData, reason }` capped at 1000 and shown on batch detail. Valid rows are inserted with `createMany(skipDuplicates:true)` which relies on `@@unique([sourceBatchId, sourceRowNumber])` for idempotent replay.
 
-Example numbers with `loan_tape.csv` (137 rows): 8 failedRows, 129 imported, 60 loans with exceptions broken as `balance_error 13`, `duplicate 15`, `date_error 5`, `invalid_state 5`, `missing_field 5`, `rate_out_of_range 5`, `stale_record 5`, `status_inconsistency 10` with severities `critical 28`, `high 15`, `medium 15`, `low 5`. `servicer_update.csv` adds `conflicting_source` by matching `loanId` and comparing fields.
+Example numbers with `loan_tape.csv` (137 rows): 8 failedRows, 129 imported, 60 loans with exceptions broken as `balance_error 13`, `duplicate 15`, `date_error 5`, `invalid_state 5`, `missing_field 5`, `rate_out_of_range 5`, `stale_record 5`, `status_inconsistency 10` with severities `critical 28`, `high 15`, `medium 15`, `low 5`. `servicer_update.csv` adds `conflicting_source` by matching `loanId` and comparing fields. Public-data `freddie_mac`/`fannie_mae` pipe sample (757 raw rows → 8 folded loans) flows through the same validation (2009 dates surface as `stale_record`) and shares `loan`, `exception`, `audit` lineage; `documentStatus` is `unknown` to avoid flooding `missing_field`.
 
 ---
 
@@ -309,7 +309,7 @@ Deployment is split. `apps/api` needs `DATABASE_URL` and `FRONTEND_URL`. `apps/w
 | CSV storage | Local disk `os.tmpdir()/luma-uploads` | DB blob or S3 | DB bloats on 1M rows, S3 adds setup for hackathon. Disk allows streaming reads and Multer. |
 | Job processing | Streaming `createReadStream` plus DB cursor `processedCount` in 5k chunks | BullMQ plus Redis | No extra service. `@@unique([sourceBatchId, sourceRowNumber])` plus `skipDuplicates` makes replay idempotent after crash. |
 | Duplicate detection | DB `groupBy` and batched `IN` queries in 5k windows | In-memory hash map | Memory stays flat for large batches. |
-| Header handling | Strict 21 column `KNOWN_COLUMNS` check, fail batch on mismatch | Accept any delimiter | Public Fannie/Freddie samples are pipe delimited with 108 columns and would create all null loans. Synthetic packet is comma 21 columns for judging. |
+| Header handling | Strict 21 column `KNOWN_COLUMNS` check for comma loan_tape, tolerant pipe gate (≥40 cols + loan_id/period sentinels) for public-data | Accept any delimiter | Public Fannie/Freddie samples are pipe delimited with 108 columns and would create all null loans under the comma gate. Synthetic packet is comma 21 columns for judging; public-data is an additive tolerant path (352522aa plan). |
 | AI output | `generateObject` with Zod | Free form string | Parsable, storable, auditable, validated. |
 | AI provider | Gemini free tier | OpenAI | No cost for structured output. `MOCK_AI=true` removes key dependency for CI and demo. |
 | Session | Cookie `HttpOnly` | JWT in header | Better Auth default, no refresh logic, single origin through Vite proxy. |
@@ -319,3 +319,5 @@ Deployment is split. `apps/api` needs `DATABASE_URL` and `FRONTEND_URL`. `apps/w
 | Batch summary | Recompute via `groupBy` on read | Store denormalized counts | Always consistent, no stale counters. |
 | Frontend polling | TanStack Query 1.5s while `processing` | WebSocket | Simple, no extra server. |
 | File limits | Multer 500 MB, csv-parser | Papaparse in memory | Stream avoids OOM on 1M rows. |
+| Public-data layout drift | Tolerant gate (≥40 cols + sentinels) + per-format column registry, incremental contiguous-run fold, `documentStatus="unknown"` | Strict 108-col pin, one row per period | Fannie/Freddie layouts drift across releases; tolerant gate survives drift, fold keeps one Loan per loanId (first-wins immutable, latest-wins balance/rate/delinquency) and avoids flooding `missing_field` for absent documents. |
+| Public connector | Upload `.csv` pipe file via existing `/api/uploads` with explicit `fannie_mae`/`freddie_mac` fileType | Live portal fetch (Data Dynamics/Clarity) | Registration-gated at runtime, ToS friction, problem §52 recommends against; upload path satisfies "alternative ingestion pipelines" with no runtime credential gating. |

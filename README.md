@@ -98,7 +98,7 @@ bun --filter api run dev
 bun --filter web run dev
 ```
 
-Seeded and synthetic datasets: `loan_tape.csv` (137 rows, seed 42) and `loan_tape_6k.csv` (6000 rows) at repository root cover all 15 intentional data issues. Upload via Operator role.
+Seeded and synthetic datasets: `loan_tape.csv` (137 rows, seed 42) and `loan_tape_6k.csv` (6000 rows) at repository root cover all 15 intentional data issues. Upload via Operator role. Optional stretch: `fannie_mae`/`freddie_mac` pipe upload (public Single-Family, 108 cols, tolerant ≥40-col gate, contiguous-run fold → one Loan per loanId, same validation lineage; see `docs/architecture.md` §8 and `problem.md` §4).
 
 ## Test Credentials
 
@@ -116,7 +116,7 @@ All passwords are `password`:
 
 | Module | Implementation |
 |---|---|
-| A: Data Ingestion | `POST /api/uploads` (multipart, 500MB limit, .csv only), streaming `csv-parser` 5000-row chunks, `skipDuplicates`, `UploadBatch.processedCount` resume, `FailedRows` capped at 1000 in `metadata` |
+| A: Data Ingestion | `POST /api/uploads` (multipart, 500MB limit, .csv only; fileType `loan_tape`/`servicer_update`/`document_manifest`/`fannie_mae`/`freddie_mac`), streaming `csv-parser` 5000-row chunks, `skipDuplicates`, `UploadBatch.processedCount` resume, `FailedRows` capped at 1000 in `metadata` — public-data is pipe `\|` headerless 108-col with tolerant gate and incremental fold |
 | B: Validation Engine | 10 per-loan rules + 3 batch-scoped duplicate checks (`validation.service.ts`), `stale_record` >90 days, `invalid_state`, `conflicting_source` from servicer updates, writes `Exception` and `AuditLog` |
 | C: Exception Queue | `GET /api/exceptions` (filter by status/severity/type/search/batchId, paginated), `GET /api/exceptions/:id`, `POST /comment`, `POST /approve`, `POST /reject`, `PATCH /api/loans/:id/fields` |
 | D: AI Review Assistant | `POST /api/ai/explain`, `classify-severity`, `draft-note`, `summarize-batch`, `suggest-rule` (Gemini + mock fallback, rate-limited 20/min), all prompts/models logged |
@@ -169,7 +169,7 @@ Full contract: `.context/api-contract.md`.
 
 Per-loan rules: `missing_field`, `date_error` (invalid format, `maturity < origination`), `balance_error` (negative principal, `current > original`), `rate_out_of_range` (0-40%), `status_inconsistency` (payment status vs `daysPastDue`, closed with balance), `stale_record` (>90 days `last_updated_at`), `invalid_state`. Batch-scoped: `duplicate` (loanId, borrower+amount+origination, repeated borrower spike). Duplicate detection uses DB-level `groupBy` and batched `IN` queries (5k windows), not in-memory arrays.
 
-Upload `loan_tape.csv` yields 137 rows, 8 failedRows (missing ids, bad date), 129 imported, 60 loans with exceptions (28 critical, 15 high, 15 medium, 5 low). `servicer_update.csv` produces `conflicting_source`. `document_manifest.csv` updates `documentStatus` and creates `missing_field` for incomplete docs.
+Upload `loan_tape.csv` yields 137 rows, 8 failedRows (missing ids, bad date), 129 imported, 60 loans with exceptions (28 critical, 15 high, 15 medium, 5 low). `servicer_update.csv` produces `conflicting_source`. `document_manifest.csv` updates `documentStatus` and creates `missing_field` for incomplete docs. Public-data pipe sample (757 raw pipe rows → 8 folded loans) uses `unknown` documentStatus and 2009 `MMYYYY` dates that surface as `stale_record` through the same engine.
 
 ## AI Controls
 
