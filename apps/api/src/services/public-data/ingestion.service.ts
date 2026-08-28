@@ -540,11 +540,13 @@ export const processPublicDataIngestion = async (
 
     await Promise.race([processRows(), streamErrorPromise]);
 
-    if (!hasFailed && totalFoldedLoans === 0 && totalFailedRows === 0) {
+    const pendingFolded = currentLoan === null ? 0 : 1;
+    const effectiveFolded = totalFoldedLoans + pendingFolded;
+    if (!hasFailed && effectiveFolded === 0 && totalFailedRows === 0) {
       const message =
         "The uploaded pipe-delimited file is empty or contains no valid data rows.";
       await markFailed(new Error(`Ingestion failed: ${message}`));
-    } else if (!hasFailed && totalFoldedLoans === 0 && totalFailedRows > 0) {
+    } else if (!hasFailed && effectiveFolded === 0 && totalFailedRows > 0) {
       const message = `All ${totalFailedRows} rows failed normalization. Ensure file contains pipe-delimited loan data with loan_id at col 1 and reporting period at col 2.`;
       await markFailed(new Error(`Ingestion failed: ${message}`));
     }
