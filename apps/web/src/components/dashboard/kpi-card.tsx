@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export interface KpiCardProps {
   delta?: string | null;
   deltaTone?: "negative" | "neutral" | "positive";
+  icon: string;
   label: string;
   loading?: boolean;
   value: ReactNode;
@@ -20,21 +21,28 @@ const DELTA_TONES = {
 export function KpiCard({
   delta,
   deltaTone = "neutral",
+  icon,
   label,
   loading = false,
   value,
 }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)]">
+    <div>
       <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
         {label}
       </p>
       {loading ? (
         <div className="mt-2.5 h-8 w-16 animate-pulse rounded-md bg-muted" />
       ) : (
-        <p className="mt-1.5 font-semibold text-[28px] tabular-nums leading-none tracking-tight">
-          {value}
-        </p>
+        <div className="mt-2 flex items-center gap-2.5">
+          <p className="font-semibold text-[28px] tabular-nums leading-none tracking-tight">
+            {value}
+          </p>
+          <i
+            aria-hidden="true"
+            className={cn(icon, "text-[20px] text-muted-foreground")}
+          />
+        </div>
       )}
       {delta ? (
         <p
@@ -43,6 +51,28 @@ export function KpiCard({
           {delta}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+export function KpiStrip({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 border-border border-y",
+        "[&>*]:border-border/60 [&>*]:py-5 [&>*]:pr-5",
+        "max-sm:[&>*+*]:border-t",
+        "sm:grid-cols-2",
+        "sm:[&>*:nth-child(even)]:border-l",
+        "sm:[&>*:nth-child(even)]:pl-5",
+        "sm:[&>*:nth-child(n+3)]:border-t",
+        "xl:grid-cols-4",
+        "xl:[&>*:nth-child(n+2)]:border-l",
+        "xl:[&>*:nth-child(n+2)]:pl-5",
+        "xl:[&>*:nth-child(n+3)]:border-t-0"
+      )}
+    >
+      {children}
     </div>
   );
 }

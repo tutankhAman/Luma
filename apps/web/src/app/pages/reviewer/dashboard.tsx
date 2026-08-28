@@ -2,7 +2,7 @@ import type { Severity } from "@repo/types";
 import { useNavigate } from "react-router-dom";
 import { AiBatchSummary } from "@/components/dashboard/ai-batch-summary";
 import { ExceptionQueuePreview } from "@/components/dashboard/exception-queue-preview";
-import { KpiCard } from "@/components/dashboard/kpi-card";
+import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RecentDecisions } from "@/components/dashboard/recent-decisions";
 import { TrendChart } from "@/components/dashboard/trend-chart";
@@ -111,8 +111,9 @@ export default function ReviewerDashboard() {
         title="Dashboard"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiStrip>
         <KpiCard
+          icon="ri-inbox-unarchive-line"
           label="Open exceptions"
           loading={isLoading}
           value={overview ? overview.openExceptions.toLocaleString() : "—"}
@@ -120,11 +121,13 @@ export default function ReviewerDashboard() {
         <KpiCard
           delta={highSeverity > 0 ? "Review immediately" : "None pending"}
           deltaTone={highSeverity > 0 ? "negative" : "positive"}
+          icon="ri-alarm-warning-line"
           label="High-severity"
           loading={isLoading}
           value={highSeverity.toLocaleString()}
         />
         <KpiCard
+          icon="ri-user-search-line"
           label="Pending my review"
           loading={isLoading}
           value={
@@ -137,11 +140,12 @@ export default function ReviewerDashboard() {
         />
         <KpiCard
           delta={reviewedToday > 0 ? "Last 24 hours" : null}
+          icon="ri-checkbox-multiple-line"
           label="Reviewed today"
           loading={isLoading}
           value={reviewedToday.toLocaleString()}
         />
-      </div>
+      </KpiStrip>
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">

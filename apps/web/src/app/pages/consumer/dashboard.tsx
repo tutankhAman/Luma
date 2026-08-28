@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { KpiCard } from "@/components/dashboard/kpi-card";
+import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { QualityScoreGauge } from "@/components/dashboard/quality-gauge";
 import { TrendChart } from "@/components/dashboard/trend-chart";
@@ -83,8 +83,9 @@ export default function ConsumerDashboard() {
         title="Dashboard"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiStrip>
         <KpiCard
+          icon="ri-shield-check-line"
           label="Total verified records"
           loading={isLoading}
           value={verified ? totalVerified.toLocaleString() : "—"}
@@ -95,11 +96,13 @@ export default function ConsumerDashboard() {
               ? `Last export ${new Date(lastExport.timestamp).toLocaleDateString()}`
               : "No exports yet"
           }
+          icon="ri-download-cloud-2-line"
           label="Records exported"
           loading={isLoading}
           value={exported ? `${exported}+` : "0"}
         />
         <KpiCard
+          icon="ri-calendar-event-line"
           label="Last export date"
           loading={isLoading}
           value={
@@ -111,10 +114,10 @@ export default function ConsumerDashboard() {
               : "—"
           }
         />
-        <div className="flex items-center justify-center rounded-xl border border-border bg-card py-3">
+        <div className="flex items-center justify-center py-3 [&>*]:my-auto">
           <QualityScoreGauge className="" score={qualityScore} size={124} />
         </div>
-      </div>
+      </KpiStrip>
 
       <section className="rounded-xl border border-border bg-card p-5">
         <header className="mb-4 flex items-start justify-between">

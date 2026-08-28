@@ -4,7 +4,7 @@ import type {
   UploadBatch,
 } from "@repo/types";
 import { useNavigate } from "react-router-dom";
-import { KpiCard } from "@/components/dashboard/kpi-card";
+import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TrendChart } from "@/components/dashboard/trend-chart";
 import { BatchStatusBadge, exceptionTypeLabel } from "@/components/ui/badges";
@@ -320,18 +320,21 @@ export default function OperatorDashboard() {
         title="Dashboard"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KpiStrip>
         <KpiCard
+          icon="ri-inbox-archive-line"
           label="Records ingested"
           loading={isLoading}
           value={overview ? overview.totalLoansImported.toLocaleString() : "—"}
         />
         <KpiCard
+          icon="ri-folder-upload-line"
           label="Files uploaded"
           loading={isLoading}
           value={overview ? overview.totalBatches.toLocaleString() : "—"}
         />
         <KpiCard
+          icon="ri-file-damage-line"
           label="Rows failed import"
           loading={isLoading}
           value={rowsFailed === null ? "—" : rowsFailed.toLocaleString()}
@@ -339,11 +342,12 @@ export default function OperatorDashboard() {
         <KpiCard
           delta={openExceptions > 0 ? "Needs correction" : "All clear"}
           deltaTone={openExceptions > 0 ? "negative" : "positive"}
+          icon="ri-error-warning-line"
           label="Corrections needed"
           loading={isLoading}
           value={overview ? openExceptions.toLocaleString() : "—"}
         />
-      </div>
+      </KpiStrip>
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
