@@ -9,10 +9,12 @@ export interface KpiCardProps {
   delta?: string | null;
   deltaTone?: "negative" | "neutral" | "positive";
   icon: string;
+  inverse?: boolean;
   label: string;
   loading?: boolean;
   trend?: TrendDirection | null;
   trendLabel?: string | null;
+  trendTone?: "negative" | "neutral" | "positive";
   trendValue?: string | number | null;
   value: ReactNode;
 }
@@ -39,6 +41,23 @@ function resolveTrend(
   return null;
 }
 
+function resolveTrendTone(
+  trend: TrendDirection,
+  trendTone?: "negative" | "neutral" | "positive",
+  inverse?: boolean
+): "negative" | "neutral" | "positive" {
+  if (trendTone) {
+    return trendTone;
+  }
+  if (trend === "neutral") {
+    return "neutral";
+  }
+  if (inverse) {
+    return trend === "down" ? "positive" : "negative";
+  }
+  return trend === "up" ? "positive" : "negative";
+}
+
 const SIGN_REGEX = /^[+-]/;
 
 function cleanTrendValue(
@@ -62,15 +81,17 @@ function TrendIcon({ trend }: { trend: TrendDirection }) {
 
 function TrendBadge({
   trend,
+  tone,
   displayValue,
 }: {
   trend: TrendDirection;
+  tone: "negative" | "neutral" | "positive";
   displayValue?: string | number | null;
 }) {
   const toneClasses = {
-    down: "text-destructive",
+    negative: "text-destructive",
     neutral: "text-muted-foreground",
-    up: "text-success",
+    positive: "text-success",
   };
 
   const formattedValue = cleanTrendValue(displayValue);
@@ -79,7 +100,7 @@ function TrendBadge({
     <span
       className={cn(
         "inline-flex items-center gap-0.5 font-medium text-[12px] tabular-nums leading-none",
-        toneClasses[trend]
+        toneClasses[tone]
       )}
     >
       <TrendIcon trend={trend} />
@@ -92,14 +113,19 @@ export function KpiCard({
   delta,
   deltaTone = "neutral",
   icon,
+  inverse = false,
   label,
   loading = false,
   trend,
   trendLabel,
+  trendTone,
   trendValue,
   value,
 }: KpiCardProps) {
   const effectiveTrend = resolveTrend(trend, deltaTone);
+  const effectiveTone = effectiveTrend
+    ? resolveTrendTone(effectiveTrend, trendTone, inverse)
+    : "neutral";
   const displayTrendValue = trendValue ?? (trend ? delta : null);
 
   return (
@@ -127,6 +153,7 @@ export function KpiCard({
             {effectiveTrend ? (
               <TrendBadge
                 displayValue={displayTrendValue}
+                tone={effectiveTone}
                 trend={effectiveTrend}
               />
             ) : null}

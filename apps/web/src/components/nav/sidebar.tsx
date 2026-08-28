@@ -122,9 +122,7 @@ function Wordmark() {
         src="/luma.svg"
         width={28}
       />
-      <p className="font-bold text-sidebar-foreground text-xl tracking-tight">
-        Luma
-      </p>
+      <p className="font-bold text-xl tracking-tight">Luma</p>
     </div>
   );
 }
@@ -163,24 +161,21 @@ function RoleSwitcher({ current }: { current: Role }) {
     >
       <SelectTrigger
         aria-label="Switch role"
-        className="w-full justify-between gap-2 rounded-full border-sidebar-border bg-sidebar-accent/50 px-3.5 text-sidebar-foreground hover:bg-sidebar-accent data-[size=sm]:h-8 data-[size=sm]:rounded-full"
+        className="w-full justify-between gap-2 rounded-full border-border bg-card px-3.5 data-[size=sm]:h-8 data-[size=sm]:rounded-full"
         size="sm"
       >
         <span className="flex min-w-0 items-center gap-2">
           <i
             aria-hidden="true"
-            className="ri-user-settings-line text-[13px] text-sidebar-foreground/60"
+            className="ri-user-settings-line text-[13px] text-muted-foreground"
           />
           <SelectValue />
         </span>
       </SelectTrigger>
-      <SelectContent
-        align="start"
-        className="rounded-2xl border-sidebar-border bg-sidebar p-1.5 text-sidebar-foreground shadow-xl"
-      >
+      <SelectContent align="start" className="rounded-2xl p-1.5">
         {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
           <SelectItem
-            className="rounded-full px-3 py-1.5 font-medium text-sidebar-foreground/80 focus:bg-sidebar-accent focus:text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-foreground"
+            className="rounded-full px-3 py-1.5 font-medium data-[highlighted]:text-accent-foreground"
             key={role}
             value={role}
           >
@@ -215,14 +210,14 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col rounded-tr-3xl rounded-br-3xl border-sidebar-border border-r bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-screen min-h-0 w-[248px] shrink-0 flex-col rounded-tr-3xl rounded-br-3xl border-sidebar-border border-r bg-sidebar">
       <div className="px-4 pt-5 pb-10">
         <Wordmark />
       </div>
 
       {role ? (
         <div className="px-4 pb-1">
-          <p className="mb-4 font-medium text-[10px] text-sidebar-foreground/60 uppercase tracking-widest">
+          <p className="mb-4 font-medium text-[10px] text-muted-foreground uppercase tracking-widest">
             Viewing as
           </p>
           <RoleSwitcher current={role} />
@@ -239,8 +234,8 @@ export function Sidebar() {
               cn(
                 "group flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
                 isActive
-                  ? "text-sidebar-primary"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )
             }
             end={true}
@@ -261,15 +256,15 @@ export function Sidebar() {
           </NavLink>
         ))}
 
-        <Separator className="my-3 bg-sidebar-border opacity-70" />
+        <Separator className="my-3 opacity-70" />
 
         <NavLink
           className={({ isActive }) =>
             cn(
               "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
               isActive
-                ? "text-sidebar-primary"
-                : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )
           }
           to="/ai-log"
@@ -288,19 +283,17 @@ export function Sidebar() {
         </NavLink>
       </nav>
 
-      <div className="rounded-tl-3xl rounded-tr-3xl border-sidebar-border border-t bg-sidebar-accent/40 p-4">
+      <div className="rounded-tl-3xl rounded-tr-3xl border-sidebar-border border-t bg-sidebar-accent/20 p-4">
         <div className="mb-3 flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent font-semibold text-[11px] text-sidebar-foreground uppercase"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card font-semibold text-[11px] text-muted-foreground uppercase"
           >
             {user?.name?.slice(0, 2) ?? "??"}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-[13px] text-sidebar-foreground">
-              {user?.name}
-            </p>
-            <p className="truncate text-[11px] text-sidebar-foreground/60">
+            <p className="truncate font-medium text-[13px]">{user?.name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
               {role ? ROLE_LABELS[role] : ""}
             </p>
           </div>
@@ -314,7 +307,7 @@ export function Sidebar() {
             Test Credentials
           </button> */}
           <button
-            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-destructive/15 px-3 py-2 text-center font-medium text-red-400 text-xs transition-colors hover:bg-destructive/25 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-destructive/10 px-3 py-2 text-center font-medium text-destructive text-xs transition-colors hover:bg-destructive/15 disabled:opacity-60"
             disabled={signingOut}
             onClick={() => {
               void handleSignOut();

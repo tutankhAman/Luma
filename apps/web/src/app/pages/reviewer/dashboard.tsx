@@ -116,6 +116,7 @@ export default function ReviewerDashboard() {
       <KpiStrip>
         <KpiCard
           icon="ri-inbox-unarchive-line"
+          inverse={true}
           label="Open exceptions"
           loading={isLoading}
           trend={overview && overview.openExceptions > 0 ? "down" : "up"}
@@ -127,6 +128,7 @@ export default function ReviewerDashboard() {
           delta={highSeverity > 0 ? "Review immediately" : "None pending"}
           deltaTone={highSeverity > 0 ? "negative" : "positive"}
           icon="ri-alarm-warning-line"
+          inverse={true}
           label="High-severity"
           loading={isLoading}
           trend={highSeverity > 0 ? "down" : "up"}

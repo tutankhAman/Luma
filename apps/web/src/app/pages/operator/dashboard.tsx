@@ -343,6 +343,7 @@ export default function OperatorDashboard() {
         />
         <KpiCard
           icon="ri-file-damage-line"
+          inverse={true}
           label="Rows failed import"
           loading={isLoading}
           trend={rowsFailed && rowsFailed > 0 ? "down" : "neutral"}
@@ -354,6 +355,7 @@ export default function OperatorDashboard() {
           delta={openExceptions > 0 ? "Needs correction" : "All clear"}
           deltaTone={openExceptions > 0 ? "negative" : "positive"}
           icon="ri-error-warning-line"
+          inverse={true}
           label="Corrections needed"
           loading={isLoading}
           trend={openExceptions > 0 ? "down" : "up"}
