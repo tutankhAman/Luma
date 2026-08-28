@@ -2,7 +2,6 @@ import type { AuditEventType, AuditLogEntry } from "@repo/types";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,53 +13,20 @@ import { cn } from "@/lib/utils";
 
 /* Spec §6.4 — Audit Trail Viewer (Module F). */
 
-const EVENT_OPTIONS: { label: string; tone: string; value: AuditEventType }[] =
-  [
-    {
-      label: "File uploaded",
-      tone: "text-muted-foreground",
-      value: "FILE_UPLOADED",
-    },
-    { label: "Record imported", tone: "text-primary", value: "LOAN_IMPORTED" },
-    {
-      label: "Ingestion completed",
-      tone: "text-muted-foreground",
-      value: "INGESTION_COMPLETED",
-    },
-    {
-      label: "Validation executed",
-      tone: "text-primary",
-      value: "VALIDATION_RUN",
-    },
-    {
-      label: "Exception created",
-      tone: "text-destructive",
-      value: "EXCEPTION_CREATED",
-    },
-    {
-      label: "AI recommendation",
-      tone: "text-primary",
-      value: "AI_RECOMMENDATION",
-    },
-    {
-      label: "Reviewer note",
-      tone: "text-muted-foreground",
-      value: "REVIEWER_COMMENT",
-    },
-    { label: "Field edited", tone: "text-warning", value: "FIELD_EDITED" },
-    { label: "Approved", tone: "text-success", value: "LOAN_APPROVED" },
-    { label: "Rejected", tone: "text-destructive", value: "LOAN_REJECTED" },
-    {
-      label: "Verified record created",
-      tone: "text-success",
-      value: "VERIFIED_RECORD_CREATED",
-    },
-    {
-      label: "Record exported",
-      tone: "text-muted-foreground",
-      value: "RECORD_EXPORTED",
-    },
-  ];
+const EVENT_OPTIONS: { label: string; value: AuditEventType }[] = [
+  { label: "File uploaded", value: "FILE_UPLOADED" },
+  { label: "Record imported", value: "LOAN_IMPORTED" },
+  { label: "Ingestion completed", value: "INGESTION_COMPLETED" },
+  { label: "Validation executed", value: "VALIDATION_RUN" },
+  { label: "Exception created", value: "EXCEPTION_CREATED" },
+  { label: "AI recommendation", value: "AI_RECOMMENDATION" },
+  { label: "Reviewer note", value: "REVIEWER_COMMENT" },
+  { label: "Field edited", value: "FIELD_EDITED" },
+  { label: "Approved", value: "LOAN_APPROVED" },
+  { label: "Rejected", value: "LOAN_REJECTED" },
+  { label: "Verified record created", value: "VERIFIED_RECORD_CREATED" },
+  { label: "Record exported", value: "RECORD_EXPORTED" },
+];
 
 const EVENT_ICONS: Record<AuditEventType, string> = {
   AI_RECOMMENDATION: "ri-sparkling-2-line",
@@ -78,18 +44,13 @@ const EVENT_ICONS: Record<AuditEventType, string> = {
 };
 
 const EVENT_TONES: Partial<Record<AuditEventType, string>> = {
-  AI_RECOMMENDATION: "text-primary border-primary/30 bg-primary/10",
-  EXCEPTION_CREATED: "text-destructive border-destructive/30 bg-destructive/10",
-  FIELD_EDITED: "text-warning border-warning/30 bg-warning/10",
-  FILE_UPLOADED: "text-muted-foreground border-border bg-muted/40",
-  INGESTION_COMPLETED: "text-muted-foreground border-border bg-muted/40",
-  LOAN_APPROVED: "text-success border-success/30 bg-success/10",
-  LOAN_IMPORTED: "text-primary border-primary/30 bg-primary/10",
-  LOAN_REJECTED: "text-destructive border-destructive/30 bg-destructive/10",
-  RECORD_EXPORTED: "text-muted-foreground border-border bg-muted/40",
-  REVIEWER_COMMENT: "text-muted-foreground border-border bg-muted/40",
-  VALIDATION_RUN: "text-primary border-primary/30 bg-primary/10",
-  VERIFIED_RECORD_CREATED: "text-success border-success/30 bg-success/10",
+  AI_RECOMMENDATION: "text-primary bg-primary/10 border-primary/20",
+  EXCEPTION_CREATED: "text-destructive bg-destructive/10 border-destructive/20",
+  FIELD_EDITED: "text-warning bg-warning/10 border-warning/20",
+  LOAN_APPROVED: "text-success bg-success/10 border-success/20",
+  LOAN_IMPORTED: "text-primary bg-primary/10 border-primary/20",
+  LOAN_REJECTED: "text-destructive bg-destructive/10 border-destructive/20",
+  VERIFIED_RECORD_CREATED: "text-success bg-success/10 border-success/20",
 };
 
 interface EntryMeta {
@@ -109,6 +70,10 @@ function describeEntry(entry: AuditLogEntry): string {
       return `Imported from ${String(meta.fileName ?? "file")}, row ${String(meta.sourceRowNumber ?? "?")}`;
     case "REVIEWER_COMMENT":
       return String(meta.note ?? "Reviewer note added");
+    case "VERIFIED_RECORD_CREATED":
+      return meta.recordHash
+        ? `Sealed with hash ${String(meta.recordHash).slice(0, 16)}…`
+        : "Sealed canonical record created";
     default:
       return entry.eventType.replaceAll("_", " ").toLowerCase();
   }
@@ -117,44 +82,39 @@ function describeEntry(entry: AuditLogEntry): string {
 function TimelineEntry({ entry }: { entry: AuditLogEntry }) {
   const [expanded, setExpanded] = useState(false);
   const meta = (entry.metadata ?? {}) as EntryMeta;
-  const hasDetail = meta.field !== undefined || meta.newValue !== undefined;
+  const hasDetail =
+    meta.field !== undefined ||
+    meta.newValue !== undefined ||
+    Boolean(entry.metadata);
   const isEdit = entry.eventType === "FIELD_EDITED";
 
   return (
-    <li className="relative flex gap-3.5 pb-6 last:pb-0">
+    <li className="relative flex gap-3 pb-4 last:pb-0">
       <span
         aria-hidden="true"
         className={cn(
-          "z-10 flex size-8 shrink-0 items-center justify-center rounded-full border shadow-xs transition-transform",
+          "z-10 flex size-6 shrink-0 items-center justify-center rounded-full border bg-card shadow-xs",
           EVENT_TONES[entry.eventType] ??
-            "border-border bg-card text-muted-foreground"
+            "border-border text-muted-foreground/70"
         )}
       >
-        <i className={`${EVENT_ICONS[entry.eventType]} text-sm`} />
+        <i className={`${EVENT_ICONS[entry.eventType]} text-[11px]`} />
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
-        <div className="flex w-full flex-wrap items-baseline justify-between gap-x-2">
-          <button
-            className="flex items-center gap-2 text-left transition-colors hover:text-primary"
-            disabled={!hasDetail}
-            onClick={() => setExpanded(!expanded)}
-            type="button"
-          >
-            <span className="font-semibold text-[13.5px] text-foreground">
-              {entry.eventType.replaceAll("_", " ")}
+        <button
+          className="flex w-full flex-wrap items-baseline gap-x-2 text-left"
+          disabled={!hasDetail}
+          onClick={() => setExpanded(!expanded)}
+          type="button"
+        >
+          <span className="font-medium text-[12.5px] text-foreground">
+            {entry.eventType.replaceAll("_", " ")}
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="rounded bg-muted px-1.5 py-0.2 font-medium text-[10px]">
+              {entry.actor?.name ?? "System"}
             </span>
-            {hasDetail ? (
-              <i
-                aria-hidden="true"
-                className={cn(
-                  "ri-arrow-right-s-line text-[13px] text-muted-foreground/60 transition-transform",
-                  expanded && "rotate-90"
-                )}
-              />
-            ) : null}
-          </button>
-          <span className="font-mono text-[11.5px] text-muted-foreground">
-            {entry.actor?.name ?? "System"} ·{" "}
+            ·{" "}
             {new Date(entry.createdAt).toLocaleString(undefined, {
               day: "2-digit",
               hour: "2-digit",
@@ -162,35 +122,39 @@ function TimelineEntry({ entry }: { entry: AuditLogEntry }) {
               month: "short",
             })}
           </span>
-        </div>
-        <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">
+          {hasDetail ? (
+            <i
+              aria-hidden="true"
+              className={cn(
+                "text-[12px] text-muted-foreground/60 transition-transform",
+                expanded && "rotate-90"
+              )}
+            />
+          ) : null}
+        </button>
+        <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
           {describeEntry(entry)}
         </p>
         {expanded && hasDetail ? (
-          <div className="mt-2.5 rounded-xl border border-border bg-muted/40 p-3.5 shadow-2xs">
+          <div className="mt-2 rounded-lg border border-border bg-muted/40 p-2.5">
             {isEdit ? (
-              <div className="space-y-1.5">
-                <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-                  Field Modification
-                </p>
-                <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
-                  <span className="rounded-md border border-border bg-card px-2 py-0.5 font-mono text-foreground">
-                    {String(meta.field ?? "field")}
-                  </span>
-                  <span className="rounded-md border border-destructive/20 bg-destructive/10 px-2 py-0.5 font-mono text-destructive line-through">
-                    {String(meta.oldValue ?? "—")}
-                  </span>
-                  <i
-                    aria-hidden="true"
-                    className="ri-arrow-right-line text-muted-foreground"
-                  />
-                  <span className="rounded-md border border-success/20 bg-success/10 px-2 py-0.5 font-mono font-semibold text-success">
-                    {String(meta.newValue ?? "—")}
-                  </span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[11.5px]">
+                <span className="font-medium text-foreground">
+                  {String(meta.field ?? "field")}:
+                </span>
+                <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-destructive line-through">
+                  {String(meta.oldValue ?? "—")}
+                </span>
+                <i
+                  aria-hidden="true"
+                  className="ri-arrow-right-line text-[11px] text-muted-foreground"
+                />
+                <span className="rounded bg-success/10 px-1.5 py-0.5 font-medium text-success">
+                  {String(meta.newValue ?? "—")}
+                </span>
               </div>
             ) : (
-              <pre className="custom-scrollbar-hide overflow-x-auto font-mono text-[11px] text-muted-foreground leading-relaxed">
+              <pre className="custom-scrollbar-hide max-h-48 overflow-auto font-mono text-[11px] text-foreground/80 leading-relaxed">
                 {JSON.stringify(entry.metadata, null, 2)}
               </pre>
             )}
@@ -213,14 +177,14 @@ function LoanPicker({
   const hits = (data?.data ?? []).slice(0, 6);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="relative">
         <i
           aria-hidden="true"
-          className="ri-search-line absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground/60 text-sm"
+          className="ri-search-line absolute top-1/2 left-2.5 -translate-y-1/2 text-[12px] text-muted-foreground/70"
         />
         <input
-          className="h-9 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-[13px] outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+          className="h-8 w-full rounded-lg border border-input bg-background pr-7 pl-7 text-[12px] outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search verified loan ID…"
           type="search"
@@ -229,28 +193,27 @@ function LoanPicker({
         {query ? (
           <button
             aria-label="Clear query"
-            className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
+            className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
             onClick={() => setQuery("")}
             type="button"
           >
-            <i aria-hidden="true" className="ri-close-line" />
+            <i aria-hidden="true" className="ri-close-line text-xs" />
           </button>
         ) : null}
       </div>
       {query.trim().length > 0 ? (
-        <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <ul className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
           {hits.length === 0 ? (
-            <li className="px-3.5 py-3 text-[12.5px] text-muted-foreground">
-              No verified loans match.
+            <li className="px-3 py-2 text-[11.5px] text-muted-foreground">
+              No matching verified loans.
             </li>
           ) : (
             hits.map((record) => (
               <li key={record.id}>
                 <button
                   className={cn(
-                    "flex w-full items-center justify-between px-3.5 py-2.5 text-left text-[12.5px] transition-colors hover:bg-accent",
-                    value === record.loanId &&
-                      "bg-accent font-medium text-primary"
+                    "flex w-full items-center justify-between px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-accent",
+                    value === record.loanId && "bg-accent font-medium"
                   )}
                   onClick={() => {
                     onPick(record.loanId);
@@ -261,8 +224,8 @@ function LoanPicker({
                   <span className="font-mono">
                     {record.loan.loanId ?? record.id}
                   </span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {record.recordHash.slice(0, 10)}…
+                  <span className="font-mono text-[10.5px] text-muted-foreground">
+                    {record.recordHash.slice(0, 8)}…
                   </span>
                 </button>
               </li>
@@ -284,15 +247,13 @@ function TimelineEmptyState({
   title: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2.5 py-20 text-center">
-      <div className="flex size-12 items-center justify-center rounded-2xl border border-border bg-muted/40 shadow-xs">
-        <i
-          aria-hidden="true"
-          className={`${icon} text-2xl text-muted-foreground/60`}
-        />
-      </div>
-      <p className="font-semibold text-[15px]">{title}</p>
-      <p className="max-w-xs text-[13px] text-muted-foreground">{subtitle}</p>
+    <div className="flex flex-col items-center gap-1.5 py-14 text-center">
+      <i
+        aria-hidden="true"
+        className={`${icon} text-2xl text-muted-foreground/40`}
+      />
+      <p className="font-medium text-[13px] text-foreground">{title}</p>
+      <p className="max-w-xs text-[11.5px] text-muted-foreground">{subtitle}</p>
     </div>
   );
 }
@@ -318,23 +279,32 @@ function TimelineList({
 }) {
   return (
     <>
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3 border-border border-b pb-4">
-        <div>
-          <p className="font-semibold text-[15px] tracking-tight">
-            Event History
-          </p>
-          <p className="text-[12px] text-muted-foreground">
-            {entries.length} of {total} total logged events
-            {eventFilter ? " (filtered)" : ""}
-          </p>
-        </div>
+      <header className="mb-3.5 flex items-center justify-between border-border border-b pb-2.5">
         <div className="flex items-center gap-2">
-          <Button onClick={onOpenRecord} size="sm" variant="ghost">
+          <span className="font-medium text-[12.5px] text-foreground">
+            Audit Events
+          </span>
+          <span className="rounded-full bg-muted px-2 py-0.2 font-mono text-[10.5px] text-muted-foreground tabular-nums">
+            {entries.length} of {total}
+          </span>
+          {eventFilter ? (
+            <Badge className="text-[10px]" variant="outline">
+              Filtered
+            </Badge>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            className="h-7.5 text-xs"
+            onClick={onOpenRecord}
+            size="sm"
+            variant="ghost"
+          >
             Open Dossier
-            <i aria-hidden="true" className="ri-arrow-right-s-line ml-1" />
+            <i aria-hidden="true" className="ri-arrow-right-s-line text-sm" />
           </Button>
           <Button
-            className="rounded-full"
+            className="h-7.5 text-xs"
             onClick={() => {
               downloadAsCsv(
                 `audit_trail_${loanId}.csv`,
@@ -351,7 +321,7 @@ function TimelineList({
             size="sm"
             variant="outline"
           >
-            <i aria-hidden="true" className="ri-download-2-line" />
+            <i aria-hidden="true" className="ri-download-2-line text-xs" />
             Export CSV
           </Button>
         </div>
@@ -362,7 +332,7 @@ function TimelineList({
             {index < entries.length - 1 ? (
               <span
                 aria-hidden="true"
-                className="absolute top-8 bottom-0 left-[18px] w-px bg-border/80"
+                className="absolute top-6 bottom-0 left-[15px] w-px bg-border/80"
               />
             ) : null}
             <TimelineEntry entry={entry} />
@@ -370,8 +340,13 @@ function TimelineList({
         ))}
       </ol>
       {totalPages > page ? (
-        <div className="mt-4 border-border border-t pt-4 text-center">
-          <Button onClick={onLoadMore} size="sm" variant="outline">
+        <div className="border-border border-t pt-3 text-center">
+          <Button
+            className="h-7 text-xs"
+            onClick={onLoadMore}
+            size="sm"
+            variant="outline"
+          >
             Load older events
           </Button>
         </div>
@@ -401,24 +376,22 @@ export default function AuditTrailPage() {
     (v) => v.loanId === loanId || v.id === loanId
   );
   const targetVerifiedId = currentVerifiedRecord?.id ?? loanId;
-  const activeLoanDisplay =
-    currentVerifiedRecord?.loan.loanId ?? (loanId || "None selected");
 
   const renderTimelineBody = () => {
     if (loanId === "") {
       return (
         <TimelineEmptyState
           icon="ri-history-line"
-          subtitle="Pick a verified loan from the sidebar to inspect its complete, append-only event history."
-          title="No loan selected"
+          subtitle="Pick a verified loan from the sidebar to inspect its append-only event history."
+          title="No Loan Selected"
         />
       );
     }
     if (isLoading) {
       return (
-        <div className="space-y-3 py-4">
-          {[0, 1, 2, 3, 4].map((row) => (
-            <Skeleton className="h-14 w-full rounded-xl" key={row} />
+        <div className="space-y-2.5 p-2">
+          {[0, 1, 2, 3].map((row) => (
+            <Skeleton className="h-10 w-full" key={row} />
           ))}
         </div>
       );
@@ -429,10 +402,10 @@ export default function AuditTrailPage() {
           icon="ri-inbox-line"
           subtitle={
             eventFilter
-              ? "No events of this type match for the selected loan."
+              ? "No events match the selected event filter."
               : "No audit events recorded for this loan."
           }
-          title="No audit events found"
+          title="No Events Found"
         />
       );
     }
@@ -451,68 +424,33 @@ export default function AuditTrailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-6 p-8">
+    <div className="mx-auto max-w-[1200px] space-y-4 p-6">
       <PageHeader
-        description="Append-only immutable event log tracking every ingestion, AI suggestion, reviewer decision, and export."
+        action={
+          <Button
+            className="h-8.5 rounded-lg text-xs"
+            onClick={() => navigate("/consumer/verified")}
+            variant="outline"
+          >
+            <i aria-hidden="true" className="ri-shield-check-line" />
+            Verified Records
+          </Button>
+        }
+        description="Every lifecycle event — ingest, validations, AI suggestions, reviewer decisions, and exports."
         eyebrow="Data Consumer"
         title="Audit Trail"
       />
 
-      <KpiStrip>
-        <KpiCard
-          delta="Append-only log"
-          deltaTone="neutral"
-          icon="ri-history-line"
-          label="Active audit target"
-          loading={false}
-          trend="neutral"
-          trendLabel="target"
-          trendValue={activeLoanDisplay}
-          value={activeLoanDisplay}
-        />
-        <KpiCard
-          icon="ri-list-check-2"
-          label="Recorded audit events"
-          loading={isLoading}
-          trend="up"
-          trendLabel="events"
-          trendValue={loanId ? `${entries.length}` : "0"}
-          value={loanId ? `${data?.pagination.total ?? entries.length}` : "—"}
-        />
-        <KpiCard
-          delta="SHA-256 seal"
-          deltaTone="positive"
-          icon="ri-shield-check-line"
-          label="Cryptographic status"
-          loading={false}
-          trend="up"
-          trendLabel="sealed"
-          trendValue="100%"
-          value={loanId ? "Sealed" : "—"}
-        />
-        <KpiCard
-          delta="CSV export ready"
-          deltaTone="positive"
-          icon="ri-file-download-line"
-          label="Compliance format"
-          loading={false}
-          trend="up"
-          trendLabel="audit"
-          trendValue="Ready"
-          value="Ready"
-        />
-      </KpiStrip>
-
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="space-y-5">
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="mb-3 font-semibold text-[13px] tracking-tight">
-              Select a loan
+      <div className="grid gap-4 lg:grid-cols-[290px_1fr]">
+        <aside className="space-y-3.5">
+          <section className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+            <h3 className="mb-2 font-semibold text-[12px] text-muted-foreground uppercase tracking-wider">
+              Select Loan
             </h3>
             <LoanPicker onPick={setLoanId} value={loanId} />
             {loanId ? (
               <button
-                className="mt-2.5 text-[12px] text-muted-foreground underline-offset-2 hover:underline"
+                className="mt-1.5 font-medium text-[11.5px] text-primary hover:underline"
                 onClick={() => setLoanId("")}
                 type="button"
               >
@@ -521,30 +459,30 @@ export default function AuditTrailPage() {
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <h3 className="mb-3 font-semibold text-[13px] tracking-tight">
-              Filter by event type
+          <section className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+            <h3 className="mb-2 font-semibold text-[12px] text-muted-foreground uppercase tracking-wider">
+              Filter by Event
             </h3>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               <button
                 className={cn(
-                  "rounded-full border px-3 py-1 font-medium text-[11.5px] transition-colors",
+                  "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
                   eventFilter === ""
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent"
+                    ? "border-primary/30 bg-primary/10 font-medium text-primary"
+                    : "border-border text-muted-foreground hover:bg-accent/60"
                 )}
                 onClick={() => setEventFilter("")}
                 type="button"
               >
-                All Events
+                All
               </button>
               {EVENT_OPTIONS.map((option) => (
                 <button
                   className={cn(
-                    "rounded-full border px-3 py-1 font-medium text-[11.5px] transition-colors",
+                    "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
                     eventFilter === option.value
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:bg-accent"
+                      ? "border-primary/30 bg-primary/10 font-medium text-primary"
+                      : "border-border text-muted-foreground hover:bg-accent/60"
                   )}
                   key={option.value}
                   onClick={() => setEventFilter(option.value)}
@@ -557,26 +495,27 @@ export default function AuditTrailPage() {
           </section>
 
           {verified && verified.data.length > 0 ? (
-            <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <h3 className="mb-3 font-semibold text-[13px] tracking-tight">
-                Recently verified
+            <section className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+              <h3 className="mb-2 font-semibold text-[12px] text-muted-foreground uppercase tracking-wider">
+                Recently Verified
               </h3>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {verified.data.slice(0, 5).map((record) => (
                   <li key={record.id}>
                     <button
                       className={cn(
-                        "flex w-full items-center justify-between rounded-xl border border-transparent px-3 py-2 text-left transition-all hover:border-border hover:bg-accent/40",
+                        "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/50",
                         (loanId === record.loanId || loanId === record.id) &&
-                          "border-primary/30 bg-primary/8 font-medium text-primary shadow-2xs"
+                          "border border-primary/30 bg-primary/10 font-medium"
                       )}
                       onClick={() => setLoanId(record.loanId)}
                       type="button"
                     >
-                      <span className="font-mono text-[12.5px]">
+                      <span className="font-mono text-[12px]">
                         {record.loan.loanId ?? record.id}
                       </span>
                       <Badge
+                        className="text-[10px]"
                         variant={
                           record.validationResult === "passed"
                             ? "secondary"
@@ -593,7 +532,7 @@ export default function AuditTrailPage() {
           ) : null}
         </aside>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-4.5 shadow-xs">
           {renderTimelineBody()}
         </section>
       </div>
