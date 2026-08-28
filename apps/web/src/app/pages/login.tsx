@@ -178,9 +178,9 @@ export default function LoginPage() {
             src="/login-bg.webp"
             width={2160}
           />
-          {/* Centrally Aligned Glassmorphic Brand Panel */}
+          {/* Centrally Aligned Glassmorphic Brand Panel (Fully Rounded Pill) */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-black/40 px-6 py-3.5 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/40 px-7 py-3.5 shadow-2xl backdrop-blur-md">
               <img
                 alt="Luma Logo"
                 className="size-8 shrink-0 drop-shadow-md"
@@ -195,7 +195,7 @@ export default function LoginPage() {
           </div>
 
           {/* Bottom Glassmorphic Info Pane */}
-          <div className="absolute inset-x-3.5 bottom-3.5 rounded-xl border border-white/15 bg-black/45 p-4 text-white shadow-xl backdrop-blur-md">
+          <div className="absolute inset-x-3.5 bottom-3.5 rounded-2xl border border-white/15 bg-black/45 p-4 text-white shadow-xl backdrop-blur-md">
             <p className="mb-1 font-semibold text-[13px] tracking-tight">
               Loan Tape Verification
             </p>
