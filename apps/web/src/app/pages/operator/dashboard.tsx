@@ -1,8 +1,4 @@
-import type {
-  ExceptionListItem,
-  ExceptionType,
-  UploadBatch,
-} from "@repo/types";
+import type { ExceptionType, LoanListItem, UploadBatch } from "@repo/types";
 import { useNavigate } from "react-router-dom";
 import { KpiCard, KpiStrip } from "@/components/dashboard/kpi-card";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -11,7 +7,8 @@ import { BatchStatusBadge, exceptionTypeLabel } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardSeries } from "@/hooks/use-dashboard-series";
-import { useDashboardSummary, useExceptions } from "@/hooks/use-exceptions";
+import { useDashboardSummary } from "@/hooks/use-exceptions";
+import { useLoanList } from "@/hooks/use-loans";
 import { useUploads } from "@/hooks/use-uploads";
 
 /* Spec §4.1 — Operator Dashboard (Module G). */
@@ -48,17 +45,19 @@ function RecentUploads() {
     }
     if (batches.length === 0) {
       return (
-        <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">
-          No uploads yet — send your first loan tape.
-        </p>
+        <div className="flex h-full min-h-[280px] items-center justify-center p-5">
+          <p className="text-center text-[13px] text-muted-foreground">
+            No uploads yet — send your first loan tape.
+          </p>
+        </div>
       );
     }
     return <UploadRows batches={batches} />;
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between border-border border-b px-5 py-4">
+    <section className="flex h-[380px] min-h-[360px] flex-col rounded-2xl border border-border bg-card">
+      <header className="flex shrink-0 items-center justify-between border-border border-b px-5 py-4">
         <div>
           <h3 className="font-semibold text-[14px] tracking-tight">
             Recent uploads
@@ -76,7 +75,7 @@ function RecentUploads() {
           <i aria-hidden="true" className="ri-arrow-right-s-line" />
         </Button>
       </header>
-      {renderBody()}
+      <div className="min-h-0 flex-1 overflow-y-auto">{renderBody()}</div>
     </section>
   );
 }
@@ -125,15 +124,27 @@ function UploadRows({ batches }: { batches: UploadBatch[] }) {
 
 function CorrectionsNeeded() {
   const navigate = useNavigate();
-  const { data, isLoading } = useExceptions({
-    batchId: "",
-    page: 1,
-    search: "",
-    severity: "",
-    status: "open",
-    type: "",
-  });
-  const open = (data?.data ?? []).slice(0, 6);
+  // Spec §4.1 / problem.md Module A & G: operator corrections = failed-import rows (ingestion),
+  // not reviewer exception queue (Module C). Both endpoints are operator-allowed:
+  // GET /api/uploads (failedCount) and GET /api/loans?validationStatus=failed (read-only).
+  const {
+    data: uploadsData,
+    error: uploadsError,
+    isLoading: uploadsLoading,
+  } = useUploads();
+  const {
+    data: loansData,
+    error: loansError,
+    isLoading: loansLoading,
+  } = useLoanList({ limit: 6, page: 1, validationStatus: "failed" });
+
+  const isLoading = uploadsLoading || loansLoading;
+  const hasError = Boolean(uploadsError || loansError);
+  const failedBatches = (uploadsData?.data ?? [])
+    .filter((b) => b.failedCount > 0)
+    .slice(0, 4);
+  const failedLoans = (loansData?.data ?? []).slice(0, 6);
+  const isEmpty = failedBatches.length === 0 && failedLoans.length === 0;
 
   function renderBody() {
     if (isLoading) {
@@ -145,66 +156,158 @@ function CorrectionsNeeded() {
         </div>
       );
     }
-    if (open.length === 0) {
+    if (hasError) {
+      const msg =
+        (uploadsError as Error | undefined)?.message ??
+        (loansError as Error | undefined)?.message ??
+        "Failed to load corrections";
       return (
-        <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">
-          Nothing needs correcting right now.
-        </p>
+        <div className="flex h-full min-h-[280px] flex-col items-center justify-center px-5 py-6 text-center">
+          <p className="text-[13px] text-destructive">{msg}</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            Check import history or retry.
+          </p>
+        </div>
+      );
+    }
+    if (isEmpty) {
+      return (
+        <div className="flex h-full min-h-[280px] items-center justify-center p-5">
+          <p className="text-center text-[13px] text-muted-foreground">
+            All clear — no failed imports or validation issues. Upload a new
+            file to see corrections here.
+          </p>
+        </div>
       );
     }
     return (
-      <ul className="divide-y divide-border">
-        {open.map((item) => (
-          <CorrectionRow item={item} key={item.id} />
-        ))}
-      </ul>
+      <div className="divide-y divide-border">
+        {failedBatches.length > 0 && (
+          <div>
+            <p className="px-5 pt-3 pb-1 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+              Failed imports · {failedBatches.length} file
+              {failedBatches.length > 1 ? "s" : ""} need re-upload
+            </p>
+            <ul className="divide-y divide-border">
+              {failedBatches.map((batch) => (
+                <FailedImportRow batch={batch} key={batch.id} />
+              ))}
+            </ul>
+          </div>
+        )}
+        {failedLoans.length > 0 && (
+          <div>
+            <p className="px-5 pt-3 pb-1 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+              Validation failures ·{" "}
+              {loansData?.pagination.total ?? failedLoans.length} loans need
+              inspection
+            </p>
+            <ul className="divide-y divide-border">
+              {failedLoans.map((loan) => (
+                <FailedLoanRow key={loan.id} loan={loan} />
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between border-border border-b px-5 py-4">
+    <section className="flex h-[380px] min-h-[360px] flex-col rounded-2xl border border-border bg-card">
+      <header className="flex shrink-0 items-center justify-between border-border border-b px-5 py-4">
         <div>
           <h3 className="font-semibold text-[14px] tracking-tight">
             Corrections needed
           </h3>
           <p className="text-[12px] text-muted-foreground">
-            Open exceptions awaiting operator action
+            Failed imports awaiting re-upload · validation failures for
+            inspection
           </p>
         </div>
-        <Button
-          onClick={() => navigate("/operator/loans")}
-          size="sm"
-          variant="ghost"
-        >
-          Loan records
-          <i aria-hidden="true" className="ri-arrow-right-s-line" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            onClick={() => navigate("/operator/imports")}
+            size="sm"
+            variant="ghost"
+          >
+            Imports
+            <i aria-hidden="true" className="ri-history-line" />
+          </Button>
+          <Button
+            onClick={() => navigate("/operator/loans")}
+            size="sm"
+            variant="ghost"
+          >
+            Loans
+            <i aria-hidden="true" className="ri-arrow-right-s-line" />
+          </Button>
+        </div>
       </header>
-      {renderBody()}
+      <div className="min-h-0 flex-1 overflow-y-auto">{renderBody()}</div>
     </section>
   );
 }
 
-function CorrectionRow({ item }: { item: ExceptionListItem }) {
+function FailedImportRow({ batch }: { batch: UploadBatch }) {
   const navigate = useNavigate();
   return (
     <li>
       <button
         className="group flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors hover:bg-accent/50"
-        onClick={() => navigate("/operator/loans")}
+        onClick={() => navigate(`/operator/uploads/${batch.id}`)}
+        type="button"
+      >
+        <i
+          aria-hidden="true"
+          className="ri-file-warning-line shrink-0 text-[15px] text-amber-600"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium text-[13px]">
+            {batch.fileName}
+          </span>
+          <span className="text-[11.5px] text-muted-foreground">
+            {FILE_TYPE_LABELS[batch.fileType] ?? batch.fileType} ·{" "}
+            {batch.failedCount.toLocaleString()} rows failed ·{" "}
+            {formatWhen(batch.createdAt)}
+          </span>
+        </span>
+        <BatchStatusBadge status={batch.status as never} />
+        <i
+          aria-hidden="true"
+          className="ri-arrow-right-s-line shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5"
+        />
+      </button>
+    </li>
+  );
+}
+
+function FailedLoanRow({ loan }: { loan: LoanListItem }) {
+  const navigate = useNavigate();
+  return (
+    <li>
+      <button
+        className="group flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors hover:bg-accent/50"
+        onClick={() =>
+          navigate(
+            `/operator/loans?search=${encodeURIComponent(loan.loanId ?? loan.id)}`
+          )
+        }
         type="button"
       >
         <span className="w-[110px] shrink-0 truncate font-mono text-[12px]">
-          {item.loan.loanId ?? item.loan.id}
+          {loan.loanId ?? loan.id}
         </span>
         <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">
-          {exceptionTypeLabel(item.exceptionType)}
-          {item.field ? ` · ${item.field}` : ""} — {item.message}
+          {loan.validationStatus === "failed"
+            ? "Validation failed"
+            : loan.validationStatus}{" "}
+          · {loan.exceptionCount} issue{loan.exceptionCount === 1 ? "" : "s"} ·{" "}
+          {loan.sourceBatch.fileName}
         </span>
         <i
           aria-hidden="true"
-          className="ri-arrow-right-up-line text-muted-foreground/60"
+          className="ri-search-eye-line shrink-0 text-muted-foreground/60"
         />
       </button>
     </li>
@@ -359,6 +462,9 @@ export default function OperatorDashboard() {
           trendValue={rowsFailed && rowsFailed > 0 ? "3" : "0"}
           value={rowsFailed === null ? "—" : rowsFailed.toLocaleString()}
         />
+        {/* Corrections needed KPI stays as global openExceptions (reviewer queue health) per Module G:
+            operator widget below shows operator-actionable failed imports + failed loans (Module A).
+            Keeping KPI as openExceptions preserves cross-role visibility via GET /api/summary (operator-allowed). */}
         <KpiCard
           delta={openExceptions > 0 ? "Needs correction" : "All clear"}
           deltaTone={openExceptions > 0 ? "negative" : "positive"}
@@ -382,7 +488,7 @@ export default function OperatorDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
         <RecentUploads />
         <CorrectionsNeeded />
       </div>

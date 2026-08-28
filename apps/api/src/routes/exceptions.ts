@@ -15,6 +15,10 @@ const router = express.Router();
 
 const CUID_SCHEMA = cuidSchema;
 
+// Problem statement Module C (Exception Queue) + API contract §4: reviewer-only.
+// Operator dashboard (Module G / ui-and-flow §4.1) must NOT use this endpoint for
+// "Corrections needed" — operator uses GET /api/uploads (failedRows) + GET /api/loans?validationStatus=failed.
+// Keeping this guard strict preserves RBAC and makes the 403 on operator intentional.
 router.use(requireAuth, requireRole("reviewer"));
 
 router.get("/", async (req: Request, res: Response): Promise<void> => {
