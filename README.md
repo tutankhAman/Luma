@@ -1,4 +1,4 @@
-# Luma — Loan Data Verification Copilot
+# Luma - Loan Data Verification Copilot
 
 Loan Data Verification Copilot for Intain Campus FinTech Challenge 2026. Ingests messy loan CSVs, validates records, manages exceptions with AI assistance, and produces traceable verified records with audit trail and hash-based integrity.
 
@@ -243,9 +243,9 @@ Luma/
 
 CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `build` on push/PR to `main`. Branch protection requires all three checks green and branch up-to-date before merge. Same checks run locally on pre-commit via lefthook (`prisma generate` + `check-types` + `build`).
 
-## Architecture Notes
+## Architecture Note
 
-System design, data model, API design, validation engine, AI feature, audit trail, and trade-offs are documented in `.context/architecture-flow.md` and `.context/implementation-plan.md`. API details in `.context/api-contract.md`. UI flow in `.context/ui-and-flow.md`.
+System design, data model, API design, validation engine, AI feature, audit trail, and trade-offs are documented in `docs/architecture.md` (1-2 pages). Detailed specs are in `.context/architecture-flow.md`, `.context/api-contract.md`, and `.context/implementation-plan.md`. UI flow in `.context/ui-and-flow.md`.
 
 ## AI Development Log
 
