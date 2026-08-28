@@ -1,4 +1,5 @@
 # Luma - Loan Data Verification Copilot
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/c8abcf93-d0de-4aab-8781-87764be0cc7a" />
 
 Loan Data Verification Copilot for Intain Campus FinTech Challenge 2026. Ingests messy loan CSVs, validates records, manages exceptions with AI assistance, and produces traceable verified records with audit trail and hash-based integrity.
 
