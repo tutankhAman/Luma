@@ -132,13 +132,13 @@ export function KpiCard({
     <div className="flex items-center gap-3.5">
       <div
         aria-hidden="true"
-        className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-muted/40 text-foreground/80 shadow-xs"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/40 text-foreground/80 shadow-xs"
       >
         <i className={cn(icon, "text-[20px]")} />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+        <p className="truncate font-semibold text-foreground text-sm">
           {label}
         </p>
 
