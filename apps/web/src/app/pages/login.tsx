@@ -169,8 +169,8 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
       {/* Left: Container with 2xl rounded corners taking half the width */}
-      <section className="relative hidden h-full w-1/2 p-3 sm:p-4 lg:block">
-        <div className="relative size-full overflow-hidden rounded-2xl border border-border bg-muted shadow-sm">
+      <section className="relative hidden h-full w-1/2 p-2 sm:p-2.5 lg:block">
+        <div className="relative size-full overflow-hidden rounded-2xl border border-border bg-muted shadow-xs">
           <img
             alt="Luma Verification Platform"
             className="size-full object-cover object-center"
@@ -182,7 +182,7 @@ export default function LoginPage() {
       </section>
 
       {/* Right: Auth Form Section */}
-      <section className="flex h-full w-full flex-col justify-between overflow-y-auto p-6 sm:p-10 lg:w-1/2">
+      <section className="flex h-full w-full flex-col justify-between overflow-y-auto p-6 sm:p-8 lg:w-1/2">
         {/* Header Branding */}
         <div className="flex items-center gap-2.5">
           <span
@@ -195,7 +195,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form Container */}
-        <div className="mx-auto my-auto w-full max-w-[380px] py-4">
+        <div className="mx-auto my-auto w-full max-w-[380px] py-2">
           <div className="mb-6 space-y-1.5">
             <h1 className="font-semibold text-[24px] text-foreground tracking-tight">
               {mode === "register" ? "Create your account" : "Welcome back"}
