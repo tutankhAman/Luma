@@ -2,6 +2,7 @@ import type { Role } from "@repo/types";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/hooks/use-session";
 import { authClient } from "@/lib/auth-client";
@@ -12,13 +13,19 @@ const ROLE_HOME: Record<Role, string> = {
   reviewer: "/reviewer/dashboard",
 };
 
+const DEMO_ACCOUNTS = [
+  { email: "operator@luma.dev", label: "Operator", role: "data_operator" },
+  { email: "reviewer@luma.dev", label: "Reviewer", role: "reviewer" },
+  { email: "consumer@luma.dev", label: "Consumer", role: "data_consumer" },
+];
+
 export function RoleRedirect() {
   const { isPending, user } = useSession();
 
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Skeleton className="h-10 w-56" />
+        <Skeleton className="h-10 w-56 rounded-full" />
       </div>
     );
   }
@@ -38,14 +45,6 @@ export function RoleRedirect() {
   return <Navigate replace to={ROLE_HOME[normalized]} />;
 }
 
-const STEPS = [
-  { description: "Create your operator account", title: "Create an account" },
-  {
-    description: "Upload tapes and resolve exceptions",
-    title: "Start verifying loans",
-  },
-];
-
 function AuthInput({
   autoComplete,
   id,
@@ -64,16 +63,16 @@ function AuthInput({
   value: string;
 }) {
   return (
-    <div>
+    <div className="space-y-1.5">
       <label
-        className="mb-2 block text-[12px] text-muted-foreground"
+        className="block font-medium text-[12px] text-foreground"
         htmlFor={id}
       >
         {label}
       </label>
       <input
         autoComplete={autoComplete}
-        className="w-full rounded-xl border border-input bg-background px-4 py-3 text-[14px] transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+        className="h-10 w-full rounded-xl border border-input bg-background px-3.5 text-[13.5px] outline-none transition-colors placeholder:text-muted-foreground/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -85,14 +84,22 @@ function AuthInput({
   );
 }
 
-function submitLabel(submitting: boolean, mode: "signin" | "register"): string {
+function getSubmitButtonContent(
+  submitting: boolean,
+  mode: "signin" | "register"
+) {
   if (submitting) {
-    return "Please wait...";
+    return (
+      <>
+        <i
+          aria-hidden="true"
+          className="ri-loader-4-line animate-spin text-sm"
+        />
+        Please wait…
+      </>
+    );
   }
-  if (mode === "register") {
-    return "Create account";
-  }
-  return "Sign in";
+  return mode === "register" ? "Create account" : "Sign in";
 }
 
 export default function LoginPage() {
@@ -153,156 +160,148 @@ export default function LoginPage() {
     }
   };
 
-  return (
-    <div className="flex min-h-screen gap-4 bg-background p-4 font-sans">
-      <section className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden rounded-[32px] bg-foreground pt-36 pr-12 pb-12 pl-12 text-background lg:flex">
-        {/* Wallpaper Background */}
-        <img
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 size-full object-cover object-center"
-          height={3840}
-          src="/login-bg.webp"
-          width={2160}
-        />
-        {/* Dark Vignette Overlay */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-black/65 backdrop-blur-[1px]"
-        />
+  const fillDemoAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("password123");
+    toast.success(`Demo credentials filled for ${demoEmail}`);
+  };
 
-        <div className="relative z-10 flex w-full flex-col items-center">
-          <div className="mb-8 flex items-center gap-2 font-medium text-white">
+  return (
+    <div className="flex min-h-screen bg-background p-3 font-sans sm:p-4">
+      <div className="flex w-full overflow-hidden rounded-[28px] border border-border bg-card shadow-lg">
+        {/* Left: Pure Wallpaper Image Panel */}
+        <section className="relative hidden w-1/2 overflow-hidden bg-muted lg:block">
+          <img
+            alt="Luma Verification Platform"
+            className="size-full object-cover object-center"
+            height={3840}
+            src="/login-bg.webp"
+            width={2160}
+          />
+        </section>
+
+        {/* Right: Auth Form Section */}
+        <section className="flex w-full flex-col justify-between p-8 sm:p-12 lg:w-1/2">
+          {/* Header Branding */}
+          <div className="flex items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="size-5 rounded-full border border-white/80"
-            />
-            Luma
+              className="flex size-7 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground text-xs shadow-xs"
+            >
+              L
+            </span>
+            <span className="font-semibold text-base tracking-tight">Luma</span>
           </div>
-          <h1 className="mb-3 text-center font-semibold text-[32px] text-white tracking-tight">
-            Loan data verification,
-            <br />
-            made trustworthy
-          </h1>
-          <p className="mb-10 max-w-[300px] text-center text-[14.5px] text-white/80 leading-snug">
-            Turn messy loan tapes into validated, traceable records with AI
-            assistance at every step.
-          </p>
-          <ol className="w-full max-w-[340px] space-y-3">
-            {STEPS.map((step, index) => {
-              const active = index === 0;
-              return (
-                <li
-                  className={`flex items-center gap-4 rounded-2xl p-4 backdrop-blur-md transition-colors ${
-                    active
-                      ? "border border-white/20 bg-white/15 font-medium text-white shadow-black/20 shadow-lg"
-                      : "border border-white/10 bg-black/40 text-white/70"
-                  } text-[14px]`}
-                  key={step.title}
-                >
-                  <span
-                    className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] ${
-                      active
-                        ? "bg-white font-semibold text-black"
-                        : "border border-white/40 text-white/80"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <span>
-                    <span className="block text-white">{step.title}</span>
-                    <span
-                      className={`block text-[12px] ${active ? "text-white/80" : "text-white/60"}`}
-                    >
-                      {step.description}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </section>
 
-      <section className="flex w-full flex-col items-center justify-center bg-card lg:w-1/2">
-        <div className="w-full max-w-[380px]">
-          <h2 className="mb-1.5 font-semibold text-[22px]">
-            {mode === "register" ? "Create your account" : "Welcome back"}
-          </h2>
-          <p className="mb-8 text-[13px] text-muted-foreground">
-            {mode === "register"
-              ? "Start turning messy loan data into trusted records."
-              : "Sign in to continue to Luma Copilot."}
-          </p>
-
-          <form
-            className="space-y-4"
-            onSubmit={(event) => void handleSubmit(event)}
-          >
-            {mode === "register" ? (
-              <AuthInput
-                autoComplete="name"
-                id="name"
-                label="Full name"
-                onChange={setName}
-                placeholder="Jane Operator"
-                type="text"
-                value={name}
-              />
-            ) : null}
-            <AuthInput
-              autoComplete="email"
-              id="email"
-              label="Email address"
-              onChange={setEmail}
-              placeholder="operator@luma.dev"
-              type="email"
-              value={email}
-            />
-            <div>
-              <AuthInput
-                autoComplete={
-                  mode === "register" ? "new-password" : "current-password"
-                }
-                id="password"
-                label="Password"
-                onChange={setPassword}
-                placeholder="••••••••"
-                type="password"
-                value={password}
-              />
-              <span className="mt-2 block text-[12px] text-muted-foreground">
+          {/* Form Container */}
+          <div className="mx-auto w-full max-w-[380px] py-8">
+            <div className="mb-6 space-y-1.5">
+              <h1 className="font-semibold text-[24px] text-foreground tracking-tight">
+                {mode === "register" ? "Create your account" : "Welcome back"}
+              </h1>
+              <p className="text-[13px] text-muted-foreground">
                 {mode === "register"
-                  ? "Must be at least 8 characters."
-                  : "Demo accounts: operator / reviewer / consumer @luma.dev"}
-              </span>
+                  ? "Start turning unverified loan tapes into verified assets."
+                  : "Sign in to access loan ingestion, review, and verification."}
+              </p>
             </div>
 
-            <button
-              className="mt-8 w-full rounded-full bg-primary py-3 font-medium text-[14px] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              disabled={submitting}
-              type="submit"
-            >
-              {submitLabel(submitting, mode)}{" "}
-            </button>
-          </form>
+            {/* Quick Demo Selector */}
+            {mode === "signin" ? (
+              <div className="mb-5 rounded-xl border border-border bg-muted/30 p-3">
+                <p className="mb-2 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+                  Quick Demo Accounts
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {DEMO_ACCOUNTS.map((acc) => (
+                    <button
+                      className="rounded-full border border-border/80 bg-background px-3 py-1 font-medium text-[11.5px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 active:scale-95"
+                      key={acc.email}
+                      onClick={() => fillDemoAccount(acc.email)}
+                      type="button"
+                    >
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
-          <p className="mt-8 text-center text-[13px] text-muted-foreground">
-            {mode === "register"
-              ? "Already have an account?"
-              : "Don't have an account?"}
-            <button
-              className="ml-1 font-medium text-primary hover:underline"
-              onClick={() =>
-                setMode(mode === "register" ? "signin" : "register")
-              }
-              type="button"
+            <form
+              className="space-y-3.5"
+              onSubmit={(event) => void handleSubmit(event)}
             >
-              {mode === "register" ? "Sign in" : "Create one"}
-            </button>
-          </p>
-        </div>
-      </section>
+              {mode === "register" ? (
+                <AuthInput
+                  autoComplete="name"
+                  id="name"
+                  label="Full name"
+                  onChange={setName}
+                  placeholder="Jane Operator"
+                  type="text"
+                  value={name}
+                />
+              ) : null}
+              <AuthInput
+                autoComplete="email"
+                id="email"
+                label="Email address"
+                onChange={setEmail}
+                placeholder="operator@luma.dev"
+                type="email"
+                value={email}
+              />
+              <div>
+                <AuthInput
+                  autoComplete={
+                    mode === "register" ? "new-password" : "current-password"
+                  }
+                  id="password"
+                  label="Password"
+                  onChange={setPassword}
+                  placeholder="••••••••"
+                  type="password"
+                  value={password}
+                />
+                {mode === "register" ? (
+                  <span className="mt-1.5 block text-[11.5px] text-muted-foreground">
+                    Must be at least 8 characters.
+                  </span>
+                ) : null}
+              </div>
+
+              <Button
+                className="mt-2 h-10 w-full rounded-full text-[13.5px]"
+                disabled={submitting}
+                type="submit"
+              >
+                {getSubmitButtonContent(submitting, mode)}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-[12.5px] text-muted-foreground">
+              {mode === "register"
+                ? "Already have an account?"
+                : "Don't have an account?"}
+              <button
+                className="ml-1.5 font-medium text-primary hover:underline"
+                onClick={() =>
+                  setMode(mode === "register" ? "signin" : "register")
+                }
+                type="button"
+              >
+                {mode === "register" ? "Sign in" : "Create one"}
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Copyright / Status */}
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground/70">
+            <span>© 2026 Luma Systems</span>
+            <span>Cryptographic Verification Pipeline</span>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
