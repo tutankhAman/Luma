@@ -43,7 +43,7 @@ FRONTEND_URL="http://localhost:3000"
 VITE_API_URL="http://localhost:4000"
 PORT=4000
 GEMINI_API_KEY=""
-MOCK_AI="true"
+MOCK_AI="false"
 AI_MODEL_ID="gemini-3.5-flash-lite"
 ```
 
@@ -55,8 +55,8 @@ AI_MODEL_ID="gemini-3.5-flash-lite"
 | `FRONTEND_URL` | yes | Frontend URL for CORS and trusted origins |
 | `VITE_API_URL` | no | Frontend API base, defaults to `http://localhost:4000` |
 | `PORT` | no | API port, defaults to `4000` |
-| `GEMINI_API_KEY` | no | Gemini API key. Leave empty with `MOCK_AI=true` for local development |
-| `MOCK_AI` | no | `true` uses deterministic mock responses, `false` calls Gemini |
+| `GEMINI_API_KEY` | no | Gemini API key. Required when `MOCK_AI=false` |
+| `MOCK_AI` | no | `false` calls Gemini (default), `true` uses deterministic mock responses |
 | `AI_MODEL_ID` | no | Model id, defaults to `gemini-3.5-flash-lite` |
 
 `.env` is gitignored. `.env.example` is the template.
