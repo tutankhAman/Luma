@@ -114,6 +114,12 @@ All passwords are `password`:
 
 `users.json` equivalent is seeded in `apps/api/src/seed.ts`.
 
+## Sample Files & Documentation
+
+- **Sample Files**: Ready-to-use sample dataset files are located in [`sample-files/`](./sample-files) (including baseline loan tapes, servicer updates, and document manifests), and can also be downloaded directly from the in-app upload page.
+- **Architecture Documentation**: The comprehensive system architecture, entity relationships, validation engine, and engineering trade-offs are documented in [`docs/architecture.md`](./docs/architecture.md) (and viewable in-app at `/architecture`).
+- **AI Development Log**: The complete prompt history, human review processes, rejected AI suggestions, and live development timeline are documented in [`docs/AI_DEVELOPMENT_LOG.md`](./docs/AI_DEVELOPMENT_LOG.md) (and viewable in-app at `/ai-log`).
+
 ## Roles and Modules
 
 | Module | Implementation |
