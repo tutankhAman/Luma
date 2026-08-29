@@ -129,6 +129,7 @@ function Wordmark() {
 
 function RoleSwitcher({ current }: { current: Role }) {
   const navigate = useNavigate();
+  const { refetch } = useSession();
   const [switching, setSwitching] = useState(false);
 
   const handleSwitch = async (role: Role) => {
@@ -145,6 +146,7 @@ function RoleSwitcher({ current }: { current: Role }) {
         toast.error("Role switch failed", { description: error.message });
         return;
       }
+      await refetch();
       navigate(ROLE_HOME[role], { replace: true });
     } finally {
       setSwitching(false);

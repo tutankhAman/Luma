@@ -131,6 +131,7 @@ function getSubmitButtonContent(
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { refetch } = useSession();
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -138,6 +139,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const navigateByRole = async () => {
+    await refetch();
     const session = await authClient.getSession();
     const role = (session?.data?.user as { role?: string } | undefined)?.role;
     const normalized: Role | null =
