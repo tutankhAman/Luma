@@ -72,6 +72,7 @@ bun install
 # 2. Environment
 cp apps/api/.env.example apps/api/.env
 # edit BETTER_AUTH_SECRET: openssl rand -base64 32
+# Windows: use PowerShell or Git Bash (cp/openssl ship with Git for Windows); in cmd.exe use `copy` instead of `cp`
 
 # 3. Database
 docker compose up -d
