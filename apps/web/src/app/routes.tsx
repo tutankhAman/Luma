@@ -23,6 +23,7 @@ import ExceptionQueuePage from "./pages/reviewer/exceptions";
 import LoanDetailPage from "./pages/reviewer/loan-detail";
 import RuleBuilderPage from "./pages/reviewer/rules";
 import AiDevelopmentLogPage from "./pages/shared/ai-development-log";
+import ArchitecturePage from "./pages/shared/architecture";
 
 const LoginPage = LoginPageDefault;
 
@@ -32,6 +33,7 @@ export const routes: RouteObject[] = [
       { element: <RoleRedirect />, index: true },
       { element: <LoginPage />, path: "login" },
       { element: <AiDevelopmentLogPage />, path: "ai-log" },
+      { element: <ArchitecturePage />, path: "architecture" },
       {
         children: [
           {

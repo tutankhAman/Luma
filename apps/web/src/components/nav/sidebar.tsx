@@ -267,6 +267,30 @@ export function Sidebar() {
                 : "text-muted-foreground hover:text-foreground"
             )
           }
+          to="/architecture"
+        >
+          {({ isActive }) => (
+            <>
+              <i
+                aria-hidden="true"
+                className="ri-node-tree font-normal text-[15px]"
+              />
+              <span className={isActive ? "font-bold" : "font-medium"}>
+                Architecture Note
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        <NavLink
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-2.5 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors",
+              isActive
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )
+          }
           to="/ai-log"
         >
           {({ isActive }) => (

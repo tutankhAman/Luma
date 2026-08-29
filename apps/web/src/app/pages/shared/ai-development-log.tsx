@@ -1,5 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   AI_CODE_PERCENT,
   HUMAN_PERCENT,
@@ -44,9 +46,22 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export default function AiDevelopmentLogPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="mx-auto max-w-[1000px] space-y-6 p-8">
       <PageHeader
+        action={
+          <Button
+            className="gap-1.5 rounded-full px-3.5 shadow-xs"
+            onClick={() => navigate(-1)}
+            size="sm"
+            variant="outline"
+          >
+            <i aria-hidden="true" className="ri-arrow-left-line" />
+            Back
+          </Button>
+        }
         description="How Luma was built with AI — prompts, reviews, rejections, and lessons. Logged live during Phases 0–5, verified against git history."
         eyebrow="Deliverable"
         title="AI Development Log"
