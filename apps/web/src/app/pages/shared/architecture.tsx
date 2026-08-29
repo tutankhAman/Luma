@@ -1,7 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   AI_CONTROLS,
   ARCHITECTURE_META,
@@ -11,315 +9,414 @@ import {
   TRADE_OFFS,
   VALIDATION_RULES,
 } from "@/content/architecture";
-import { cn } from "@/lib/utils";
+
+/* ─── helpers ─────────────────────────────────────────────────────────────── */
 
 function SectionHeading({ hint, title }: { hint?: string; title: string }) {
   return (
-    <div className="mb-4">
-      <h3 className="font-semibold text-[15px] tracking-tight">{title}</h3>
+    <div className="mb-5">
+      <h3 className="font-bold text-[16px] tracking-tight">{title}</h3>
       {hint ? (
-        <p className="mt-0.5 text-[12.5px] text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
 }
 
-function getSeverityVariant(severity: string) {
-  if (severity === "critical") {
-    return "destructive";
-  }
-  if (severity === "high") {
-    return "default";
-  }
-  return "secondary";
+function FigureLabel({ badge, label }: { badge: string; label: string }) {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <span className="font-bold text-[11px] text-foreground/80 uppercase tracking-[0.12em]">
+        {label}
+      </span>
+      <span className="rounded-full border border-border bg-background px-2.5 py-0.5 font-medium text-[10.5px] text-muted-foreground">
+        {badge}
+      </span>
+    </div>
+  );
 }
 
-export default function ArchitecturePage() {
-  const navigate = useNavigate();
+/* ─── Figure 1: System Topology Image ────────────────────────────────────── */
+
+function SystemTopologyFigure() {
+  return (
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-xl border border-border bg-background p-2 shadow-xs">
+        <img
+          alt="Luma System Architecture Diagram showing Browser SPA, Vite Dev Proxy, Express 5 API Gateway, PostgreSQL 16, Local Disk Buffer, and Gemini AI Assistant"
+          className="h-auto w-full rounded-lg object-contain"
+          height="720"
+          src="/assets/architecture.webp"
+          width="1280"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-border border-t pt-3 text-[11.5px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className="ri-shield-keyhole-line text-foreground/70"
+          />
+          <span>
+            Auth: <strong>Better Auth (HttpOnly Cookie, SameSite=Lax)</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <i aria-hidden="true" className="ri-speed-line text-foreground/70" />
+          <span>
+            Streaming: <strong>5k-row chunks O(1) memory buffer</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className="ri-sparkling-line text-foreground/70"
+          />
+          <span>
+            AI: <strong>Gemini 3.5 Flash Lite + Mock offline fallback</strong>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Figure 2: Entity Relationship Diagram ──────────────────────────────── */
+
+interface ErdField {
+  isFk?: boolean;
+  isKey?: boolean;
+  name: string;
+  type: string;
+}
+
+interface ErdEntity {
+  fields: ErdField[];
+  label: string;
+}
+
+function ErdBullet({ isFk, isKey }: { isFk?: boolean; isKey?: boolean }) {
+  if (isKey) {
+    return (
+      <span className="inline-block size-1.5 shrink-0 rounded-full bg-foreground" />
+    );
+  }
+  if (isFk) {
+    return (
+      <span className="inline-block size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+    );
+  }
+  return (
+    <span className="inline-block size-1.5 shrink-0 rounded-full bg-border" />
+  );
+}
+
+function ErdFieldRow({ field }: { field: ErdField }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-border/40 border-t px-3 py-1.5 text-[11px]">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <ErdBullet isFk={field.isFk} isKey={field.isKey} />
+        <span className="truncate font-bold font-mono text-foreground/90">
+          {field.name}
+        </span>
+      </div>
+      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+        {field.type}
+      </span>
+    </div>
+  );
+}
+
+function ErdDiagram() {
+  const entities: ErdEntity[] = [
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { name: "email", type: "String (UK)" },
+        { name: "name", type: "String" },
+        { name: "role", type: "Enum" },
+        { name: "emailVerified", type: "Boolean" },
+      ],
+      label: "User",
+    },
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { isFk: true, name: "uploadedById", type: "→ User.id" },
+        { name: "fileName", type: "String" },
+        { name: "fileType", type: "String" },
+        { name: "status", type: "String" },
+        { name: "recordCount", type: "Int" },
+        { name: "metadata", type: "Json" },
+      ],
+      label: "UploadBatch",
+    },
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { isFk: true, name: "sourceBatchId", type: "→ Batch.id" },
+        { name: "loanId", type: "String (BK)" },
+        { name: "validationStatus", type: "String" },
+        { name: "sourceRowNumber", type: "Int" },
+        { name: "+21 Business Fields", type: "Decimal/Date" },
+      ],
+      label: "Loan",
+    },
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { isFk: true, name: "loanId", type: "→ Loan.id" },
+        { name: "exceptionType", type: "String" },
+        { name: "severity", type: "Enum" },
+        { name: "status", type: "Enum" },
+        { name: "aiRecommendation", type: "Json?" },
+      ],
+      label: "Exception",
+    },
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { isFk: true, name: "loanId", type: "→ Loan.id (UK)" },
+        { isFk: true, name: "verifiedById", type: "→ User.id" },
+        { name: "canonicalData", type: "Json" },
+        { name: "recordHash", type: "SHA-256" },
+        { name: "aiRecommendationUsed", type: "Boolean" },
+      ],
+      label: "VerifiedLoan",
+    },
+    {
+      fields: [
+        { isKey: true, name: "id", type: "String (PK)" },
+        { isFk: true, name: "actorId", type: "→ User.id?" },
+        { isFk: true, name: "loanId", type: "→ Loan.id?" },
+        { isFk: true, name: "batchId", type: "→ Batch.id?" },
+        { name: "eventType", type: "Enum (11 types)" },
+        { name: "metadata", type: "Json" },
+      ],
+      label: "AuditLog",
+    },
+  ];
+
+  const relations = [
+    { card: "1 ‥‥ N", from: "User", label: "uploads", to: "UploadBatch" },
+    { card: "1 ‥‥ N", from: "UploadBatch", label: "contains", to: "Loan" },
+    { card: "1 ‥‥ N", from: "Loan", label: "generates", to: "Exception" },
+    {
+      card: "1 ‥‥ 0|1",
+      from: "Loan",
+      label: "verified as",
+      to: "VerifiedLoan",
+    },
+    { card: "1 ‥‥ N", from: "User", label: "verifies", to: "VerifiedLoan" },
+    {
+      card: "N ‥‥ 1",
+      from: "AuditLog",
+      label: "references",
+      to: "all entities",
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-[1000px] space-y-6 p-8">
-      <PageHeader
-        action={
-          <Button
-            className="gap-1.5 rounded-full px-3.5 shadow-xs"
-            onClick={() => navigate(-1)}
-            size="sm"
-            variant="outline"
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {entities.map((e) => (
+          <div
+            className="overflow-hidden rounded-xl border border-border bg-card shadow-xs"
+            key={e.label}
           >
-            <i aria-hidden="true" className="ri-arrow-left-line" />
-            Back
-          </Button>
-        }
+            <div className="bg-muted/40 px-3 py-2 font-bold font-mono text-[12.5px] text-foreground">
+              {e.label}
+            </div>
+            <div>
+              {e.fields.map((f) => (
+                <ErdFieldRow field={f} key={f.name} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-border bg-muted/20 p-4">
+        <p className="mb-3 font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
+          Relationships &amp; Cardinality
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {relations.map((r) => (
+            <div
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-[11px] shadow-xs"
+              key={r.from + r.to}
+            >
+              <span className="font-bold font-mono text-foreground/90">
+                {r.from}
+              </span>
+              <span className="text-muted-foreground">{r.card}</span>
+              <span className="text-[10.5px] text-muted-foreground italic">
+                {r.label}
+              </span>
+              <span className="text-muted-foreground">{r.card}</span>
+              <span className="font-bold font-mono text-foreground/90">
+                {r.to}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-4 border-border border-t pt-3">
+          {[
+            { color: "bg-foreground", label: "Primary Key" },
+            { color: "bg-muted-foreground", label: "Foreign Key" },
+            { color: "bg-border", label: "Attribute" },
+          ].map((l) => (
+            <span
+              className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground"
+              key={l.label}
+            >
+              <span className={`inline-block size-2 rounded-full ${l.color}`} />
+              {l.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Figure 3: End-to-End Flow Diagram ───────────────────────────────────── */
+
+function EndToEndFlowFigure() {
+  return (
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-xl border border-border bg-background p-2 shadow-xs">
+        <img
+          alt="Luma End-to-End Verification Pipeline Flowchart from CSV upload to verified export"
+          className="mx-auto h-auto w-full max-w-[720px] rounded-lg object-contain"
+          height="1440"
+          src="/assets/e2e.webp"
+          width="720"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-border border-t pt-3 text-[11.5px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className="ri-git-commit-line text-foreground/70"
+          />
+          <span>
+            Audit Trail: <strong>11 immutable append-only event types</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className="ri-fingerprint-line text-foreground/70"
+          />
+          <span>
+            Integrity: <strong>SHA-256 canonical hash per verified loan</strong>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className="ri-file-download-line text-foreground/70"
+          />
+          <span>
+            Export: <strong>Certified CSV / JSON with audit lineage</strong>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Page ───────────────────────────────────────────────────────────── */
+
+export default function ArchitecturePage() {
+  return (
+    <div className="mx-auto max-w-[1020px] space-y-8 p-8">
+      <PageHeader
         description={ARCHITECTURE_META.description}
         eyebrow={ARCHITECTURE_META.eyebrow}
         title={ARCHITECTURE_META.title}
       />
 
-      <p className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.05] px-4 py-3 text-[12.5px] text-muted-foreground">
-        <i
-          aria-hidden="true"
-          className="ri-shield-check-line mt-0.5 text-primary"
-        />
-        <span>
-          <strong className="font-medium text-foreground">
-            Architectural Blueprint:
-          </strong>{" "}
-          This document describes the end-to-end technical design of Luma,
-          covering high-scale streaming ingestion, modular validation, strict AI
-          human controls, and cryptographic audit hashing.
-        </span>
-      </p>
-
-      {/* SECTION 1: System Design */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <SectionHeading
-          hint="Decoupled client-server monorepo with streaming ingestion, session auth, and AI review."
-          title="1. System Design & Topology"
-        />
-
-        {/* Figure 1: System Topology Visual Diagram */}
-        <div className="my-5 rounded-2xl border border-border/80 bg-muted/20 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold text-[11px] text-primary uppercase tracking-wider">
-              Figure 1. High-Level System Architecture
-            </span>
-            <span className="rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-              Turborepo Monorepo
-            </span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Frontend Block */}
-            <div className="flex flex-col justify-between rounded-xl border border-primary/30 bg-primary/[0.03] p-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                    <i
-                      aria-hidden="true"
-                      className="ri-window-line text-[14px]"
-                    />
-                  </span>
-                  <div>
-                    <h4 className="font-semibold text-[13px]">
-                      Client Application
-                    </h4>
-                    <p className="font-mono text-[11px] text-muted-foreground">
-                      apps/web (:3000)
-                    </p>
-                  </div>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-[12px] text-muted-foreground">
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-primary"
-                    />{" "}
-                    React 19 &amp; Vite SPA
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-primary"
-                    />{" "}
-                    React Router 7 Role Scoping
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-primary"
-                    />{" "}
-                    TanStack Query (1.5s Polling)
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-primary"
-                    />{" "}
-                    Tailwind CSS &amp; shadcn/ui
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-4 border-border/60 border-t pt-2.5">
-                <span className="text-[11px] text-muted-foreground">
-                  Vite Proxy:{" "}
-                  <code className="font-mono text-[10.5px]">
-                    /api &rarr; :4000
-                  </code>
-                </span>
-              </div>
-            </div>
-
-            {/* API / Backend Block */}
-            <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-xs">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                    <i
-                      aria-hidden="true"
-                      className="ri-server-line text-[14px]"
-                    />
-                  </span>
-                  <div>
-                    <h4 className="font-semibold text-[13px]">API Gateway</h4>
-                    <p className="font-mono text-[11px] text-muted-foreground">
-                      apps/api (:4000)
-                    </p>
-                  </div>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-[12px] text-muted-foreground">
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Express 5 &amp; TypeScript
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Zod Contract Validation
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Better Auth (HttpOnly Cookie)
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Streaming Multer (5k Chunks)
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-4 border-border/60 border-t pt-2.5">
-                <span className="text-[11px] text-muted-foreground">
-                  Shared:{" "}
-                  <code className="font-mono text-[10.5px]">
-                    packages/types
-                  </code>
-                </span>
-              </div>
-            </div>
-
-            {/* Storage & AI Services */}
-            <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-xs">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                    <i
-                      aria-hidden="true"
-                      className="ri-database-2-line text-[14px]"
-                    />
-                  </span>
-                  <div>
-                    <h4 className="font-semibold text-[13px]">
-                      Storage &amp; AI
-                    </h4>
-                    <p className="font-mono text-[11px] text-muted-foreground">
-                      Persistence &amp; LLM
-                    </p>
-                  </div>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-[12px] text-muted-foreground">
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    PostgreSQL 16 via Prisma 7
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Local Disk (luma-uploads buffer)
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Gemini 3.5 Flash / Mock AI
-                  </li>
-                  <li className="flex items-center gap-1.5">
-                    <i
-                      aria-hidden="true"
-                      className="ri-check-line text-foreground/80"
-                    />{" "}
-                    Append-only Audit Trail
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-4 border-border/60 border-t pt-2.5">
-                <span className="text-[11px] text-muted-foreground">
-                  Security:{" "}
-                  <code className="font-mono text-[10.5px]">
-                    SHA-256 Record Hash
-                  </code>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* User Role Personas */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-border border-t pt-3">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-              Role Access Boundaries:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-muted text-foreground/80" variant="outline">
-                <i
-                  aria-hidden="true"
-                  className="ri-user-line mr-1 text-primary"
-                />
-                Data Operator (Upload &amp; Lineage)
-              </Badge>
-              <Badge className="bg-muted text-foreground/80" variant="outline">
-                <i
-                  aria-hidden="true"
-                  className="ri-user-star-line mr-1 text-amber-500"
-                />
-                Reviewer (Queue, AI Triage &amp; Verify)
-              </Badge>
-              <Badge className="bg-muted text-foreground/80" variant="outline">
-                <i
-                  aria-hidden="true"
-                  className="ri-shield-user-line mr-1 text-emerald-500"
-                />
-                Data Consumer (Verified Records &amp; Export)
-              </Badge>
-            </div>
+      {/* Top meta banner */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-3.5 shadow-xs">
+        <div className="flex items-center gap-3">
+          <i
+            aria-hidden="true"
+            className="ri-shield-check-line shrink-0 text-[20px] text-foreground/80"
+          />
+          <div>
+            <p className="font-bold text-[13px] text-foreground">
+              Luma Loan Data Verification Copilot
+            </p>
+            <p className="text-[11.5px] text-muted-foreground">
+              Intain Campus FinTech Challenge 2026 · Architecture Note v1.0
+            </p>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { icon: "ri-database-2-line", label: "6 Entities" },
+            { icon: "ri-shield-check-line", label: "13 Validation Rules" },
+            { icon: "ri-git-commit-line", label: "11 Audit Events" },
+            { icon: "ri-sparkling-line", label: "AI + HITL" },
+            { icon: "ri-fingerprint-line", label: "SHA-256 Tamper-Proof" },
+          ].map((tag) => (
+            <span
+              className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 font-medium text-[11px] text-foreground/80"
+              key={tag.label}
+            >
+              <i
+                aria-hidden="true"
+                className={`text-[12px] text-foreground/70 ${tag.icon}`}
+              />
+              {tag.label}
+            </span>
+          ))}
+        </div>
+      </div>
 
-        {/* Stack Table */}
-        <div className="overflow-hidden rounded-xl border border-border">
+      {/* ── 1. System Topology ────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+        <SectionHeading
+          hint="Turborepo monorepo. Long-lived streaming kept on Express to avoid frontend timeout and memory pressure. Auth resolves server-side on every request."
+          title="1. System Architecture & Topology"
+        />
+        <div className="rounded-2xl border border-border/70 bg-muted/10 p-5">
+          <FigureLabel
+            badge="Component Topology"
+            label="Figure 1 · System Architecture Diagram"
+          />
+          <SystemTopologyFigure />
+        </div>
+
+        <div className="mt-6 overflow-hidden rounded-xl border border-border">
           <table className="w-full text-left text-[12.5px]">
-            <thead className="border-border border-b bg-muted/40 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+            <thead className="border-border border-b bg-muted/40">
               <tr>
-                <th className="px-4 py-2.5">Layer</th>
-                <th className="px-4 py-2.5">Technology Choice</th>
-                <th className="px-4 py-2.5">Engineering Rationale</th>
+                {["Layer", "Technology", "Rationale"].map((h) => (
+                  <th
+                    className="px-4 py-2.5 font-semibold text-[10.5px] text-muted-foreground uppercase tracking-wider"
+                    key={h}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {STACK_LAYERS.map((row) => (
                 <tr className="hover:bg-muted/20" key={row.layer}>
-                  <td className="px-4 py-2.5 font-medium text-foreground">
+                  <td className="whitespace-nowrap px-4 py-3 font-bold text-foreground">
                     {row.layer}
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-[12px] text-primary">
+                  <td className="px-4 py-3 font-mono text-[11.5px] text-foreground/90">
                     {row.choice}
                   </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
+                  <td className="px-4 py-3 text-[12px] text-muted-foreground">
                     {row.reason}
                   </td>
                 </tr>
@@ -329,281 +426,353 @@ export default function ArchitecturePage() {
         </div>
       </section>
 
-      {/* SECTION 2: Data Model */}
-      <section className="rounded-xl border border-border bg-card p-5">
+      {/* ── 2. Data Model ─────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
         <SectionHeading
-          hint="6 relational entities with strict foreign keys, cuid identifiers, and append-only audit persistence."
-          title="2. Data Model & Entity Specifications"
+          hint="Six relational entities. All IDs are cuid. No soft deletes. AuditLog is append-only and references every entity via nullable FKs."
+          title="2. Data Model & Entity Relationships"
         />
-
-        {/* Figure 2: ERD Diagram */}
-        <div className="my-5 rounded-2xl border border-border/80 bg-muted/20 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold text-[11px] text-primary uppercase tracking-wider">
-              Figure 2. Entity Relationships &amp; Cardinality
-            </span>
-            <span className="rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-              PostgreSQL 16 (Prisma 7)
-            </span>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {DATA_MODEL_TABLES.map((table) => (
-              <div
-                className="rounded-xl border border-border bg-card p-4 shadow-xs"
-                key={table.name}
-              >
-                <div className="flex items-center justify-between border-border border-b pb-2">
-                  <h4 className="font-bold font-mono text-[13px] text-primary">
-                    {table.name}
-                  </h4>
-                  <span className="text-[10px] text-muted-foreground">
-                    {table.columns.length} columns
-                  </span>
-                </div>
-                <p className="mt-2 text-[11.5px] text-muted-foreground leading-snug">
-                  {table.description}
-                </p>
-                <ul className="mt-3 space-y-1 font-mono text-[11px]">
-                  {table.columns.slice(0, 4).map((col) => (
-                    <li
-                      className="flex items-center justify-between text-muted-foreground"
-                      key={col.name}
-                    >
-                      <span className="text-foreground/85">{col.name}</span>
-                      <span className="text-[10px] opacity-70">{col.type}</span>
-                    </li>
-                  ))}
-                  {table.columns.length > 4 ? (
-                    <li className="text-[10px] text-muted-foreground italic">
-                      + {table.columns.length - 4} more attributes...
-                    </li>
-                  ) : null}
-                </ul>
-              </div>
-            ))}
-          </div>
+        <div className="rounded-2xl border border-border/70 bg-muted/10 p-5">
+          <FigureLabel
+            badge="PostgreSQL 16 · Prisma 7"
+            label="Figure 2 · Entity Relationship Diagram"
+          />
+          <ErdDiagram />
         </div>
-      </section>
 
-      {/* SECTION 3: Validation Engine */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <SectionHeading
-          hint="10 per-loan verification rules and 3 batch-scoped duplicate checks executed in 5,000-row chunks."
-          title="3. Validation Engine & Anomaly Detection"
-        />
-
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {VALIDATION_RULES.map((rule) => (
-            <div
-              className="flex items-start justify-between gap-3 rounded-xl border border-border/80 bg-muted/20 p-3.5 text-[12px]"
-              key={rule.name}
+        <div className="mt-6 space-y-2">
+          <p className="mb-3 font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
+            Table Schema Details (expand each)
+          </p>
+          {DATA_MODEL_TABLES.map((table) => (
+            <details
+              className="group overflow-hidden rounded-xl border border-border"
+              key={table.name}
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-[12.5px] text-foreground">
-                    {rule.name}
-                  </p>
-                  <code className="rounded-sm bg-muted px-1.5 py-0.2 font-mono text-[10px] text-muted-foreground">
-                    {rule.code}
-                  </code>
+              <summary className="flex cursor-pointer select-none list-none items-center justify-between px-4 py-3 hover:bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold font-mono text-[13px] text-foreground">
+                    {table.name}
+                  </span>
+                  <Badge
+                    className="px-1.5 py-0 font-mono text-[10px]"
+                    variant="outline"
+                  >
+                    {table.columns.length} cols
+                  </Badge>
                 </div>
-                <p className="mt-1 text-[11.5px] text-muted-foreground leading-relaxed">
-                  {rule.description}
-                </p>
+                <div className="flex items-center gap-3">
+                  <span className="hidden text-[11.5px] text-muted-foreground sm:block">
+                    {table.description}
+                  </span>
+                  <i
+                    aria-hidden="true"
+                    className="ri-arrow-down-s-line text-[16px] text-muted-foreground transition-transform group-open:rotate-180"
+                  />
+                </div>
+              </summary>
+              <div className="border-border border-t bg-muted/10 px-4 py-3">
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="w-full text-[11.5px]">
+                    <thead className="bg-muted/40">
+                      <tr>
+                        {["Column", "Type", "Notes"].map((h) => (
+                          <th
+                            className="px-3 py-2 text-left font-semibold text-[10px] text-muted-foreground uppercase tracking-wider"
+                            key={h}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {table.columns.map((col) => (
+                        <tr className="hover:bg-muted/10" key={col.name}>
+                          <td className="px-3 py-2 font-bold font-mono text-foreground/90">
+                            {col.name}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-[10.5px] text-foreground/80">
+                            {col.type}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {col.notes ?? "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {table.indexes.length > 0 ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-foreground/70">
+                      Indexes:
+                    </span>{" "}
+                    {table.indexes.join(", ")}
+                  </p>
+                ) : null}
               </div>
-              <Badge
-                className="shrink-0 font-mono text-[10px] capitalize"
-                variant={getSeverityVariant(rule.severity)}
-              >
-                {rule.severity}
-              </Badge>
-            </div>
+            </details>
           ))}
         </div>
       </section>
 
-      {/* SECTION 4: AI Feature & Controls */}
-      <section className="rounded-xl border border-border bg-card p-5">
+      {/* ── 3. Validation Engine ──────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
         <SectionHeading
-          hint="Strict human-in-the-loop safeguards. AI never silently updates loan or exception data."
+          hint="Two-phase execution: per-loan field validation followed by batch-scoped DB duplicate detection. Each failure creates an Exception record."
+          title="3. Validation Engine & Anomaly Detection"
+        />
+        <div className="space-y-5">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <i
+                  aria-hidden="true"
+                  className="ri-file-list-3-line text-[12px] text-foreground"
+                />
+              </span>
+              <p className="font-bold text-[13px]">
+                Phase 1 · Per-Loan Field Checks
+              </p>
+              <Badge className="px-1.5 font-mono text-[10px]" variant="outline">
+                10 rules
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {VALIDATION_RULES.filter((r) => r.category === "Per-Loan").map(
+                (rule) => (
+                  <div
+                    className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/10 p-3.5"
+                    key={rule.name}
+                  >
+                    <div className="min-w-0">
+                      <div className="mb-1 flex items-center gap-2">
+                        <p className="font-bold text-[12.5px] text-foreground">
+                          {rule.name}
+                        </p>
+                        <code className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[9.5px] text-muted-foreground">
+                          {rule.code}
+                        </code>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                        {rule.description}
+                      </p>
+                    </div>
+                    <Badge
+                      className="mt-0.5 shrink-0 font-mono text-[10px] capitalize"
+                      variant="outline"
+                    >
+                      {rule.severity}
+                    </Badge>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <i
+                  aria-hidden="true"
+                  className="ri-group-line text-[12px] text-foreground"
+                />
+              </span>
+              <p className="font-bold text-[13px]">
+                Phase 2 · Batch-Scoped Duplicate Detection
+              </p>
+              <Badge className="px-1.5 font-mono text-[10px]" variant="outline">
+                3 rules · DB groupBy
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {VALIDATION_RULES.filter(
+                (r) => r.category === "Batch-Scoped"
+              ).map((rule) => (
+                <div
+                  className="flex flex-col gap-2 rounded-xl border border-border bg-muted/10 p-3.5"
+                  key={rule.name}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-[12px] text-foreground">
+                      {rule.name}
+                    </p>
+                    <Badge
+                      className="font-mono text-[10px] capitalize"
+                      variant="outline"
+                    >
+                      {rule.severity}
+                    </Badge>
+                  </div>
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                    {rule.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 4. AI Safety Architecture ─────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+        <SectionHeading
+          hint="AI is advisory only. No silent mutations. Every invocation is audited and rate-limited."
           title="4. AI Review Assistant & Safety Architecture"
         />
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {AI_CONTROLS.map((ctrl) => (
             <div
-              className="rounded-xl border border-border bg-muted/15 p-4 shadow-xs"
+              className="rounded-xl border border-border bg-muted/10 p-4"
               key={ctrl.title}
             >
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <i aria-hidden="true" className={cn(ctrl.icon, "text-sm")} />
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-muted text-foreground shadow-xs">
+                  <i
+                    aria-hidden="true"
+                    className={`text-[15px] ${ctrl.icon}`}
+                  />
                 </span>
-                <h4 className="font-semibold text-[13px]">{ctrl.title}</h4>
+                <h4 className="font-bold text-[13px]">{ctrl.title}</h4>
               </div>
-              <p className="mt-2 text-[12px] text-muted-foreground leading-relaxed">
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
                 {ctrl.text}
               </p>
             </div>
           ))}
         </div>
-      </section>
 
-      {/* SECTION 5: End-to-End Verification Pipeline */}
-      <section className="rounded-xl border border-border bg-card p-5">
-        <SectionHeading
-          hint="From raw ingestion to immutable SHA-256 verified loan records and append-only audit trail."
-          title="5. Verification Flow & Tamper-Evidence"
-        />
-
-        {/* Figure 3: Flowchart */}
-        <div className="my-5 rounded-2xl border border-border/80 bg-muted/20 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold text-[11px] text-primary uppercase tracking-wider">
-              Figure 3. End-to-End Verification &amp; Audit Lifecycle
+        {/* HITL flow */}
+        <div className="mt-5 overflow-x-auto rounded-xl border border-border bg-muted/20 p-4">
+          <p className="mb-3 font-bold text-[11px] text-foreground/80 uppercase tracking-wider">
+            Human-in-the-Loop Decision Flow
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-lg border border-border bg-background px-3 py-1.5 font-semibold text-foreground/90">
+              AI generates suggestion
             </span>
-            <span className="rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-              Lifecycle Pipeline
+            <i
+              aria-hidden="true"
+              className="ri-arrow-right-line text-muted-foreground"
+            />
+            <span className="rounded-lg border border-border bg-background px-3 py-1.5 font-semibold text-foreground/90">
+              Reviewer inspects card
+            </span>
+            <i
+              aria-hidden="true"
+              className="ri-arrow-right-line text-muted-foreground"
+            />
+            <span className="rounded-lg border border-border bg-background px-3 py-1.5 font-semibold text-foreground/90">
+              Accept · Edit Override · Reject
+            </span>
+            <i
+              aria-hidden="true"
+              className="ri-arrow-right-line text-muted-foreground"
+            />
+            <span className="rounded-lg border border-border bg-background px-3 py-1.5 font-semibold text-foreground/90">
+              AuditLog event written
             </span>
           </div>
+        </div>
+      </section>
 
-          <div className="space-y-3">
-            {[
-              {
-                desc: "Operator uploads loan tape, servicer update, or manifest. Multer stages file to disk.",
-                event: "FILE_UPLOADED",
-                role: "Data Operator",
-                step: "1. Staging & Chunk Ingestion",
-              },
-              {
-                desc: "Parser streams rows in 5k chunks. Ingestion time errors saved to metadata.failedRows.",
-                event: "LOAN_IMPORTED",
-                role: "Ingestion Engine",
-                step: "2. Schema Normalization",
-              },
-              {
-                desc: "10 per-loan rules & batch duplicate checks execute. Flagged records produce Exceptions.",
-                event: "VALIDATION_RUN · EXCEPTION_CREATED",
-                role: "Validation Engine",
-                step: "3. Automated Validation",
-              },
-              {
-                desc: "AI explains anomalies, compares conflicting sources, and drafts reviewer notes.",
-                event: "AI_RECOMMENDATION",
-                role: "AI Review Assistant",
-                step: "4. AI Triage & Explanation",
-              },
-              {
-                desc: "Reviewer explicitly Accepts, Edits, or Rejects AI recommendation and closes exceptions.",
-                event: "FIELD_EDITED · LOAN_APPROVED",
-                role: "Reviewer",
-                step: "5. Human Review Decision",
-              },
-              {
-                desc: "Canonical snapshot captured and SHA-256 hash computed. VerifiedLoan record created.",
-                event: "VERIFIED_RECORD_CREATED",
-                role: "System Verifier",
-                step: "6. Hashing & Verification",
-              },
-              {
-                desc: "Consumer accesses verified portfolio, inspects audit trail, and exports CSV.",
-                event: "RECORD_EXPORTED",
-                role: "Data Consumer",
-                step: "7. Consumer Access & Export",
-              },
-            ].map((st, i) => (
+      {/* ── 5. End-to-End Verification Pipeline ───────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+        <SectionHeading
+          hint="From raw CSV drop to immutable SHA-256 verified loan records. Every step emits an append-only AuditLog event."
+          title="5. End-to-End Verification Pipeline"
+        />
+
+        <div className="rounded-2xl border border-border/70 bg-muted/10 p-5">
+          <FigureLabel
+            badge="Lifecycle Pipeline"
+            label="Figure 3 · End-to-End Verification Flow"
+          />
+          <EndToEndFlowFigure />
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-3 font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
+            Append-Only Audit Event Reference
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 font-medium text-[10px] normal-case">
+              11 types
+            </span>
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {AUDIT_EVENTS.map((ev) => (
               <div
-                className="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5 shadow-xs"
-                key={st.step}
+                className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/15 px-3.5 py-2.5"
+                key={ev.event}
               >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-bold font-mono text-[12px] text-primary">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h5 className="font-semibold text-[13px] text-foreground">
-                      {st.step}
-                    </h5>
-                    <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 font-medium text-[10.5px] text-muted-foreground">
-                      {st.role}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    {st.desc}
+                <i
+                  aria-hidden="true"
+                  className="ri-git-commit-line mt-0.5 shrink-0 text-[13px] text-foreground/70"
+                />
+                <div>
+                  <code className="font-bold font-mono text-[11px] text-foreground">
+                    {ev.event}
+                  </code>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {ev.summary}
                   </p>
-                  <div className="mt-2 flex items-center gap-1.5 font-mono text-[10.5px] text-primary">
-                    <i
-                      aria-hidden="true"
-                      className="ri-git-commit-line text-muted-foreground"
-                    />
-                    <span>Audit Event: {st.event}</span>
-                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Audit Events Summary */}
-        <div className="mt-4 border-border border-t pt-4">
-          <h4 className="mb-3 font-semibold text-[13px] tracking-tight">
-            Append-Only Audit Events (11 Event Types)
-          </h4>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {AUDIT_EVENTS.map((ev) => (
-              <div
-                className="flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-[11.5px]"
-                key={ev.event}
-              >
-                <span className="font-medium font-mono text-[11px] text-foreground">
-                  {ev.event}
-                </span>
-                <span className="truncate text-[11px] text-muted-foreground">
-                  {ev.summary}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
-      {/* SECTION 6: Trade-offs Table */}
-      <section className="rounded-xl border border-border bg-card p-5">
+      {/* ── 6. Trade-offs ─────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-xs">
         <SectionHeading
-          hint="13 architectural decisions, alternatives considered, and rationale."
+          hint="13 explicit architectural decisions with alternatives considered and engineering rationale."
           title="6. Engineering Trade-offs"
         />
 
-        <div className="overflow-hidden rounded-xl border border-border">
-          <table className="w-full text-left text-[12.5px]">
-            <thead className="border-border border-b bg-muted/40 font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-2.5">Decision</th>
-                <th className="px-4 py-2.5">Chosen Approach</th>
-                <th className="px-4 py-2.5">Alternative Considered</th>
-                <th className="px-4 py-2.5">Rationale</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {TRADE_OFFS.map((item) => (
-                <tr className="hover:bg-muted/20" key={item.decision}>
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    {item.decision}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-primary">
+        <div className="space-y-3">
+          {TRADE_OFFS.map((item, i) => (
+            <div
+              className="rounded-xl border border-border bg-muted/10 p-4"
+              key={item.decision}
+            >
+              <div className="mb-3 flex flex-wrap items-start gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-background font-bold font-mono text-[11px] text-foreground/80">
+                  {i + 1}
+                </span>
+                <h4 className="font-bold text-[13px] text-foreground">
+                  {item.decision}
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 gap-3 pl-9 sm:grid-cols-3">
+                <div>
+                  <p className="mb-1.5 font-bold text-[10.5px] text-muted-foreground uppercase tracking-wider">
+                    Chosen
+                  </p>
+                  <p className="font-mono text-[11.5px] text-foreground/90 leading-relaxed">
                     {item.chosen}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1.5 font-bold text-[10.5px] text-muted-foreground uppercase tracking-wider">
+                    Alternative
+                  </p>
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">
                     {item.alternative}
-                  </td>
-                  <td className="px-4 py-3 text-[12px] text-muted-foreground leading-relaxed">
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1.5 font-bold text-[10.5px] text-muted-foreground uppercase tracking-wider">
+                    Rationale
+                  </p>
+                  <p className="text-[11.5px] text-muted-foreground leading-relaxed">
                     {item.rationale}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>
