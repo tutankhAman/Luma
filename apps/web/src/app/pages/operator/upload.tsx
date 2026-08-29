@@ -1,7 +1,30 @@
 import { PageHeader } from "@/components/dashboard/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { CsvDropzone } from "@/components/upload/csv-dropzone";
+import { cn } from "@/lib/utils";
 
 /* Spec §4.2 — Upload Data (Module A ingestion flow entry point). */
+
+const SAMPLE_FILES = [
+  {
+    description: "137 loans · 15 anomaly types",
+    filename: "loan_tape.csv",
+    href: "/sample-files/loan_tape.csv",
+    label: "Loan Tape",
+  },
+  {
+    description: "Conflicting balances & status updates",
+    filename: "servicer_update.csv",
+    href: "/sample-files/servicer_update.csv",
+    label: "Servicer Update",
+  },
+  {
+    description: "Document checklist & verification flags",
+    filename: "document_manifest.csv",
+    href: "/sample-files/document_manifest.csv",
+    label: "Document Manifest",
+  },
+] as const;
 
 const ACCEPTED = [
   {
@@ -44,6 +67,46 @@ export default function UploadPage() {
       />
 
       <CsvDropzone />
+
+      <section className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <i
+                  aria-hidden="true"
+                  className="ri-download-cloud-2-line text-sm"
+                />
+              </span>
+              <h3 className="font-semibold text-[13.5px] tracking-tight">
+                Download sample files
+              </h3>
+            </div>
+            <p className="text-[12px] text-muted-foreground">
+              Test ingestion and AI exception handling with curated datasets
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {SAMPLE_FILES.map((sample) => (
+              <a
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "h-8 gap-2 rounded-xl border-border/80 bg-background/80 px-3 text-[12px] shadow-xs hover:border-primary/40 hover:bg-accent/40"
+                )}
+                download={sample.filename}
+                href={sample.href}
+                key={sample.filename}
+              >
+                <i
+                  aria-hidden="true"
+                  className="ri-download-2-line text-muted-foreground"
+                />
+                <span>{sample.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         <header className="border-border border-b px-6 py-4">
