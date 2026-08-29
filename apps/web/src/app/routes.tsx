@@ -5,6 +5,7 @@ import {
   ConsumerLayout,
   OperatorLayout,
   ReviewerLayout,
+  SharedDocLayout,
 } from "./layouts/role-layouts";
 import ApiExplorerPage from "./pages/consumer/api-explorer";
 import AuditTrailPage from "./pages/consumer/audit";
@@ -32,8 +33,13 @@ export const routes: RouteObject[] = [
     children: [
       { element: <RoleRedirect />, index: true },
       { element: <LoginPage />, path: "login" },
-      { element: <AiDevelopmentLogPage />, path: "ai-log" },
-      { element: <ArchitecturePage />, path: "architecture" },
+      {
+        children: [
+          { element: <AiDevelopmentLogPage />, path: "ai-log" },
+          { element: <ArchitecturePage />, path: "architecture" },
+        ],
+        element: <SharedDocLayout />,
+      },
       {
         children: [
           {
